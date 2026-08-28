@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16.15-alpine3.23
+    container_name: toeic-path-ai-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: "123456"
+      POSTGRES_DB: toeic_path_ai_db
+    ports:
+      - "5400:5432"
+    volumes:
+      - toeic_path_ai_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  toeic_path_ai_postgres_data:
