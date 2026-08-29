@@ -1,35 +1,34 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
 ## Project setup
 
 ```bash
 $ pnpm install
 ```
+
+Copy `.env.example` to `.env`, configure PostgreSQL, and generate a local RSA
+key pair (never commit these files):
+
+```bash
+mkdir keys
+openssl genpkey -algorithm RSA -out keys/private.key -pkeyopt rsa_keygen_bits:2048
+openssl rsa -in keys/private.key -pubout -out keys/public.key
+pnpm migration:run
+```
+
+Required authentication settings are `JWT_PRIVATE_KEY_PATH`,
+`JWT_PUBLIC_KEY_PATH`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, and
+`BCRYPT_SALT_ROUNDS`. The application fails during startup when either RSA key
+path is missing or unreadable.
+
+Authentication endpoints use the global `/api/v1` prefix:
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/revoke` (Bearer access token)
+- `GET /api/v1/auth/me` (Bearer access token)
+
+Login and refresh currently return both tokens in the response body. Refresh
+tokens are rotated per use and only their SHA-256 hashes are stored.
 
 ## Compile and run the project
 
@@ -56,6 +55,16 @@ $ pnpm run test:e2e
 # test coverage
 $ pnpm run test:cov
 ```
+
+## Database migrations
+
+```bash
+pnpm migration:run
+pnpm migration:revert
+```
+
+The TypeORM CLI reads database settings from `.env`. Schema synchronization is
+disabled; all schema changes must use migrations.
 
 ## Deployment
 

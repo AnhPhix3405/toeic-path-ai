@@ -5,14 +5,16 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
+import jwtConfig from './config/jwt.config';
 import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './modules/health/health.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig],
+      load: [appConfig, databaseConfig, jwtConfig],
       validate: validateEnvironment,
     }),
     TypeOrmModule.forRootAsync({
@@ -34,6 +36,7 @@ import { HealthModule } from './modules/health/health.module';
       }),
     }),
     HealthModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
