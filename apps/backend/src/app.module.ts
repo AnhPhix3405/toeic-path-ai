@@ -9,12 +9,13 @@ import jwtConfig from './config/jwt.config';
 import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import refreshCookieConfig from './modules/auth/config/refresh-cookie.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, jwtConfig],
+      load: [appConfig, databaseConfig, jwtConfig, refreshCookieConfig],
       validate: validateEnvironment,
     }),
     TypeOrmModule.forRootAsync({

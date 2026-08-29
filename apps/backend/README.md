@@ -19,16 +19,24 @@ Required authentication settings are `JWT_PRIVATE_KEY_PATH`,
 `BCRYPT_SALT_ROUNDS`. The application fails during startup when either RSA key
 path is missing or unreadable.
 
+Refresh-cookie settings are `REFRESH_COOKIE_NAME`, `REFRESH_COOKIE_PATH`,
+`REFRESH_COOKIE_MAX_AGE_MS`, `REFRESH_COOKIE_SECURE`, and
+`REFRESH_COOKIE_SAME_SITE`. Cookie max age must match the refresh JWT lifetime.
+Use `Secure=true` whenever `SameSite=none` is required in production.
+
 Authentication endpoints use the global `/api/v1` prefix:
 
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout` (Bearer access token)
 - `POST /api/v1/auth/revoke` (Bearer access token)
 - `GET /api/v1/auth/me` (Bearer access token)
 
-Login and refresh currently return both tokens in the response body. Refresh
-tokens are rotated per use and only their SHA-256 hashes are stored.
+Login and refresh return the access token in JSON and transport the refresh
+token exclusively through an HTTP-only cookie. Clients must send requests with
+credentials enabled. Refresh tokens are rotated per use and only their SHA-256
+hashes are stored.
 
 ## Compile and run the project
 

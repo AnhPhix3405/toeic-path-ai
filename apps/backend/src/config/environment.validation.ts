@@ -1,3 +1,5 @@
+import { durationToSeconds } from './jwt.config';
+
 const REQUIRED_DATABASE_VARIABLES = [
   'DB_HOST',
   'DB_PORT',
@@ -38,6 +40,31 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     if (value !== undefined && value !== 'true' && value !== 'false') {
       throw new Error(`${variableName} must be either "true" or "false"`);
     }
+  }
+
+  const cookieSecure = environment.REFRESH_COOKIE_SECURE ?? 'false';
+  if (cookieSecure !== 'true' && cookieSecure !== 'false') {
+    throw new Error('REFRESH_COOKIE_SECURE must be either "true" or "false"');
+  }
+
+  const cookieSameSite = environment.REFRESH_COOKIE_SAME_SITE ?? 'lax';
+  if (typeof cookieSameSite !== 'string' || !['lax', 'strict', 'none'].includes(cookieSameSite)) {
+    throw new Error('REFRESH_COOKIE_SAME_SITE must be "lax", "strict", or "none"');
+  }
+  if (cookieSameSite === 'none' && cookieSecure !== 'true') {
+    throw new Error('REFRESH_COOKIE_SECURE must be true when REFRESH_COOKIE_SAME_SITE is none');
+  }
+
+  const cookieMaxAge = Number(environment.REFRESH_COOKIE_MAX_AGE_MS ?? 604800000);
+  if (!Number.isInteger(cookieMaxAge) || cookieMaxAge <= 0) {
+    throw new Error('REFRESH_COOKIE_MAX_AGE_MS must be a positive integer');
+  }
+  const refreshExpiresIn = environment.JWT_REFRESH_EXPIRES_IN ?? '7d';
+  if (typeof refreshExpiresIn !== 'string') {
+    throw new Error('JWT_REFRESH_EXPIRES_IN must be a duration string');
+  }
+  if (cookieMaxAge !== durationToSeconds(refreshExpiresIn) * 1000) {
+    throw new Error('REFRESH_COOKIE_MAX_AGE_MS must match JWT_REFRESH_EXPIRES_IN');
   }
 
   return environment;

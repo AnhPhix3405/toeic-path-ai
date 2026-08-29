@@ -6,6 +6,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { DataSource } from 'typeorm';
+import cookieParser from 'cookie-parser';
 
 interface DatabaseCheckResult {
   database: string;
@@ -13,6 +14,7 @@ interface DatabaseCheckResult {
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
 
   const configService = app.get(ConfigService);
@@ -28,9 +30,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  const allowedOrigins = configService.get<string[]>('app.corsOrigins', [
-    'http://localhost:3000',
-  ]);
+  const allowedOrigins = configService.get<string[]>('app.corsOrigins', ['http://localhost:3000']);
 
   app.enableCors({
     origin: (
@@ -85,19 +85,14 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   const dataSource = app.get(DataSource);
-  const rows: unknown = await dataSource.query(
-    'SELECT current_database() AS database',
-  );
+  const rows: unknown = await dataSource.query('SELECT current_database() AS database');
 
   if (!Array.isArray(rows) || rows.length === 0) {
     throw new Error('Database connection check returned no result');
   }
 
   const [{ database }] = rows as DatabaseCheckResult[];
-  Logger.log(
-    `TypeORM connected successfully to PostgreSQL database "${database}"`,
-    'Database',
-  );
+  Logger.log(`TypeORM connected successfully to PostgreSQL database "${database}"`, 'Database');
 
   const port = configService.get<number>('app.port') || 3000;
   await app.listen(port);

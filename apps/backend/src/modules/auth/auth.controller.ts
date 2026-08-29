@@ -1,19 +1,52 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { AuthService, type SafeUser, type TokenResponse } from './auth.service';
+import {
+  getRefreshCookieClearOptions,
+  getRefreshCookieOptions,
+} from './config/refresh-cookie.config';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 type AuthenticatedRequest = Request & { user: AuthenticatedUser };
+type LoginResponse = Omit<TokenResponse, 'refreshToken'>;
+type RefreshResponse = Pick<TokenResponse, 'accessToken' | 'accessTokenExpiresIn'>;
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  private readonly refreshCookieName: string;
+
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {
+    this.refreshCookieName = configService.getOrThrow<string>('refreshCookie.name');
+  }
 
   @Post('register')
   @ApiCreatedResponse({ description: 'Student account created' })
@@ -23,16 +56,69 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'Authentication tokens issued' })
-  login(@Body() dto: LoginDto, @Req() request: Request): Promise<TokenResponse> {
-    return this.authService.login(dto, this.getSessionMetadata(request));
+  @ApiOkResponse({
+    description: 'Access token returned and refresh token set as HTTP-only cookie',
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
+  @ApiForbiddenResponse({ description: 'Account is locked' })
+  async login(
+    @Body() dto: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LoginResponse> {
+    const { refreshToken, ...body } = await this.authService.login(
+      dto,
+      this.getSessionMetadata(request),
+    );
+    this.setRefreshCookie(response, refreshToken);
+    return body;
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ description: 'Authentication tokens rotated' })
-  refresh(@Body() dto: RefreshTokenDto, @Req() request: Request): Promise<TokenResponse> {
-    return this.authService.refresh(dto.refreshToken, this.getSessionMetadata(request));
+  @ApiCookieAuth('toeic_refresh_token')
+  @ApiOkResponse({
+    description: 'Access token returned and refresh cookie rotated',
+  })
+  @ApiUnauthorizedResponse({ description: 'Refresh cookie is invalid or absent' })
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<RefreshResponse> {
+    try {
+      const refreshToken = this.getRefreshTokenFromRequest(request);
+      if (!refreshToken) {
+        throw new UnauthorizedException('Refresh token cookie is required');
+      }
+
+      const result = await this.authService.refresh(refreshToken, this.getSessionMetadata(request));
+      this.setRefreshCookie(response, result.refreshToken);
+      return {
+        accessToken: result.accessToken,
+        accessTokenExpiresIn: result.accessTokenExpiresIn,
+      };
+    } catch (error: unknown) {
+      this.clearRefreshCookie(response);
+      throw error;
+    }
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiCookieAuth('toeic_refresh_token')
+  @ApiNoContentResponse({ description: 'Session revoked and cookie cleared' })
+  @ApiUnauthorizedResponse({ description: 'Access token is invalid or absent' })
+  async logout(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    try {
+      await this.authService.revoke(request.user);
+    } finally {
+      this.clearRefreshCookie(response);
+    }
   }
 
   @Post('revoke')
@@ -49,6 +135,28 @@ export class AuthController {
   @ApiOkResponse({ description: 'Authenticated access-token identity' })
   me(@Req() request: AuthenticatedRequest): AuthenticatedUser {
     return request.user;
+  }
+
+  private setRefreshCookie(response: Response, refreshToken: string): void {
+    response.cookie(
+      this.refreshCookieName,
+      refreshToken,
+      getRefreshCookieOptions(this.configService),
+    );
+  }
+
+  private clearRefreshCookie(response: Response): void {
+    response.clearCookie(this.refreshCookieName, getRefreshCookieClearOptions(this.configService));
+  }
+
+  private getRefreshTokenFromRequest(request: Request): string | undefined {
+    const cookies = request.cookies as unknown;
+    if (typeof cookies !== 'object' || cookies === null) {
+      return undefined;
+    }
+
+    const token = (cookies as Record<string, unknown>)[this.refreshCookieName];
+    return typeof token === 'string' && token.length > 0 ? token : undefined;
   }
 
   private getSessionMetadata(request: Request) {
