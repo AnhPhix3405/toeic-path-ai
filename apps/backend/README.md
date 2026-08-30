@@ -38,6 +38,20 @@ token exclusively through an HTTP-only cookie. Clients must send requests with
 credentials enabled. Refresh tokens are rotated per use and only their SHA-256
 hashes are stored.
 
+Role-protected administrator endpoints are:
+
+- `GET /api/v1/admin/users`
+- `GET /api/v1/admin/users/:id`
+- `PATCH /api/v1/admin/users/:id/role`
+- `PATCH /api/v1/admin/users/:id/status`
+
+Public registration always creates an active Student. To create the first
+administrator, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then run
+`pnpm seed:admin`. The command is idempotent for an existing administrator and
+is never run automatically during application startup. Changing a role or
+locking an account revokes its active sessions; unlocking does not restore old
+sessions.
+
 ## Compile and run the project
 
 ```bash

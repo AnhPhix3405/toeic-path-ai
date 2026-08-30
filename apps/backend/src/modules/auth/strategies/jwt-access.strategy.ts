@@ -44,10 +44,11 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt-access') 
     }
 
     return {
-      id: payload.sub,
+      id: session.user.id,
       sessionId: payload.sid,
-      email: payload.email,
-      role: payload.role,
+      email: session.user.email,
+      role: session.user.role,
+      status: session.user.status,
     };
   }
 }

@@ -56,6 +56,7 @@ describe('Auth refresh cookie (e2e)', () => {
             sessionId: 'session-id',
             email: 'student@example.com',
             role: UserRole.STUDENT,
+            status: UserStatus.ACTIVE,
           };
           const httpRequest = context.switchToHttp().getRequest<{
             user: AuthenticatedUser;

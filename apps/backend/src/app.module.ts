@@ -10,6 +10,7 @@ import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import refreshCookieConfig from './modules/auth/config/refresh-cookie.config';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import refreshCookieConfig from './modules/auth/config/refresh-cookie.config';
     }),
     HealthModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

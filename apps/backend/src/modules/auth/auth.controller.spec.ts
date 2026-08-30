@@ -113,6 +113,7 @@ describe('AuthController refresh cookie transport', () => {
       sessionId: 'session-id',
       email: 'student@example.com',
       role: UserRole.STUDENT,
+      status: UserStatus.ACTIVE,
     };
     await controller.logout(
       { ...createRequest(), user } as Request & { user: AuthenticatedUser },
