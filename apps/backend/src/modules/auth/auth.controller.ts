@@ -15,21 +15,25 @@ import {
   ApiBearerAuth,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
+  ApiOperation,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
-import { AuthService, type SafeUser, type TokenResponse } from './auth.service';
+import { AuthService, type TokenResponse } from './auth.service';
 import {
   getRefreshCookieClearOptions,
   getRefreshCookieOptions,
 } from './config/refresh-cookie.config';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterResponseDto } from './dto/register-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 type AuthenticatedRequest = Request & { user: AuthenticatedUser };
@@ -49,8 +53,18 @@ export class AuthController {
   }
 
   @Post('register')
-  @ApiCreatedResponse({ description: 'Student account created' })
-  register(@Body() dto: RegisterDto): Promise<SafeUser> {
+  @ApiOperation({
+    summary: 'Register a Student account and basic profile',
+    description:
+      'Public registration always creates an active Student. Role and status are not accepted from clients.',
+  })
+  @ApiCreatedResponse({
+    description: 'Student account and profile created',
+    type: RegisterResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Invalid registration input or terms not accepted' })
+  @ApiConflictResponse({ description: 'Email is already registered' })
+  register(@Body() dto: RegisterDto): Promise<RegisterResponseDto> {
     return this.authService.register(dto);
   }
 

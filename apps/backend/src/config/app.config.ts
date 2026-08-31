@@ -5,4 +5,5 @@ export default registerAs('app', () => ({
   corsOrigins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',')
     : ['http://localhost:3000'],
+  termsVersion: process.env.TERMS_VERSION,
 }));

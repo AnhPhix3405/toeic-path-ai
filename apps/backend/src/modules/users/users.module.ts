@@ -6,9 +6,10 @@ import { AdminUsersController } from './admin-users.controller';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AuthSession } from '../auth/entities/auth-session.entity';
+import { UserProfile } from './entities/user-profile.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, AuthSession])],
+  imports: [TypeOrmModule.forFeature([User, UserProfile, AuthSession])],
   controllers: [AdminUsersController],
   providers: [UsersService, JwtAuthGuard, RolesGuard],
   exports: [UsersService, TypeOrmModule],

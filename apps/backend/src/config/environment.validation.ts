@@ -26,6 +26,11 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     }
   }
 
+  const termsVersion = environment.TERMS_VERSION;
+  if (typeof termsVersion !== 'string' || termsVersion.trim() === '' || termsVersion.length > 30) {
+    throw new Error('TERMS_VERSION must be a non-empty string of at most 30 characters');
+  }
+
   const saltRounds = Number(environment.BCRYPT_SALT_ROUNDS ?? 12);
   if (!Number.isInteger(saltRounds) || saltRounds < 10 || saltRounds > 15) {
     throw new Error('BCRYPT_SALT_ROUNDS must be an integer between 10 and 15');

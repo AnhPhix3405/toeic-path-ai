@@ -11,13 +11,16 @@ import { compare, hash } from 'bcrypt';
 import { createHash, randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
 import { UserStatus } from '../../common/enums/user-status.enum';
+import { UserRole } from '../../common/enums/user-role.enum';
 import type { AccessTokenPayload } from '../../common/interfaces/access-token-payload.interface';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import type { RefreshTokenPayload } from '../../common/interfaces/refresh-token-payload.interface';
 import { User } from '../users/entities/user.entity';
+import { UserProfile } from '../users/entities/user-profile.entity';
 import { UsersService } from '../users/users.service';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
+import type { RegisterResponseDto } from './dto/register-response.dto';
 import { AuthSession } from './entities/auth-session.entity';
 
 interface SessionMetadata {
@@ -48,6 +51,7 @@ export class AuthService {
   private readonly accessExpiresInSeconds: number;
   private readonly refreshExpiresInSeconds: number;
   private readonly saltRounds: number;
+  private readonly termsVersion: string;
 
   constructor(
     private readonly usersService: UsersService,
@@ -66,9 +70,10 @@ export class AuthService {
     this.accessExpiresInSeconds = configService.getOrThrow<number>('jwt.accessExpiresInSeconds');
     this.refreshExpiresInSeconds = configService.getOrThrow<number>('jwt.refreshExpiresInSeconds');
     this.saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
+    this.termsVersion = configService.getOrThrow<string>('app.termsVersion');
   }
 
-  async register(dto: RegisterDto): Promise<SafeUser> {
+  async register(dto: RegisterDto): Promise<RegisterResponseDto> {
     const email = this.normalizeEmail(dto.email);
     if (await this.usersService.findByEmail(email)) {
       throw new ConflictException('Email is already registered');
@@ -76,7 +81,34 @@ export class AuthService {
 
     const passwordHash = await hash(dto.password, this.saltRounds);
     try {
-      return this.toSafeUser(await this.usersService.create(email, passwordHash));
+      return await this.dataSource.transaction(async (manager) => {
+        const users = manager.getRepository(User);
+        const profiles = manager.getRepository(UserProfile);
+        const user = await users.save(
+          users.create({
+            email,
+            passwordHash,
+            role: UserRole.STUDENT,
+            status: UserStatus.ACTIVE,
+            termsAcceptedAt: new Date(),
+            termsVersion: this.termsVersion,
+          }),
+        );
+        const profile = await profiles.save(
+          profiles.create({
+            userId: user.id,
+            fullName: dto.fullName.trim(),
+            avatarUrl: null,
+            bio: null,
+          }),
+        );
+
+        return {
+          ...this.toSafeUser(user),
+          profile: { fullName: profile.fullName, avatarUrl: profile.avatarUrl, bio: profile.bio },
+          createdAt: user.createdAt,
+        };
+      });
     } catch (error: unknown) {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException('Email is already registered');

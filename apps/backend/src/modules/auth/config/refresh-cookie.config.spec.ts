@@ -39,6 +39,7 @@ describe('refresh cookie configuration', () => {
         DB_DATABASE: 'database',
         JWT_PRIVATE_KEY_PATH: './private.key',
         JWT_PUBLIC_KEY_PATH: './public.key',
+        TERMS_VERSION: '2026-08-31',
         JWT_REFRESH_EXPIRES_IN: '7d',
         REFRESH_COOKIE_MAX_AGE_MS: '604800000',
         REFRESH_COOKIE_SECURE: 'false',

@@ -16,7 +16,8 @@ pnpm migration:run
 
 Required authentication settings are `JWT_PRIVATE_KEY_PATH`,
 `JWT_PUBLIC_KEY_PATH`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, and
-`BCRYPT_SALT_ROUNDS`. The application fails during startup when either RSA key
+`BCRYPT_SALT_ROUNDS`. Set `TERMS_VERSION` to the current terms identifier stored
+for every new registration. The application fails during startup when either RSA key
 path is missing or unreadable.
 
 Refresh-cookie settings are `REFRESH_COOKIE_NAME`, `REFRESH_COOKIE_PATH`,

@@ -11,7 +11,8 @@ import { User } from '../users/entities/user.entity';
 import type { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 import { AuthSession } from './entities/auth-session.entity';
-import { hash } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
+import { UserProfile } from '../users/entities/user-profile.entity';
 
 describe('AuthService', () => {
   const keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -25,6 +26,9 @@ describe('AuthService', () => {
     status: UserStatus.ACTIVE,
     emailVerifiedAt: null,
     lastLoginAt: null,
+    termsAcceptedAt: null,
+    termsVersion: null,
+    profile: undefined as unknown as UserProfile,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -52,6 +56,7 @@ describe('AuthService', () => {
       'jwt.refreshExpiresIn': '7d',
       'jwt.accessExpiresInSeconds': 900,
       'jwt.refreshExpiresInSeconds': 604800,
+      'app.termsVersion': '2026-08-31',
     };
     const configService = {
       getOrThrow: jest.fn((key: string) => values[key]),
@@ -64,6 +69,74 @@ describe('AuthService', () => {
       dataSource as DataSource,
       sessionsRepository as unknown as Repository<AuthSession>,
     );
+  });
+
+  it('creates an active Student and profile atomically with normalized input', async () => {
+    usersService.findByEmail.mockResolvedValue(null);
+    const usersRepository = {
+      create: jest.fn((value: Partial<User>) => ({
+        ...user,
+        ...value,
+        createdAt: new Date('2026-08-31T00:00:00.000Z'),
+      })),
+      save: jest.fn((value: User) => Promise.resolve(value)),
+    };
+    const profilesRepository = {
+      create: jest.fn((value: Partial<UserProfile>) => value as UserProfile),
+      save: jest.fn((value: UserProfile) => Promise.resolve(value)),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation(
+      (work: (manager: { getRepository: (entity: unknown) => unknown }) => unknown) =>
+        Promise.resolve(
+          work({
+            getRepository: (entity: unknown) =>
+              entity === User ? usersRepository : profilesRepository,
+          }),
+        ),
+    );
+
+    const result = await service.register({
+      fullName: ' Nguyen Van A ',
+      email: ' Student@Example.com ',
+      password: 'StrongPassword123!',
+      confirmPassword: 'StrongPassword123!',
+      acceptTerms: true,
+    });
+
+    expect(usersRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'student@example.com',
+        role: UserRole.STUDENT,
+        status: UserStatus.ACTIVE,
+        termsVersion: '2026-08-31',
+      }),
+    );
+    const createdUser = usersRepository.create.mock.calls[0][0];
+    expect(createdUser.termsAcceptedAt).toBeInstanceOf(Date);
+    await expect(compare('StrongPassword123!', createdUser.passwordHash!)).resolves.toBe(true);
+    expect(profilesRepository.create).toHaveBeenCalledWith({
+      userId: user.id,
+      fullName: 'Nguyen Van A',
+      avatarUrl: null,
+      bio: null,
+    });
+    expect(result).not.toHaveProperty('passwordHash');
+    expect(result.profile).toEqual({ fullName: 'Nguyen Van A', avatarUrl: null, bio: null });
+  });
+
+  it('maps a transaction unique violation to conflict', async () => {
+    usersService.findByEmail.mockResolvedValue(null);
+    (dataSource.transaction as jest.Mock).mockRejectedValue({ code: '23505' });
+
+    await expect(
+      service.register({
+        fullName: 'Student',
+        email: 'student@example.com',
+        password: 'StrongPassword123!',
+        confirmPassword: 'StrongPassword123!',
+        acceptTerms: true,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
   });
 
   it('issues RS256 access and refresh tokens and stores only the refresh hash', async () => {

@@ -1,4 +1,4 @@
-import { INestApplication, type ExecutionContext } from '@nestjs/common';
+import { INestApplication, type ExecutionContext, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../src/modules/auth/guards/jwt-auth.guard';
 describe('Auth refresh cookie (e2e)', () => {
   let app: INestApplication<App>;
   const authService = {
+    register: jest.fn(),
     login: jest.fn(),
     refresh: jest.fn(),
     revoke: jest.fn(),
@@ -69,6 +70,9 @@ describe('Auth refresh cookie (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     app.use(cookieParser());
     await app.init();
   });
@@ -76,12 +80,42 @@ describe('Auth refresh cookie (e2e)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     authService.login.mockResolvedValue(tokenResponse);
+    authService.register.mockResolvedValue({
+      ...tokenResponse.user,
+      profile: { fullName: 'Nguyen Van A', avatarUrl: null, bio: null },
+      createdAt: new Date('2026-08-31T00:00:00.000Z'),
+    });
     authService.refresh.mockResolvedValue({
       ...tokenResponse,
       accessToken: 'rotated-access-token',
       refreshToken: 'rotated-refresh-token',
     });
     authService.revoke.mockResolvedValue(undefined);
+  });
+
+  it('registers a Student profile and rejects client-controlled role', async () => {
+    const payload = {
+      fullName: ' Nguyen Van A ',
+      email: ' Student@Example.com ',
+      password: 'StrongPassword123!',
+      confirmPassword: 'StrongPassword123!',
+      acceptTerms: true,
+    };
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send(payload)
+      .expect(201);
+
+    expect(authService.register).toHaveBeenCalledWith({
+      ...payload,
+      fullName: 'Nguyen Van A',
+      email: 'student@example.com',
+    });
+    expect(response.body).not.toHaveProperty('passwordHash');
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({ ...payload, role: UserRole.ADMIN })
+      .expect(400);
   });
 
   afterAll(async () => {
