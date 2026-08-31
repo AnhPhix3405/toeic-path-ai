@@ -1,7 +1,7 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { generateKeyPairSync } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import type { DataSource, Repository } from 'typeorm';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
@@ -87,8 +87,68 @@ describe('AuthService', () => {
     expect(refresh).toMatchObject({ sub: user.id, type: 'refresh' });
     const createdSession = sessionsRepository.create.mock.calls[0][0] as AuthSession;
     expect(createdSession.id).toBe(refresh.sid);
+    expect(createdSession.previousSessionId).toBeNull();
     expect(createdSession.refreshTokenHash).not.toContain(result.refreshToken);
     expect(usersService.findByEmail).toHaveBeenCalledWith('student@example.com', true);
+  });
+
+  it('builds a previous-session chain while revoking every rotated session', async () => {
+    const initialSessionId = '10000000-0000-4000-8000-000000000001';
+    const initialRefreshToken = await jwtService.signAsync(
+      { sub: user.id, sid: initialSessionId, type: 'refresh' },
+      { privateKey, algorithm: 'RS256', expiresIn: '7d' },
+    );
+    const initialSession = {
+      id: initialSessionId,
+      userId: user.id,
+      user,
+      refreshTokenHash: createHash('sha256').update(initialRefreshToken).digest('hex'),
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+      previousSessionId: null,
+      previousSession: null,
+      userAgent: null,
+      ipAddress: null,
+      lastUsedAt: null,
+      createdAt: new Date(),
+    } satisfies AuthSession;
+    const sessionsToLoad: AuthSession[] = [initialSession];
+    const createdSessions: AuthSession[] = [];
+    const transactionRepository = {
+      create: jest.fn((value: Partial<AuthSession>) => value as AuthSession),
+      save: jest.fn((sessions: AuthSession[]) => {
+        sessions[1].user = user;
+        createdSessions.push(sessions[1]);
+        sessionsToLoad.push(sessions[1]);
+        return Promise.resolve(sessions);
+      }),
+      createQueryBuilder: jest.fn(() => ({
+        setLock: jest.fn().mockReturnThis(),
+        innerJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn(() => Promise.resolve(sessionsToLoad.shift() ?? null)),
+      })),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation(
+      (work: (manager: { getRepository: () => typeof transactionRepository }) => unknown) =>
+        Promise.resolve(work({ getRepository: () => transactionRepository })),
+    );
+
+    const firstRotation = await service.refresh(initialRefreshToken, {});
+    const secondRotation = await service.refresh(firstRotation.refreshToken, {});
+
+    expect(createdSessions).toHaveLength(2);
+    expect(createdSessions[0].previousSessionId).toBe(initialSession.id);
+    expect(createdSessions[1].previousSessionId).toBe(createdSessions[0].id);
+    expect(initialSession.revokedAt).toBeInstanceOf(Date);
+    expect(createdSessions[0].revokedAt).toBeInstanceOf(Date);
+
+    sessionsToLoad.push(initialSession);
+    await expect(service.refresh(initialRefreshToken, {})).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(secondRotation.refreshToken).toBeDefined();
   });
 
   it('rejects tokens signed with HS256 or another RSA private key', async () => {

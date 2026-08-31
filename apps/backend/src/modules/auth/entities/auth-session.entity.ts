@@ -29,8 +29,12 @@ export class AuthSession {
   @Column({ name: 'revoked_at', type: 'timestamptz', nullable: true })
   revokedAt!: Date | null;
 
-  @Column({ name: 'replaced_by_session_id', type: 'uuid', nullable: true })
-  replacedBySessionId!: string | null;
+  @Column({ name: 'previous_session_id', type: 'uuid', nullable: true })
+  previousSessionId!: string | null;
+
+  @ManyToOne(() => AuthSession, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'previous_session_id' })
+  previousSession!: AuthSession | null;
 
   @Column({ name: 'user_agent', type: 'text', nullable: true })
   userAgent!: string | null;

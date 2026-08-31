@@ -98,7 +98,7 @@ INSERT INTO auth_sessions (
   refresh_token_hash,
   expires_at,
   revoked_at,
-  replaced_by_session_id,
+  previous_session_id,
   user_agent,
   ip_address,
   created_at
@@ -109,7 +109,7 @@ SELECT
   repeat('a', 64),
   sample.expires_at,
   sample.revoked_at,
-  sample.replaced_by_session_id,
+  sample.previous_session_id,
   'task4-cleanup-test:' || sample.case_name,
   '127.0.0.1',
   sample.created_at
@@ -185,7 +185,7 @@ CROSS JOIN (
   case_name,
   expires_at,
   revoked_at,
-  replaced_by_session_id,
+  previous_session_id,
   created_at
 )
 WHERE test_user.email = 'cleanup.test@example.com';
@@ -200,7 +200,7 @@ SELECT
   split_part(user_agent, ':', 2) AS test_case,
   expires_at,
   revoked_at,
-  replaced_by_session_id,
+  previous_session_id,
   CASE
     WHEN revoked_at < NOW() - INTERVAL '7 days'
       OR expires_at < NOW() - INTERVAL '7 days'
@@ -240,7 +240,7 @@ Chạy query:
 ```sql
 SELECT
   split_part(user_agent, ':', 2) AS test_case,
-  replaced_by_session_id
+  previous_session_id
 FROM auth_sessions
 WHERE user_agent LIKE 'task4-cleanup-test:%'
 ORDER BY test_case;
@@ -255,7 +255,7 @@ recent-revoked
 rotation-reference-active
 ```
 
-`rotation-reference-active.replaced_by_session_id` phải là `NULL`. Điều này chứng minh FK dùng
+`rotation-reference-active.previous_session_id` phải là `NULL`. Điều này chứng minh FK dùng
 `ON DELETE SET NULL` và không chặn cleanup.
 
 Kiểm tra số lượng:
@@ -416,7 +416,7 @@ SELECT
   delete_rule
 FROM information_schema.referential_constraints
 WHERE constraint_schema = 'public'
-  AND constraint_name = 'FK_auth_sessions_replacement';
+  AND constraint_name = 'FK_auth_sessions_previous_session';
 ```
 
 Mong đợi `delete_rule = SET NULL`.

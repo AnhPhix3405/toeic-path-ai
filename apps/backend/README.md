@@ -43,7 +43,9 @@ Authentication endpoints use the global `/api/v1` prefix:
 Login and refresh return the access token in JSON and transport the refresh
 token exclusively through an HTTP-only cookie. Clients must send requests with
 credentials enabled. Refresh tokens are rotated per use and only their SHA-256
-hashes are stored.
+hashes are stored. Each rotated session records the immediately preceding session
+through `auth_sessions.previous_session_id`; deleting an old session clears that
+reference through `ON DELETE SET NULL`.
 
 Role-protected administrator endpoints are:
 

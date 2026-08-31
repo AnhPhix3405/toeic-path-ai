@@ -103,6 +103,7 @@ export class AuthService {
       userId: user.id,
       refreshTokenHash: this.hashRefreshToken(tokens.refreshToken),
       expiresAt: new Date(now.getTime() + this.refreshExpiresInSeconds * 1000),
+      previousSessionId: null,
       userAgent: metadata.userAgent ?? null,
       ipAddress: metadata.ipAddress ?? null,
     });
@@ -145,13 +146,13 @@ export class AuthService {
         userId: oldSession.userId,
         refreshTokenHash: this.hashRefreshToken(tokens.refreshToken),
         expiresAt: new Date(now.getTime() + this.refreshExpiresInSeconds * 1000),
+        previousSessionId: oldSession.id,
         userAgent: metadata.userAgent ?? null,
         ipAddress: metadata.ipAddress ?? null,
       });
 
       oldSession.revokedAt = now;
       oldSession.lastUsedAt = now;
-      oldSession.replacedBySessionId = newSessionId;
       await sessions.save([oldSession, newSession]);
 
       return { ...tokens, user: this.toSafeUser(oldSession.user) };
