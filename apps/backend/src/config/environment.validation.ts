@@ -1,4 +1,5 @@
 import { durationToSeconds } from './jwt.config';
+import { validateCronExpression } from 'cron';
 
 const REQUIRED_DATABASE_VARIABLES = [
   'DB_HOST',
@@ -65,6 +66,31 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
   }
   if (cookieMaxAge !== durationToSeconds(refreshExpiresIn) * 1000) {
     throw new Error('REFRESH_COOKIE_MAX_AGE_MS must match JWT_REFRESH_EXPIRES_IN');
+  }
+
+  const cleanupEnabled = environment.AUTH_SESSION_CLEANUP_ENABLED ?? 'true';
+  if (cleanupEnabled !== 'true' && cleanupEnabled !== 'false') {
+    throw new Error('AUTH_SESSION_CLEANUP_ENABLED must be either "true" or "false"');
+  }
+
+  const retentionDays = Number(environment.AUTH_SESSION_RETENTION_DAYS ?? 7);
+  if (!Number.isInteger(retentionDays) || retentionDays < 0) {
+    throw new Error('AUTH_SESSION_RETENTION_DAYS must be a non-negative integer');
+  }
+
+  const cleanupBatchSize = Number(environment.AUTH_SESSION_CLEANUP_BATCH_SIZE ?? 1000);
+  if (!Number.isInteger(cleanupBatchSize) || cleanupBatchSize < 1 || cleanupBatchSize > 10_000) {
+    throw new Error('AUTH_SESSION_CLEANUP_BATCH_SIZE must be an integer between 1 and 10000');
+  }
+
+  const maxBatches = Number(environment.AUTH_SESSION_CLEANUP_MAX_BATCHES ?? 100);
+  if (!Number.isInteger(maxBatches) || maxBatches < 1) {
+    throw new Error('AUTH_SESSION_CLEANUP_MAX_BATCHES must be a positive integer');
+  }
+
+  const cleanupCron = environment.AUTH_SESSION_CLEANUP_CRON ?? '0 0 2 * * *';
+  if (typeof cleanupCron !== 'string' || !validateCronExpression(cleanupCron).valid) {
+    throw new Error('AUTH_SESSION_CLEANUP_CRON must be a valid cron expression');
   }
 
   return environment;

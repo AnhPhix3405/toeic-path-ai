@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { AuthSession } from './entities/auth-session.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
+import { AuthSessionCleanupService } from './services/auth-session-cleanup.service';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAccessStrategy, JwtAuthGuard],
+  providers: [AuthService, AuthSessionCleanupService, JwtAccessStrategy, JwtAuthGuard],
 })
 export class AuthModule {}

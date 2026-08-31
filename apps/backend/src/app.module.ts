@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import appConfig from './config/app.config';
@@ -10,15 +11,17 @@ import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import refreshCookieConfig from './modules/auth/config/refresh-cookie.config';
+import authSessionCleanupConfig from './modules/auth/config/auth-session-cleanup.config';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, jwtConfig, refreshCookieConfig],
+      load: [appConfig, databaseConfig, jwtConfig, refreshCookieConfig, authSessionCleanupConfig],
       validate: validateEnvironment,
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

@@ -24,6 +24,13 @@ Refresh-cookie settings are `REFRESH_COOKIE_NAME`, `REFRESH_COOKIE_PATH`,
 `REFRESH_COOKIE_SAME_SITE`. Cookie max age must match the refresh JWT lifetime.
 Use `Secure=true` whenever `SameSite=none` is required in production.
 
+Old revoked and expired session records are removed by a daily, batched cleanup
+job. Configure it with `AUTH_SESSION_CLEANUP_ENABLED`,
+`AUTH_SESSION_RETENTION_DAYS`, `AUTH_SESSION_CLEANUP_BATCH_SIZE`,
+`AUTH_SESSION_CLEANUP_MAX_BATCHES`, and `AUTH_SESSION_CLEANUP_CRON`. The cron
+expression uses six fields (seconds through day of week). PostgreSQL advisory
+locking ensures only one backend instance performs cleanup at a time.
+
 Authentication endpoints use the global `/api/v1` prefix:
 
 - `POST /api/v1/auth/register`
