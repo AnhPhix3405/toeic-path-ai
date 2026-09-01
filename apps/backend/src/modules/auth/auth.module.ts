@@ -9,10 +9,13 @@ import { AuthSession } from './entities/auth-session.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { AuthSessionCleanupService } from './services/auth-session-cleanup.service';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AuthSession]),
+    TypeOrmModule.forFeature([AuthSession, PasswordResetToken]),
+    MailModule,
     PassportModule,
     JwtModule.register({}),
     UsersModule,

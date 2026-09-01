@@ -98,5 +98,24 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     throw new Error('AUTH_SESSION_CLEANUP_CRON must be a valid cron expression');
   }
 
+  const resetTtl = Number(environment.PASSWORD_RESET_TOKEN_TTL_MINUTES ?? 30);
+  if (!Number.isInteger(resetTtl) || resetTtl <= 0) {
+    throw new Error('PASSWORD_RESET_TOKEN_TTL_MINUTES must be a positive integer');
+  }
+  const resetUrl = environment.PASSWORD_RESET_URL;
+  if (typeof resetUrl !== 'string' || resetUrl.trim() === '') {
+    throw new Error('Missing required environment variable: PASSWORD_RESET_URL');
+  }
+  try {
+    new URL(resetUrl);
+  } catch {
+    throw new Error('PASSWORD_RESET_URL must be a valid URL');
+  }
+
+  const mailFrom = environment.MAIL_FROM;
+  if (typeof mailFrom !== 'string' || mailFrom.trim() === '') {
+    throw new Error('Missing required environment variable: MAIL_FROM');
+  }
+
   return environment;
 }

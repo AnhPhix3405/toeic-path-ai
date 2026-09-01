@@ -1,14 +1,17 @@
 import {
   ConflictException,
+  BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { compare, hash } from 'bcrypt';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
@@ -22,6 +25,10 @@ import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type { RegisterResponseDto } from './dto/register-response.dto';
 import { AuthSession } from './entities/auth-session.entity';
+import type { ForgotPasswordDto } from './dto/forgot-password.dto';
+import type { ResetPasswordDto } from './dto/reset-password.dto';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { MAIL_SERVICE, type MailService } from '../mail/mail.service';
 
 interface SessionMetadata {
   userAgent?: string;
@@ -42,8 +49,17 @@ export interface TokenResponse {
   accessTokenExpiresIn: number;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
+const FORGOT_PASSWORD_MESSAGE = 'If the email is registered, reset instructions will be sent.';
+const RESET_PASSWORD_MESSAGE = 'Password has been reset successfully. Please sign in again.';
+const INVALID_RESET_TOKEN_MESSAGE = 'The password reset link is invalid or has expired.';
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly privateKey: string;
   private readonly publicKey: string;
   private readonly accessExpiresIn: JwtSignOptions['expiresIn'];
@@ -52,6 +68,8 @@ export class AuthService {
   private readonly refreshExpiresInSeconds: number;
   private readonly saltRounds: number;
   private readonly termsVersion: string;
+  private readonly passwordResetTtlMinutes: number;
+  private readonly passwordResetUrl: string;
 
   constructor(
     private readonly usersService: UsersService,
@@ -60,6 +78,7 @@ export class AuthService {
     private readonly dataSource: DataSource,
     @InjectRepository(AuthSession)
     private readonly sessionsRepository: Repository<AuthSession>,
+    @Inject(MAIL_SERVICE) private readonly mailService: MailService,
   ) {
     this.privateKey = configService.getOrThrow<string>('jwt.privateKey');
     this.publicKey = configService.getOrThrow<string>('jwt.publicKey');
@@ -71,6 +90,97 @@ export class AuthService {
     this.refreshExpiresInSeconds = configService.getOrThrow<number>('jwt.refreshExpiresInSeconds');
     this.saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
     this.termsVersion = configService.getOrThrow<string>('app.termsVersion');
+    this.passwordResetTtlMinutes = configService.getOrThrow<number>(
+      'passwordReset.tokenTtlMinutes',
+    );
+    this.passwordResetUrl = configService.getOrThrow<string>('passwordReset.url');
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<MessageResponse> {
+    const user = await this.usersService.findByEmail(this.normalizeEmail(dto.email));
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      return { message: FORGOT_PASSWORD_MESSAGE };
+    }
+
+    const rawToken = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashResetToken(rawToken);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + this.passwordResetTtlMinutes * 60_000);
+    const tokenId = await this.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [user.id]);
+      const tokens = manager.getRepository(PasswordResetToken);
+      await tokens
+        .createQueryBuilder()
+        .update(PasswordResetToken)
+        .set({ revokedAt: now })
+        .where('user_id = :userId', { userId: user.id })
+        .andWhere('used_at IS NULL')
+        .andWhere('revoked_at IS NULL')
+        .execute();
+      const saved = await tokens.save(tokens.create({ userId: user.id, tokenHash, expiresAt }));
+      return saved.id;
+    });
+
+    const resetUrl = new URL(this.passwordResetUrl);
+    resetUrl.searchParams.set('token', rawToken);
+    try {
+      await this.mailService.sendPasswordResetEmail({
+        recipientEmail: user.email,
+        resetUrl: resetUrl.toString(),
+        expiresAt,
+      });
+    } catch {
+      await this.revokeResetTokenAfterMailFailure(tokenId);
+      this.logger.error('Password reset email delivery failed', { userId: user.id });
+    }
+    return { message: FORGOT_PASSWORD_MESSAGE };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<MessageResponse> {
+    const tokenHash = this.hashResetToken(dto.token);
+    const passwordHash = await hash(dto.newPassword, this.saltRounds);
+
+    await this.dataSource.transaction(async (manager) => {
+      const tokens = manager.getRepository(PasswordResetToken);
+      const resetToken = await tokens
+        .createQueryBuilder('resetToken')
+        .setLock('pessimistic_write')
+        .innerJoinAndSelect('resetToken.user', 'user')
+        .where('resetToken.tokenHash = :tokenHash', { tokenHash })
+        .getOne();
+      const now = new Date();
+      if (
+        !resetToken ||
+        resetToken.usedAt ||
+        resetToken.revokedAt ||
+        resetToken.expiresAt <= now ||
+        resetToken.user.status !== UserStatus.ACTIVE
+      ) {
+        throw new BadRequestException(INVALID_RESET_TOKEN_MESSAGE);
+      }
+
+      await manager.getRepository(User).update(resetToken.userId, { passwordHash });
+      resetToken.usedAt = now;
+      await tokens.save(resetToken);
+      await tokens
+        .createQueryBuilder()
+        .update(PasswordResetToken)
+        .set({ revokedAt: now })
+        .where('user_id = :userId', { userId: resetToken.userId })
+        .andWhere('id != :tokenId', { tokenId: resetToken.id })
+        .andWhere('used_at IS NULL')
+        .andWhere('revoked_at IS NULL')
+        .execute();
+      await manager
+        .getRepository(AuthSession)
+        .createQueryBuilder()
+        .update(AuthSession)
+        .set({ revokedAt: now })
+        .where('user_id = :userId', { userId: resetToken.userId })
+        .andWhere('revoked_at IS NULL')
+        .execute();
+    });
+    return { message: RESET_PASSWORD_MESSAGE };
   }
 
   async register(dto: RegisterDto): Promise<RegisterResponseDto> {
@@ -253,6 +363,20 @@ export class AuthService {
 
   private hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private hashResetToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async revokeResetTokenAfterMailFailure(tokenId: string): Promise<void> {
+    try {
+      await this.dataSource
+        .getRepository(PasswordResetToken)
+        .update({ id: tokenId }, { revokedAt: new Date() });
+    } catch {
+      this.logger.error('Failed to revoke undelivered password reset token');
+    }
   }
 
   private normalizeEmail(email: string): string {

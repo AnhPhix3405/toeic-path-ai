@@ -13,12 +13,20 @@ import { AuthModule } from './modules/auth/auth.module';
 import refreshCookieConfig from './modules/auth/config/refresh-cookie.config';
 import authSessionCleanupConfig from './modules/auth/config/auth-session-cleanup.config';
 import { UsersModule } from './modules/users/users.module';
+import passwordResetConfig from './modules/auth/config/password-reset.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, jwtConfig, refreshCookieConfig, authSessionCleanupConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        jwtConfig,
+        refreshCookieConfig,
+        authSessionCleanupConfig,
+        passwordResetConfig,
+      ],
       validate: validateEnvironment,
     }),
     ScheduleModule.forRoot(),

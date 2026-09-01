@@ -57,6 +57,8 @@ describe('AuthService', () => {
       'jwt.accessExpiresInSeconds': 900,
       'jwt.refreshExpiresInSeconds': 604800,
       'app.termsVersion': '2026-08-31',
+      'passwordReset.tokenTtlMinutes': 30,
+      'passwordReset.url': 'http://localhost:3000/reset-password',
     };
     const configService = {
       getOrThrow: jest.fn((key: string) => values[key]),
@@ -68,6 +70,7 @@ describe('AuthService', () => {
       configService,
       dataSource as DataSource,
       sessionsRepository as unknown as Repository<AuthSession>,
+      { sendPasswordResetEmail: jest.fn() },
     );
   });
 

@@ -34,6 +34,9 @@ import {
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import type { MessageResponse } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 type AuthenticatedRequest = Request & { user: AuthenticatedUser };
@@ -66,6 +69,37 @@ export class AuthController {
   @ApiConflictResponse({ description: 'Email is already registered' })
   register(@Body() dto: RegisterDto): Promise<RegisterResponseDto> {
     return this.authService.register(dto);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request password reset instructions' })
+  @ApiOkResponse({
+    description: 'Generic response returned whether or not the email is registered',
+    schema: {
+      example: { message: 'If the email is registered, reset instructions will be sent.' },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid request input' })
+  forgotPassword(@Body() dto: ForgotPasswordDto): Promise<MessageResponse> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset a password with a single-use, expiring token' })
+  @ApiOkResponse({
+    description: 'Password reset and all login sessions revoked',
+    schema: { example: { message: 'Password has been reset successfully. Please sign in again.' } },
+  })
+  @ApiBadRequestResponse({ description: 'The reset token is invalid, expired, revoked, or used' })
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<MessageResponse> {
+    const result = await this.authService.resetPassword(dto);
+    this.clearRefreshCookie(response);
+    return result;
   }
 
   @Post('login')

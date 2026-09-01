@@ -18,6 +18,8 @@ describe('Auth refresh cookie (e2e)', () => {
     login: jest.fn(),
     refresh: jest.fn(),
     revoke: jest.fn(),
+    forgotPassword: jest.fn(),
+    resetPassword: jest.fn(),
   };
   const tokenResponse: TokenResponse = {
     user: {
@@ -91,6 +93,12 @@ describe('Auth refresh cookie (e2e)', () => {
       refreshToken: 'rotated-refresh-token',
     });
     authService.revoke.mockResolvedValue(undefined);
+    authService.forgotPassword.mockResolvedValue({
+      message: 'If the email is registered, reset instructions will be sent.',
+    });
+    authService.resetPassword.mockResolvedValue({
+      message: 'Password has been reset successfully. Please sign in again.',
+    });
   });
 
   it('registers a Student profile and rejects client-controlled role', async () => {
@@ -116,6 +124,28 @@ describe('Auth refresh cookie (e2e)', () => {
       .post('/api/v1/auth/register')
       .send({ ...payload, role: UserRole.ADMIN })
       .expect(400);
+  });
+
+  it('keeps forgot-password enumeration-safe and clears the cookie after reset', async () => {
+    const forgot = await request(app.getHttpServer())
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: ' Unknown@Example.com ' })
+      .expect(200);
+    expect(forgot.body).toEqual({
+      message: 'If the email is registered, reset instructions will be sent.',
+    });
+    expect(authService.forgotPassword).toHaveBeenCalledWith({ email: 'unknown@example.com' });
+
+    const reset = await request(app.getHttpServer())
+      .post('/api/v1/auth/reset-password')
+      .send({
+        token: 'opaque-token',
+        newPassword: 'NewPassword123!',
+        confirmPassword: 'NewPassword123!',
+      })
+      .expect(200);
+    expect(reset.headers['set-cookie']?.[0]).toContain('toeic_refresh_token=');
+    expect(reset.body).not.toHaveProperty('token');
   });
 
   afterAll(async () => {

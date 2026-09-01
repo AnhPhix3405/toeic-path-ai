@@ -32,9 +32,17 @@ job. Configure it with `AUTH_SESSION_CLEANUP_ENABLED`,
 expression uses six fields (seconds through day of week). PostgreSQL advisory
 locking ensures only one backend instance performs cleanup at a time.
 
+Password-reset settings are `PASSWORD_RESET_TOKEN_TTL_MINUTES`,
+`PASSWORD_RESET_URL`, and `MAIL_FROM`. The reset URL must point to the frontend
+reset page and the TTL must be a positive integer. The default development mail
+adapter records only a delivery event; replace the `MAIL_SERVICE` provider with
+an SMTP/provider adapter for actual delivery without changing the auth module.
+
 Authentication endpoints use the global `/api/v1` prefix:
 
 - `POST /api/v1/auth/register`
+- `POST /api/v1/auth/forgot-password`
+- `POST /api/v1/auth/reset-password`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout` (Bearer access token)
@@ -47,6 +55,12 @@ credentials enabled. Refresh tokens are rotated per use and only their SHA-256
 hashes are stored. Each rotated session records the immediately preceding session
 through `auth_sessions.previous_session_id`; deleting an old session clears that
 reference through `ON DELETE SET NULL`.
+
+Password-reset tokens are opaque, single-use values. PostgreSQL stores only a
+SHA-256 hash. Issuing a new token revokes earlier active reset tokens; a
+successful reset atomically updates the password and revokes every active auth
+session. The forgot-password response is identical for registered and unknown
+email addresses.
 
 Role-protected administrator endpoints are:
 
