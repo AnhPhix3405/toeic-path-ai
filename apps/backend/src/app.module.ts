@@ -14,6 +14,7 @@ import refreshCookieConfig from './modules/auth/config/refresh-cookie.config';
 import authSessionCleanupConfig from './modules/auth/config/auth-session-cleanup.config';
 import { UsersModule } from './modules/users/users.module';
 import passwordResetConfig from './modules/auth/config/password-reset.config';
+import { ProfileModule } from './modules/profile/profile.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import passwordResetConfig from './modules/auth/config/password-reset.config';
     HealthModule,
     AuthModule,
     UsersModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

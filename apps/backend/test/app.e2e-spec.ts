@@ -1,4 +1,10 @@
-import { INestApplication, type ExecutionContext, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  type ExecutionContext,
+  UnauthorizedException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
@@ -10,6 +16,10 @@ import type { AuthenticatedUser } from '../src/common/interfaces/authenticated-u
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { AuthService, type TokenResponse } from '../src/modules/auth/auth.service';
 import { JwtAuthGuard } from '../src/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../src/common/guards/roles.guard';
+import { ProfileController } from '../src/modules/profile/profile.controller';
+import { ProfileService } from '../src/modules/profile/profile.service';
+import { Gender } from '../src/common/enums/gender.enum';
 
 describe('Auth refresh cookie (e2e)', () => {
   let app: INestApplication<App>;
@@ -195,5 +205,146 @@ describe('Auth refresh cookie (e2e)', () => {
       expect.objectContaining({ sessionId: 'session-id' }),
     );
     expect(response.headers['set-cookie']?.[0]).toContain('toeic_refresh_token=');
+  });
+});
+
+describe('My profile (e2e)', () => {
+  let app: INestApplication<App>;
+  let currentRole = UserRole.STUDENT;
+  const profileResponse = {
+    userId: '20000000-0000-4000-8000-000000000002',
+    email: 'student@example.com',
+    role: UserRole.STUDENT,
+    profile: {
+      fullName: 'Student',
+      avatarUrl: 'https://example.com/avatar.png',
+      birthday: null,
+      gender: null,
+      bio: null,
+    },
+    updatedAt: new Date('2026-09-02T08:00:00.000Z'),
+  };
+  const profileService = {
+    getMyProfile: jest.fn().mockResolvedValue(profileResponse),
+    updateMyProfile: jest.fn().mockImplementation((_userId: string, dto: object) => {
+      if (Object.keys(dto).length === 0) {
+        throw new BadRequestException('At least one profile field is required');
+      }
+      return Promise.resolve(profileResponse);
+    }),
+  };
+
+  beforeAll(async () => {
+    const moduleFixture = await Test.createTestingModule({
+      controllers: [ProfileController],
+      providers: [{ provide: ProfileService, useValue: profileService }, JwtAuthGuard, RolesGuard],
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({
+        canActivate(context: ExecutionContext): boolean {
+          const httpRequest = context.switchToHttp().getRequest<{
+            headers: Record<string, string | undefined>;
+            user: AuthenticatedUser;
+          }>();
+          if (httpRequest.headers.authorization !== 'Bearer access-token') {
+            throw new UnauthorizedException();
+          }
+          httpRequest.user = {
+            id: profileResponse.userId,
+            sessionId: 'session-id',
+            email: profileResponse.email,
+            role: currentRole,
+            status: UserStatus.ACTIVE,
+          };
+          return true;
+        },
+      })
+      .compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
+    await app.init();
+  });
+
+  beforeEach(() => {
+    currentRole = UserRole.STUDENT;
+    jest.clearAllMocks();
+  });
+
+  it('gets and patches the authenticated Student profile without a client user id', async () => {
+    const getResponse = await request(app.getHttpServer())
+      .get('/api/v1/profile/me')
+      .set('Authorization', 'Bearer access-token')
+      .expect(200);
+    const responseBody = getResponse.body as typeof profileResponse;
+    expect(responseBody.profile.avatarUrl).toBe(profileResponse.profile.avatarUrl);
+    expect(profileService.getMyProfile).toHaveBeenCalledWith(profileResponse.userId);
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/profile/me')
+      .set('Authorization', 'Bearer access-token')
+      .send({ bio: ' TOEIC 850 ', birthday: '2003-08-15', gender: Gender.MALE })
+      .expect(200);
+    expect(profileService.updateMyProfile).toHaveBeenCalledWith(profileResponse.userId, {
+      bio: 'TOEIC 850',
+      birthday: '2003-08-15',
+      gender: Gender.MALE,
+    });
+  });
+
+  it('allows Teachers and forbids Admins', async () => {
+    currentRole = UserRole.TEACHER;
+    await request(app.getHttpServer())
+      .patch('/api/v1/profile/me')
+      .set('Authorization', 'Bearer access-token')
+      .send({ fullName: 'Teacher' })
+      .expect(200);
+
+    currentRole = UserRole.ADMIN;
+    await request(app.getHttpServer())
+      .get('/api/v1/profile/me')
+      .set('Authorization', 'Bearer access-token')
+      .expect(403);
+  });
+
+  it('rejects absent and invalid access tokens', async () => {
+    await request(app.getHttpServer()).get('/api/v1/profile/me').expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/profile/me')
+      .set('Authorization', 'Bearer invalid-token')
+      .expect(401);
+  });
+
+  it.each([
+    [{ role: UserRole.ADMIN }, 400],
+    [{ fullName: null }, 400],
+    [{ avatarUrl: 'https://evil.example/avatar.png' }, 400],
+    [{ birthday: '2999-01-01' }, 400],
+    [{ gender: 'invalid' }, 400],
+    [{ bio: 'x'.repeat(501) }, 400],
+  ])('rejects invalid patch input %#', async (body, status) => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/profile/me')
+      .set('Authorization', 'Bearer access-token')
+      .send(body)
+      .expect(status);
+  });
+
+  it('rejects an empty patch', async () => {
+    profileService.updateMyProfile.mockRejectedValueOnce(
+      new BadRequestException('At least one profile field is required'),
+    );
+    await request(app.getHttpServer())
+      .patch('/api/v1/profile/me')
+      .set('Authorization', 'Bearer access-token')
+      .send({})
+      .expect(400);
+  });
+
+  afterAll(async () => {
+    await app.close();
   });
 });

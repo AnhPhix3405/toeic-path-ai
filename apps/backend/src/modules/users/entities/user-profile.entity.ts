@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Gender } from '../../../common/enums/gender.enum';
 
 @Entity({ name: 'user_profiles' })
 export class UserProfile {
@@ -26,6 +27,12 @@ export class UserProfile {
 
   @Column({ name: 'avatar_url', type: 'text', nullable: true })
   avatarUrl!: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  birthday!: string | null;
+
+  @Column({ type: 'enum', enum: Gender, enumName: 'user_profiles_gender_enum', nullable: true })
+  gender!: Gender | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   bio!: string | null;
