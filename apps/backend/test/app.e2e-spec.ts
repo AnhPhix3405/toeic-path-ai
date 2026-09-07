@@ -232,6 +232,11 @@ describe('My profile (e2e)', () => {
       }
       return Promise.resolve(profileResponse);
     }),
+    uploadMyAvatar: jest.fn().mockResolvedValue(profileResponse),
+    deleteMyAvatar: jest.fn().mockResolvedValue({
+      ...profileResponse,
+      profile: { ...profileResponse.profile, avatarUrl: null },
+    }),
   };
 
   beforeAll(async () => {
@@ -342,6 +347,38 @@ describe('My profile (e2e)', () => {
       .set('Authorization', 'Bearer access-token')
       .send({})
       .expect(400);
+  });
+
+  it('uploads and deletes only the authenticated user avatar', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/profile/me/avatar')
+      .set('Authorization', 'Bearer access-token')
+      .attach('avatar', Buffer.from('image-content'), {
+        filename: 'avatar.png',
+        contentType: 'image/png',
+      })
+      .expect(200);
+    expect(profileService.uploadMyAvatar).toHaveBeenCalledWith(
+      profileResponse.userId,
+      expect.objectContaining({ fieldname: 'avatar', mimetype: 'image/png' }),
+    );
+
+    const deleted = await request(app.getHttpServer())
+      .delete('/api/v1/profile/me/avatar')
+      .set('Authorization', 'Bearer access-token')
+      .expect(200);
+    const deletedBody = deleted.body as typeof profileResponse;
+    expect(deletedBody.profile.avatarUrl).toBeNull();
+    expect(profileService.deleteMyAvatar).toHaveBeenCalledWith(profileResponse.userId);
+  });
+
+  it('rejects an unexpected multipart field name', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/profile/me/avatar')
+      .set('Authorization', 'Bearer access-token')
+      .attach('file', Buffer.from('image-content'), 'avatar.png')
+      .expect(400);
+    expect(profileService.uploadMyAvatar).not.toHaveBeenCalled();
   });
 
   afterAll(async () => {

@@ -117,5 +117,44 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     throw new Error('Missing required environment variable: MAIL_FROM');
   }
 
+  if ((environment.STORAGE_PROVIDER ?? 'supabase') !== 'supabase') {
+    throw new Error('STORAGE_PROVIDER must be "supabase"');
+  }
+  for (const variableName of [
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'STORAGE_BUCKET_AVATARS',
+  ] as const) {
+    const value = environment[variableName];
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw new Error(`Missing required environment variable: ${variableName}`);
+    }
+  }
+  try {
+    new URL(environment.SUPABASE_URL as string);
+  } catch {
+    throw new Error('SUPABASE_URL must be a valid URL');
+  }
+
+  const positiveIntegerSettings = [
+    ['AVATAR_MAX_SIZE_BYTES', 2_097_152],
+    ['AVATAR_MAX_WIDTH', 2048],
+    ['AVATAR_MAX_HEIGHT', 2048],
+    ['AVATAR_OUTPUT_WIDTH', 512],
+    ['AVATAR_OUTPUT_HEIGHT', 512],
+  ] as const;
+  for (const [name, fallback] of positiveIntegerSettings) {
+    const value = Number(environment[name] ?? fallback);
+    if (!Number.isInteger(value) || value <= 0)
+      throw new Error(`${name} must be a positive integer`);
+  }
+  if ((environment.AVATAR_OUTPUT_FORMAT ?? 'webp') !== 'webp') {
+    throw new Error('AVATAR_OUTPUT_FORMAT must be "webp"');
+  }
+  const avatarQuality = Number(environment.AVATAR_OUTPUT_QUALITY ?? 85);
+  if (!Number.isInteger(avatarQuality) || avatarQuality < 1 || avatarQuality > 100) {
+    throw new Error('AVATAR_OUTPUT_QUALITY must be an integer between 1 and 100');
+  }
+
   return environment;
 }

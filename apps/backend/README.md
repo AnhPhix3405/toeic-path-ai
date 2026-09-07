@@ -38,6 +38,17 @@ reset page and the TTL must be a positive integer. The default development mail
 adapter records only a delivery event; replace the `MAIL_SERVICE` provider with
 an SMTP/provider adapter for actual delivery without changing the auth module.
 
+Avatar files are normalized to WebP and stored in a public Supabase Storage
+bucket; PostgreSQL stores only the public URL and storage metadata. Configure
+`STORAGE_PROVIDER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and
+`STORAGE_BUCKET_AVATARS`. The service-role key is backend-only and must never be
+sent to clients. Configure upload limits with the `AVATAR_*` variables shown in
+`.env.example`. Create the bucket as public before uploading.
+
+Authenticated Students and Teachers manage their own avatar through
+`POST /api/v1/profile/me/avatar` (multipart field `avatar`) and
+`DELETE /api/v1/profile/me/avatar`.
+
 Authentication endpoints use the global `/api/v1` prefix:
 
 - `POST /api/v1/auth/register`

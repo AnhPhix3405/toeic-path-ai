@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -6,6 +18,10 @@ import {
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiPayloadTooLargeResponse,
+  ApiUnsupportedMediaTypeResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -46,5 +62,41 @@ export class ProfileController {
     @Body() dto: UpdateMyProfileDto,
   ): Promise<ProfileResponseDto> {
     return this.profileService.updateMyProfile(user.id, dto);
+  }
+
+  @Post('me/avatar')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Upload or replace the authenticated user avatar' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['avatar'],
+      properties: { avatar: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOkResponse({ type: ProfileResponseDto })
+  @ApiBadRequestResponse({
+    description: 'The avatar is absent, empty, invalid, or has invalid dimensions',
+  })
+  @ApiUnsupportedMediaTypeResponse({ description: 'The avatar is not JPEG, PNG, or WebP' })
+  @ApiPayloadTooLargeResponse({ description: 'The avatar exceeds the configured size limit' })
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      limits: { fileSize: Number(process.env.AVATAR_MAX_SIZE_BYTES ?? 2_097_152), files: 1 },
+    }),
+  )
+  uploadMyAvatar(
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<ProfileResponseDto> {
+    return this.profileService.uploadMyAvatar(user.id, file);
+  }
+
+  @Delete('me/avatar')
+  @ApiOperation({ summary: 'Delete the authenticated user avatar' })
+  @ApiOkResponse({ type: ProfileResponseDto })
+  deleteMyAvatar(@CurrentUser() user: AuthenticatedUser): Promise<ProfileResponseDto> {
+    return this.profileService.deleteMyAvatar(user.id);
   }
 }

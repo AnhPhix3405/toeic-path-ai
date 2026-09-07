@@ -28,6 +28,15 @@ export class UserProfile {
   @Column({ name: 'avatar_url', type: 'text', nullable: true })
   avatarUrl!: string | null;
 
+  @Column({ name: 'avatar_storage_key', type: 'varchar', length: 500, nullable: true })
+  avatarStorageKey!: string | null;
+
+  @Column({ name: 'avatar_mime_type', type: 'varchar', length: 100, nullable: true })
+  avatarMimeType!: string | null;
+
+  @Column({ name: 'avatar_size_bytes', type: 'integer', nullable: true })
+  avatarSizeBytes!: number | null;
+
   @Column({ type: 'date', nullable: true })
   birthday!: string | null;
 

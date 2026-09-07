@@ -15,6 +15,8 @@ import authSessionCleanupConfig from './modules/auth/config/auth-session-cleanup
 import { UsersModule } from './modules/users/users.module';
 import passwordResetConfig from './modules/auth/config/password-reset.config';
 import { ProfileModule } from './modules/profile/profile.module';
+import avatarConfig from './config/avatar.config';
+import storageConfig from './config/storage.config';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { ProfileModule } from './modules/profile/profile.module';
         refreshCookieConfig,
         authSessionCleanupConfig,
         passwordResetConfig,
+        avatarConfig,
+        storageConfig,
       ],
       validate: validateEnvironment,
     }),
