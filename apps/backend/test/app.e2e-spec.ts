@@ -300,19 +300,49 @@ describe('My profile (e2e)', () => {
     });
   });
 
-  it('allows Teachers and forbids Admins', async () => {
+  it('allows Teachers to manage their own profile', async () => {
     currentRole = UserRole.TEACHER;
     await request(app.getHttpServer())
       .patch('/api/v1/profile/me')
       .set('Authorization', 'Bearer access-token')
       .send({ fullName: 'Teacher' })
       .expect(200);
+  });
 
+  it('allows Admins to get, patch, upload, and delete only their own profile', async () => {
     currentRole = UserRole.ADMIN;
+    const authorization = { Authorization: 'Bearer access-token' };
+
+    await request(app.getHttpServer()).get('/api/v1/profile/me').set(authorization).expect(200);
+    expect(profileService.getMyProfile).toHaveBeenCalledWith(profileResponse.userId);
+
     await request(app.getHttpServer())
-      .get('/api/v1/profile/me')
-      .set('Authorization', 'Bearer access-token')
-      .expect(403);
+      .patch('/api/v1/profile/me')
+      .set(authorization)
+      .send({ fullName: 'Administrator' })
+      .expect(200);
+    expect(profileService.updateMyProfile).toHaveBeenCalledWith(profileResponse.userId, {
+      fullName: 'Administrator',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/profile/me/avatar')
+      .set(authorization)
+      .attach('avatar', Buffer.from('image-content'), {
+        filename: 'avatar.png',
+        contentType: 'image/png',
+      })
+      .expect(200);
+    expect(profileService.uploadMyAvatar).toHaveBeenCalledWith(
+      profileResponse.userId,
+      expect.objectContaining({ fieldname: 'avatar' }),
+    );
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/profile/me/avatar')
+      .set(authorization)
+      .expect(200);
+    expect(profileService.deleteMyAvatar).toHaveBeenCalledWith(profileResponse.userId);
   });
 
   it('rejects absent and invalid access tokens', async () => {

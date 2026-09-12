@@ -10,7 +10,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const status = exception.getStatus();
     const exceptionResponse = exception.getResponse();
 
-    // Tùy chỉnh dữ liệu response trả về cho Client
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),

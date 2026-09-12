@@ -5,6 +5,7 @@ import dataSource from '../database/data-source';
 import { UserRole } from '../common/enums/user-role.enum';
 import { UserStatus } from '../common/enums/user-status.enum';
 import { User } from '../modules/users/entities/user.entity';
+import { UserProfile } from '../modules/users/entities/user-profile.entity';
 
 config();
 
@@ -31,14 +32,31 @@ async function seedAdmin(): Promise<void> {
     }
 
     const passwordHash = await hash(password, Number(process.env.BCRYPT_SALT_ROUNDS ?? 12));
-    await users.save(
-      users.create({
-        email,
-        passwordHash,
-        role: UserRole.ADMIN,
-        status: UserStatus.ACTIVE,
-      }),
-    );
+    await dataSource.transaction(async (manager) => {
+      const transactionalUsers = manager.getRepository(User);
+      const profiles = manager.getRepository(UserProfile);
+      const user = await transactionalUsers.save(
+        transactionalUsers.create({
+          email,
+          passwordHash,
+          role: UserRole.ADMIN,
+          status: UserStatus.ACTIVE,
+        }),
+      );
+      await profiles.save(
+        profiles.create({
+          userId: user.id,
+          fullName: email.split('@')[0],
+          avatarUrl: null,
+          avatarStorageKey: null,
+          avatarMimeType: null,
+          avatarSizeBytes: null,
+          birthday: null,
+          gender: null,
+          bio: null,
+        }),
+      );
+    });
     process.stdout.write('Initial administrator created.\n');
   } finally {
     await dataSource.destroy();

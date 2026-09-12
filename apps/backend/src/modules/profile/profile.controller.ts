@@ -38,10 +38,12 @@ import { ProfileService } from './profile.service';
 @ApiTags('Profile')
 @ApiBearerAuth('JWT-auth')
 @ApiUnauthorizedResponse({ description: 'Access token or session is invalid or absent' })
-@ApiForbiddenResponse({ description: 'Only active Students and Teachers may use this endpoint' })
+@ApiForbiddenResponse({
+  description: 'Only active Students, Teachers, and Administrators may use this endpoint',
+})
 @ApiInternalServerErrorResponse({ description: 'Required profile data is unavailable' })
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.STUDENT, UserRole.TEACHER)
+@Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}

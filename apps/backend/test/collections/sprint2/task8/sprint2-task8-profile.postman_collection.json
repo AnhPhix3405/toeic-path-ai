@@ -1,0 +1,378 @@
+{
+  "info": {
+    "_postman_id": "2d45ae48-5f10-4e7e-911b-8a34fcd6e008",
+    "name": "TOEIC Path AI - Sprint 2 Task 8 Profile",
+    "description": "Postman cases derived from docs/sprint2/sprint2-task8-swagger-test-cases.md. The Admin expectations follow the current UC06 contract: an active Admin may manage only the profile identified by their access token. Run only against an isolated development/test database. Destructive database-only cases are documented but are not automated here.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "swagger.task8.student@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "swagger.task8.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "", "type": "string" },
+    { "key": "adminPassword", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "studentUserId", "value": "", "type": "string" },
+    { "key": "teacherUserId", "value": "", "type": "string" },
+    { "key": "otherUserId", "value": "00000000-0000-4000-8000-000000000099", "type": "string" },
+    { "key": "studentSnapshot", "value": "", "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const expectedStatuses = {",
+          "  'Register Student': [201, 409],",
+          "  'Register Teacher Candidate': [201, 409],",
+          "  'Login Student': [200],",
+          "  'Login Admin': [200],",
+          "  'Find Teacher Candidate': [200],",
+          "  'Promote Teacher Candidate': [200],",
+          "  'Login Teacher': [200],",
+          "  'TC01 - Student gets own profile': [200],",
+          "  'TC02a - Missing token': [401],",
+          "  'TC02b - Invalid token': [401],",
+          "  'TC03 - Teacher gets own profile': [200],",
+          "  'TC04a - Admin gets own profile (current UC06)': [200],",
+          "  'TC04b - Admin patches own profile (current UC06)': [200],",
+          "  'TC05 - Update multiple fields': [200],",
+          "  'TC05 - Confirm persistence': [200],",
+          "  'TC06 - Patch only bio': [200],",
+          "  'TC07 - Clear nullable fields': [200],",
+          "  'TC08 - Blank bio becomes null': [200],",
+          "  'TC09 - Teacher updates own profile': [200],",
+          "  'TC10 - Empty body': [400],",
+          "  'TC11a - Blank full name': [400],",
+          "  'TC11b - Full name over 150 characters': [400],",
+          "  'TC12a - Nonexistent calendar birthday': [400],",
+          "  'TC12b - Future birthday': [400],",
+          "  'TC12c - Birthday in unsupported format': [400],",
+          "  'TC13 - Invalid gender': [400],",
+          "  'TC14 - Bio over 500 characters': [400],",
+          "  'TC15 - Forbidden fields': [400],",
+          "  'TC16 - Client cannot choose target user': [400],",
+          "  'Confirm failed requests did not apply mixed update': [200],",
+          "  'TC17 - Logout Student': [204],",
+          "  'TC17 - Revoked token cannot GET profile': [401],",
+          "  'Login Student again before lock test': [200],",
+          "  'TC18 - Admin locks Student': [200],",
+          "  'TC18 - Locked Student token cannot GET profile': [401],",
+          "  'TC18 - Unlock Student cleanup': [200]",
+          "};",
+          "",
+          "const requestName = pm.info.requestName;",
+          "const allowedStatuses = expectedStatuses[requestName];",
+          "pm.test(`HTTP status is ${allowedStatuses.join(' or ')}`, function () {",
+          "  pm.expect(pm.response.code).to.be.oneOf(allowedStatuses);",
+          "});",
+          "",
+          "pm.test('Response time is below 5 seconds', function () {",
+          "  pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "if (pm.response.code !== 204) {",
+          "  pm.test('Response body is valid JSON', function () {",
+          "    pm.expect(function () { pm.response.json(); }).not.to.throw();",
+          "  });",
+          "}",
+          "",
+          "if ([400, 401, 403, 409].includes(pm.response.code)) {",
+          "  pm.test('Error response does not expose stack traces or secrets', function () {",
+          "    const raw = pm.response.text().toLowerCase();",
+          "    pm.expect(raw).not.to.include('password_hash');",
+          "    pm.expect(raw).not.to.include('refreshtokenhash');",
+          "    pm.expect(raw).not.to.include('stacktrace');",
+          "    pm.expect(raw).not.to.include('node_modules');",
+          "  });",
+          "}",
+          "",
+          "const isProfileSuccess = pm.response.code === 200 && requestName.includes('profile');",
+          "if (isProfileSuccess) {",
+          "  const body = pm.response.json();",
+          "  pm.test('Profile response has the public contract', function () {",
+          "    pm.expect(body).to.have.all.keys('userId', 'email', 'role', 'profile', 'updatedAt');",
+          "    pm.expect(body.userId).to.be.a('string').and.not.empty;",
+          "    pm.expect(body.email).to.be.a('string').and.not.empty;",
+          "    pm.expect(body.role).to.be.oneOf(['student', 'teacher', 'admin']);",
+          "    pm.expect(body.profile).to.have.all.keys('fullName', 'avatarUrl', 'birthday', 'gender', 'bio');",
+          "  });",
+          "",
+          "  pm.test('Profile response does not expose authentication data', function () {",
+          "    const forbiddenKeys = ['password', 'passwordHash', 'refreshToken', 'refreshTokenHash', 'authSessions', 'termsAcceptedAt', 'termsVersion'];",
+          "    forbiddenKeys.forEach((key) => pm.expect(body).not.to.have.property(key));",
+          "  });",
+          "}",
+          "",
+          "if (pm.response.code === 200 && requestName.startsWith('TC01')) {",
+          "  pm.test('Student receives only their own profile', function () {",
+          "    pm.expect(pm.response.json().userId).to.eql(pm.collectionVariables.get('studentUserId'));",
+          "  });",
+          "}",
+          "",
+          "if (pm.response.code === 200 && requestName.startsWith('TC03')) {",
+          "  pm.test('Teacher receives only their own profile', function () {",
+          "    pm.expect(pm.response.json().userId).to.eql(pm.collectionVariables.get('teacherUserId'));",
+          "  });",
+          "}",
+          "",
+          "if (pm.response.code === 200 && requestName.startsWith('TC04')) {",
+          "  pm.test('Admin response belongs to the authenticated Admin', function () {",
+          "    pm.expect(pm.response.json().role).to.eql('admin');",
+          "    pm.expect(pm.response.json().userId).not.to.eql(pm.collectionVariables.get('studentUserId'));",
+          "    pm.expect(pm.response.json().userId).not.to.eql(pm.collectionVariables.get('teacherUserId'));",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup",
+      "description": "Set adminEmail/adminPassword before running. If the two test users already exist, registration returns 409; that is accepted. Teacher promotion requires a valid Admin account.",
+      "item": [
+        {
+          "name": "Register Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Swagger Task 8 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([201, 409]);"] } }]
+        },
+        {
+          "name": "Register Teacher Candidate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Swagger Task 8 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([201, 409]);"] } }]
+        },
+        {
+          "name": "Login Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.accessToken).to.be.a('string').and.not.empty;", "pm.collectionVariables.set('studentToken', body.accessToken);", "pm.collectionVariables.set('studentUserId', body.user.id);"] } }]
+        },
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.user.role).to.eql('admin');", "pm.collectionVariables.set('adminToken', body.accessToken);"] } }]
+        },
+        {
+          "name": "Find Teacher Candidate",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/users?search={{teacherEmail}}&page=1&limit=20"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "const rows = body.items || body.data || [];", "const teacher = rows.find((item) => item.email === pm.collectionVariables.get('teacherEmail'));", "pm.expect(teacher, 'Teacher candidate must exist').to.exist;", "pm.collectionVariables.set('teacherUserId', teacher.id);"] } }]
+        },
+        {
+          "name": "Promote Teacher Candidate",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"teacher\"\n}" },
+            "url": "{{baseUrl}}/admin/users/{{teacherUserId}}/role"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().role).to.eql('teacher');"] } }]
+        },
+        {
+          "name": "Login Teacher",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.user.role).to.eql('teacher');", "pm.collectionVariables.set('teacherToken', body.accessToken);", "pm.collectionVariables.set('teacherUserId', body.user.id);"] } }]
+        }
+      ]
+    },
+    {
+      "name": "01 - Read and authorization",
+      "item": [
+        {
+          "name": "TC01 - Student gets own profile",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.userId).to.eql(pm.collectionVariables.get('studentUserId'));", "pm.expect(body.email).to.eql(pm.collectionVariables.get('studentEmail'));", "pm.expect(body.role).to.eql('student');", "pm.expect(body.profile).to.have.all.keys('fullName', 'avatarUrl', 'birthday', 'gender', 'bio');", "['password','passwordHash','refreshToken','refreshTokenHash','authSessions','termsAcceptedAt','termsVersion'].forEach((key) => pm.expect(body).not.to.have.property(key));"] } }]
+        },
+        {
+          "name": "TC02a - Missing token",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(401);"] } }]
+        },
+        {
+          "name": "TC02b - Invalid token",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer invalid-token" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(401);"] } }]
+        },
+        {
+          "name": "TC03 - Teacher gets own profile",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.userId).to.eql(pm.collectionVariables.get('teacherUserId'));", "pm.expect(body.userId).not.to.eql(pm.collectionVariables.get('studentUserId'));", "pm.expect(body.role).to.eql('teacher');"] } }]
+        },
+        {
+          "name": "TC04a - Admin gets own profile (current UC06)",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().role).to.eql('admin');"] } }]
+        },
+        {
+          "name": "TC04b - Admin patches own profile (current UC06)",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Admin self profile\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().role).to.eql('admin');", "pm.expect(pm.response.json().profile.bio).to.eql('Admin self profile');"] } }]
+        }
+      ]
+    },
+    {
+      "name": "02 - Successful updates",
+      "item": [
+        {
+          "name": "TC05 - Update multiple fields",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"  Swagger Task 8 Updated  \",\n  \"birthday\": \"2003-08-15\",\n  \"gender\": \"male\",\n  \"bio\": \"  Muc tieu TOEIC 850  \"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.profile.fullName).to.eql('Swagger Task 8 Updated');", "pm.expect(body.profile.birthday).to.eql('2003-08-15');", "pm.expect(body.profile.gender).to.eql('male');", "pm.expect(body.profile.bio).to.eql('Muc tieu TOEIC 850');", "pm.collectionVariables.set('studentSnapshot', JSON.stringify(body));"] } }]
+        },
+        {
+          "name": "TC05 - Confirm persistence",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const expected = JSON.parse(pm.collectionVariables.get('studentSnapshot'));", "pm.expect(pm.response.json().profile).to.deep.eql(expected.profile);"] } }]
+        },
+        {
+          "name": "TC06 - Patch only bio",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Muc tieu TOEIC 900\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const before = JSON.parse(pm.collectionVariables.get('studentSnapshot'));", "const body = pm.response.json();", "pm.expect(body.profile.bio).to.eql('Muc tieu TOEIC 900');", "['fullName','birthday','gender','avatarUrl'].forEach((key) => pm.expect(body.profile[key]).to.eql(before.profile[key]));", "pm.collectionVariables.set('studentSnapshot', JSON.stringify(body));"] } }]
+        },
+        {
+          "name": "TC07 - Clear nullable fields",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"birthday\": null,\n  \"gender\": null,\n  \"bio\": null\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.profile.birthday).to.be.null;", "pm.expect(body.profile.gender).to.be.null;", "pm.expect(body.profile.bio).to.be.null;"] } }]
+        },
+        {
+          "name": "TC08 - Blank bio becomes null",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bio\": \"   \"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().profile.bio).to.be.null;"] } }]
+        },
+        {
+          "name": "TC09 - Teacher updates own profile",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Swagger Task 8 Teacher Updated\",\n  \"gender\": \"other\",\n  \"bio\": \"Teacher profile\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json();", "pm.expect(body.userId).to.eql(pm.collectionVariables.get('teacherUserId'));", "pm.expect(body.profile.fullName).to.eql('Swagger Task 8 Teacher Updated');"] } }]
+        }
+      ]
+    },
+    {
+      "name": "03 - Validation and mass assignment",
+      "item": [
+        {
+          "name": "TC10 - Empty body",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "TC11a - Blank full name",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"   \"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "TC11b - Full name over 150 characters",
+          "event": [{ "listen": "prerequest", "script": { "exec": ["pm.variables.set('longFullName', 'x'.repeat(151));"] } }, { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }],
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"{{longFullName}}\"\n}" }, "url": "{{baseUrl}}/profile/me" }
+        },
+        {
+          "name": "TC12a - Nonexistent calendar birthday",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"birthday\": \"2003-02-30\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "TC12b - Future birthday",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"birthday\": \"2999-01-01\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "TC12c - Birthday in unsupported format",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"birthday\": \"15/08/2003\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "TC13 - Invalid gender",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"gender\": \"unknown\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "TC14 - Bio over 500 characters",
+          "event": [{ "listen": "prerequest", "script": { "exec": ["pm.variables.set('longBio', 'x'.repeat(501));"] } }, { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }],
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bio\": \"{{longBio}}\"\n}" }, "url": "{{baseUrl}}/profile/me" }
+        },
+        {
+          "name": "TC15 - Forbidden fields",
+          "description": "Default payload checks a mixed valid/forbidden update. Replace forbiddenField/forbiddenValue to test email, status, avatarUrl, or password independently.",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Must Not Be Applied\",\n  \"role\": \"admin\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "TC16 - Client cannot choose target user",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Attempted IDOR\",\n  \"userId\": \"{{otherUserId}}\",\n  \"profileId\": \"{{otherUserId}}\"\n}" }, "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "Confirm failed requests did not apply mixed update",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().profile.fullName).not.to.eql('Must Not Be Applied');", "pm.expect(pm.response.json().profile.bio).not.to.eql('Attempted IDOR');"] } }]
+        }
+      ]
+    },
+    {
+      "name": "04 - Session and account status",
+      "description": "These cases change account/session state. Keep them last and run only against isolated test users.",
+      "item": [
+        {
+          "name": "TC17 - Logout Student",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/auth/logout" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(204);"] } }]
+        },
+        {
+          "name": "TC17 - Revoked token cannot GET profile",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(401);"] } }]
+        },
+        {
+          "name": "Login Student again before lock test",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}" }, "url": "{{baseUrl}}/auth/login" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.collectionVariables.set('studentToken', pm.response.json().accessToken);"] } }]
+        },
+        {
+          "name": "TC18 - Admin locks Student",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"locked\"\n}" }, "url": "{{baseUrl}}/admin/users/{{studentUserId}}/status" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().status).to.eql('locked');"] } }]
+        },
+        {
+          "name": "TC18 - Locked Student token cannot GET profile",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/profile/me" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(401);"] } }]
+        },
+        {
+          "name": "TC18 - Unlock Student cleanup",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" }, "url": "{{baseUrl}}/admin/users/{{studentUserId}}/status" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().status).to.eql('active');"] } }]
+        }
+      ]
+    }
+  ]
+}
