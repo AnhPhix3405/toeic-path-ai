@@ -17,6 +17,7 @@ import passwordResetConfig from './modules/auth/config/password-reset.config';
 import { ProfileModule } from './modules/profile/profile.module';
 import avatarConfig from './config/avatar.config';
 import storageConfig from './config/storage.config';
+import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import storageConfig from './config/storage.config';
         passwordResetConfig,
         avatarConfig,
         storageConfig,
+        rateLimitConfig,
       ],
       validate: validateEnvironment,
     }),

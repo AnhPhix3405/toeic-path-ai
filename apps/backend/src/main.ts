@@ -7,17 +7,27 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { DataSource } from 'typeorm';
 import cookieParser from 'cookie-parser';
+import { json, urlencoded } from 'express';
 
 interface DatabaseCheckResult {
   database: string;
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const configService = app.get(ConfigService);
+  const bodyLimit = configService.get<string>('app.jsonBodyLimit', '16kb');
+  app.use(json({ limit: bodyLimit }));
+  app.use(urlencoded({ limit: bodyLimit, extended: true }));
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
-
-  const configService = app.get(ConfigService);
+  const trustProxyHops = configService.get<number>('app.trustProxyHops', 0);
+  if (trustProxyHops > 0) {
+    const expressApplication = app.getHttpAdapter().getInstance() as {
+      set(name: string, value: number): void;
+    };
+    expressApplication.set('trust proxy', trustProxyHops);
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -42,7 +52,7 @@ async function bootstrap(): Promise<void> {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`CORS blocked for origin: ${origin}`), false);
+        callback(null, false);
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

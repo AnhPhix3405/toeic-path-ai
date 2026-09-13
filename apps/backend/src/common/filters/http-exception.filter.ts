@@ -10,6 +10,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const status = exception.getStatus();
     const exceptionResponse = exception.getResponse();
 
+    const structured =
+      typeof exceptionResponse === 'object' && exceptionResponse !== null
+        ? (exceptionResponse as Record<string, unknown>)
+        : undefined;
+    if (structured?.code === 'RATE_LIMIT_EXCEEDED') {
+      response.status(status).json({
+        code: structured.code,
+        message: structured.message,
+        details: null,
+        timestamp: new Date().toISOString(),
+        traceId: request.get('x-request-id') ?? null,
+      });
+      return;
+    }
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),

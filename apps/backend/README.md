@@ -1,3 +1,16 @@
+## Authentication rate limiting
+
+Authentication endpoints use configurable fixed-window limits for IP addresses and hashed
+email/token dimensions. The current `AUTH_RATE_LIMIT_STORE` provider is in memory and is suitable
+only while the backend runs as one instance. Restarting the process resets counters, and multiple
+instances do not share counters. Before scaling horizontally, replace that provider with a
+Redis-backed implementation of `AuthRateLimitStore`; controllers and guards require no changes.
+
+Set `TRUST_PROXY_HOPS=0` when clients connect directly. Set it to the exact number of trusted proxy
+hops only when the backend cannot be reached around that proxy. Explicit browser origins on
+login/refresh/logout must be in `AUTH_ALLOWED_ORIGINS`. Auth JSON/urlencoded payloads default to
+`JSON_BODY_LIMIT=16kb`. See `.env.example` for all rate-limit TTL and maximum settings.
+
 ## Project setup
 
 ```bash

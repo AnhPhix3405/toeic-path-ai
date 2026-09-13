@@ -1,0 +1,306 @@
+{
+  "info": {
+    "_postman_id": "f87a0ea5-315b-4bb7-a7f0-f241c649f810",
+    "name": "TOEIC Path AI - Sprint 2 Task 10 Auth Protection",
+    "description": "Black-box checks for auth rate limits, 429 contract, input protection, legacy route removal, and Origin validation. Run against an isolated single-instance development backend. Restart the backend before rerunning folders because the current store is in memory.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "testEmail", "value": "task10.student@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "allowedOrigin", "value": "http://localhost:3000", "type": "string" },
+    { "key": "loginEmailFailureMax", "value": "5", "type": "string" },
+    { "key": "registerIpMax", "value": "5", "type": "string" },
+    { "key": "forgotEmailMax", "value": "3", "type": "string" },
+    { "key": "resetTokenMax", "value": "5", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Baseline and validation",
+      "item": [
+        {
+          "name": "Register test account",
+          "description": "Creates the Student account used by the remaining requests. HTTP 409 is accepted when the account already exists.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Task 10 Student\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tài khoản test được tạo mới hoặc đã tồn tại', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('testEmail'));",
+                  "  pm.expect(body.role).to.eql('student');",
+                  "  pm.expect(body.status).to.eql('active');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login success and capture access token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Origin", "value": "{{allowedOrigin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.accessToken).to.be.a('string').and.not.empty;",
+                  "pm.expect(body).not.to.have.property('refreshToken');",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown register field is rejected",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Task 10\",\n  \"email\": \"unknown-field.task10@example.com\",\n  \"password\": \"StrongPassword123!\",\n  \"confirmPassword\": \"StrongPassword123!\",\n  \"acceptTerms\": true,\n  \"role\": \"admin\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }
+          ]
+        },
+        {
+          "name": "Legacy revoke route is removed",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/auth/revoke"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        },
+        {
+          "name": "Oversized auth JSON is rejected",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const oversizedBody = JSON.stringify({",
+                  "  email: 'payload.task10@example.com',",
+                  "  password: 'x'.repeat(20 * 1024)",
+                  "});",
+                  "pm.request.body.update(oversizedBody);",
+                  "pm.variables.set('oversizedBodyBytes', String(oversizedBody.length));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payload thực tế lớn hơn 16 KB', function () {",
+                  "  pm.expect(Number(pm.variables.get('oversizedBodyBytes'))).to.be.above(16 * 1024);",
+                  "});",
+                  "pm.response.to.have.status(413);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Login normalized-email failure limit",
+      "description": "Run after restarting the backend. Sends exactly max failures, then verifies the next normalized-email request is blocked before authentication.",
+      "item": [
+        {
+          "name": "Login failures then 429",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"  {{testEmail}}  \",\n  \"password\": \"WrongPassword123!\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const max = Number(pm.collectionVariables.get('loginEmailFailureMax'));",
+                  "const url = pm.collectionVariables.get('baseUrl') + '/auth/login';",
+                  "const email = pm.collectionVariables.get('testEmail');",
+                  "const badPassword = 'WrongPassword123!';",
+                  "const send = (index) => {",
+                  "  if (index >= max) return;",
+                  "  pm.sendRequest({ url, method: 'POST', header: { 'Content-Type': 'application/json' }, body: { mode: 'raw', raw: JSON.stringify({ email: index % 2 ? `  ${email.toUpperCase()}  ` : email, password: badPassword }) } }, (error, response) => {",
+                  "    pm.expect(error).to.eql(null); pm.expect(response.code).to.eql(401); send(index + 1);",
+                  "  });",
+                  "}; send(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(429);",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.code).to.eql('RATE_LIMIT_EXCEEDED');",
+                  "pm.expect(body.message).to.eql('Too many requests. Please try again later.');",
+                  "pm.expect(body.details).to.eql(null);",
+                  "pm.expect(pm.response.headers.get('Retry-After')).to.match(/^\\d+$/);",
+                  "pm.expect(pm.response.text().toLowerCase()).not.to.include(pm.collectionVariables.get('testEmail').toLowerCase());"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Forgot-password email limit",
+      "description": "Run after restarting the backend. Uses a nonexistent email; all ordinary responses remain enumeration-safe.",
+      "item": [
+        {
+          "name": "Forgot password spam then 429",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"  NEVER.EXISTS.TASK10@EXAMPLE.COM  \"}" },
+            "url": "{{baseUrl}}/auth/forgot-password"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const max = Number(pm.collectionVariables.get('forgotEmailMax')); const url = pm.collectionVariables.get('baseUrl') + '/auth/forgot-password';",
+                  "const send = (i) => { if (i >= max) return; pm.sendRequest({ url, method: 'POST', header: { 'Content-Type': 'application/json' }, body: { mode: 'raw', raw: JSON.stringify({ email: i % 2 ? ' never.exists.task10@example.com ' : 'NEVER.EXISTS.TASK10@EXAMPLE.COM' }) } }, (e, r) => { pm.expect(e).to.eql(null); pm.expect(r.code).to.eql(200); pm.expect(r.json().message).to.include('If the email is registered'); send(i + 1); }); }; send(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(429);",
+                  "pm.expect(pm.response.json().code).to.eql('RATE_LIMIT_EXCEEDED');",
+                  "pm.expect(pm.response.headers.get('Retry-After')).to.match(/^\\d+$/);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Reset-token fingerprint limit",
+      "description": "Run after restarting the backend. Reuses one fake token so no password or database row can be changed.",
+      "item": [
+        {
+          "name": "Reset token retries then 429",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\":\"fake-task10-reset-token\",\"newPassword\":\"NewPassword123!\",\"confirmPassword\":\"NewPassword123!\"}"
+            },
+            "url": "{{baseUrl}}/auth/reset-password"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const max = Number(pm.collectionVariables.get('resetTokenMax')); const url = pm.collectionVariables.get('baseUrl') + '/auth/reset-password'; const raw = JSON.stringify({ token: 'fake-task10-reset-token', newPassword: 'NewPassword123!', confirmPassword: 'NewPassword123!' });",
+                  "const send = (i) => { if (i >= max) return; pm.sendRequest({ url, method: 'POST', header: { 'Content-Type': 'application/json' }, body: { mode: 'raw', raw } }, (e, r) => { pm.expect(e).to.eql(null); pm.expect(r.code).to.eql(400); send(i + 1); }); }; send(0);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(429);",
+                  "pm.expect(pm.response.json().code).to.eql('RATE_LIMIT_EXCEEDED');",
+                  "pm.expect(pm.response.text()).not.to.include('fake-task10-reset-token');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Origin protection",
+      "description": "Run this request by itself. An explicitly disallowed Origin must be rejected by the auth origin guard.",
+      "item": [
+        {
+          "name": "Disallowed browser Origin is rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Origin", "value": "https://attacker.example" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{testEmail}}\",\"password\":\"{{testPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(403);",
+                  "pm.expect(pm.response.text()).not.to.include('node_modules');",
+                  "pm.expect(pm.response.text()).not.to.include('ExceptionsHandler');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

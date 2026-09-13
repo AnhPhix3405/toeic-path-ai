@@ -20,9 +20,12 @@ import { RolesGuard } from '../src/common/guards/roles.guard';
 import { ProfileController } from '../src/modules/profile/profile.controller';
 import { ProfileService } from '../src/modules/profile/profile.service';
 import { Gender } from '../src/common/enums/gender.enum';
+import { AuthThrottlerGuard } from '../src/common/rate-limit/guards/auth-throttler.guard';
+import { AuthOriginGuard } from '../src/common/rate-limit/guards/auth-origin.guard';
+import { LoginFailureInterceptor } from '../src/common/rate-limit/interceptors/login-failure.interceptor';
 
 describe('Auth refresh cookie (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: INestApplication<App>;jest
   const authService = {
     register: jest.fn(),
     login: jest.fn(),
@@ -61,6 +64,14 @@ describe('Auth refresh cookie (e2e)', () => {
         },
       ],
     })
+      .overrideGuard(AuthThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AuthOriginGuard)
+      .useValue({ canActivate: () => true })
+      .overrideInterceptor(LoginFailureInterceptor)
+      .useValue({
+        intercept: (_context: ExecutionContext, next: { handle(): unknown }) => next.handle(),
+      })
       .overrideGuard(JwtAuthGuard)
       .useValue({
         canActivate(context: ExecutionContext): boolean {

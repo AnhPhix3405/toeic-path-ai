@@ -156,5 +156,49 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     throw new Error('AVATAR_OUTPUT_QUALITY must be an integer between 1 and 100');
   }
 
+  if (
+    (environment.RATE_LIMIT_ENABLED ?? 'true') !== 'true' &&
+    (environment.RATE_LIMIT_ENABLED ?? 'true') !== 'false'
+  ) {
+    throw new Error('RATE_LIMIT_ENABLED must be either "true" or "false"');
+  }
+  if (
+    (environment.NODE_ENV ?? 'development') === 'production' &&
+    environment.RATE_LIMIT_ENABLED === 'false'
+  ) {
+    throw new Error('RATE_LIMIT_ENABLED cannot be false in production');
+  }
+  const rateLimitSettings = [
+    ['RATE_LIMIT_REGISTER_TTL_SECONDS', 900],
+    ['RATE_LIMIT_REGISTER_IP_MAX', 5],
+    ['RATE_LIMIT_LOGIN_TTL_SECONDS', 900],
+    ['RATE_LIMIT_LOGIN_IP_MAX', 20],
+    ['RATE_LIMIT_LOGIN_EMAIL_FAILURE_MAX', 5],
+    ['RATE_LIMIT_FORGOT_PASSWORD_TTL_SECONDS', 900],
+    ['RATE_LIMIT_FORGOT_PASSWORD_IP_MAX', 5],
+    ['RATE_LIMIT_FORGOT_PASSWORD_EMAIL_MAX', 3],
+    ['RATE_LIMIT_RESET_PASSWORD_TTL_SECONDS', 900],
+    ['RATE_LIMIT_RESET_PASSWORD_IP_MAX', 5],
+    ['RATE_LIMIT_RESET_PASSWORD_TOKEN_MAX', 5],
+    ['RATE_LIMIT_REFRESH_TTL_SECONDS', 300],
+    ['RATE_LIMIT_REFRESH_IP_MAX', 60],
+    ['RATE_LIMIT_REFRESH_SESSION_MAX', 20],
+    ['RATE_LIMIT_LOGOUT_TTL_SECONDS', 300],
+    ['RATE_LIMIT_LOGOUT_MAX', 30],
+  ] as const;
+  for (const [name, fallback] of rateLimitSettings) {
+    const value = Number(environment[name] ?? fallback);
+    if (!Number.isInteger(value) || value <= 0)
+      throw new Error(`${name} must be a positive integer`);
+  }
+  const trustProxyHops = Number(environment.TRUST_PROXY_HOPS ?? 0);
+  if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0) {
+    throw new Error('TRUST_PROXY_HOPS must be a non-negative integer');
+  }
+  const authAllowedOrigins = environment.AUTH_ALLOWED_ORIGINS ?? environment.CORS_ORIGINS;
+  if (typeof authAllowedOrigins !== 'string' || authAllowedOrigins.trim() === '') {
+    throw new Error('AUTH_ALLOWED_ORIGINS or CORS_ORIGINS must contain at least one origin');
+  }
+
   return environment;
 }

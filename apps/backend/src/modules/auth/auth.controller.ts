@@ -23,6 +23,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
   ApiOperation,
+  ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
@@ -38,12 +39,20 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { MessageResponse } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AuthRateLimit } from '../../common/rate-limit/decorators/auth-rate-limit.decorator';
+import { AuthThrottlerGuard } from '../../common/rate-limit/guards/auth-throttler.guard';
+import { LoginFailureInterceptor } from '../../common/rate-limit/interceptors/login-failure.interceptor';
+import { AuthOriginGuard } from '../../common/rate-limit/guards/auth-origin.guard';
+import { UseInterceptors } from '@nestjs/common';
 
 type AuthenticatedRequest = Request & { user: AuthenticatedUser };
 type LoginResponse = Omit<TokenResponse, 'refreshToken'>;
 type RefreshResponse = Pick<TokenResponse, 'accessToken' | 'accessTokenExpiresIn'>;
 
 @ApiTags('auth')
+@ApiTooManyRequestsResponse({
+  description: 'Rate limit exceeded. Retry-After indicates when to retry.',
+})
 @Controller('auth')
 export class AuthController {
   private readonly refreshCookieName: string;
@@ -56,6 +65,8 @@ export class AuthController {
   }
 
   @Post('register')
+  @AuthRateLimit('register')
+  @UseGuards(AuthThrottlerGuard)
   @ApiOperation({
     summary: 'Register a Student account and basic profile',
     description:
@@ -72,6 +83,8 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @AuthRateLimit('forgotPassword')
+  @UseGuards(AuthThrottlerGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset instructions' })
   @ApiOkResponse({
@@ -86,6 +99,8 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @AuthRateLimit('resetPassword')
+  @UseGuards(AuthThrottlerGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset a password with a single-use, expiring token' })
   @ApiOkResponse({
@@ -103,6 +118,9 @@ export class AuthController {
   }
 
   @Post('login')
+  @AuthRateLimit('login')
+  @UseGuards(AuthOriginGuard, AuthThrottlerGuard)
+  @UseInterceptors(LoginFailureInterceptor)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
     description: 'Access token returned and refresh token set as HTTP-only cookie',
@@ -123,6 +141,8 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @AuthRateLimit('refresh')
+  @UseGuards(AuthOriginGuard, AuthThrottlerGuard)
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth('toeic_refresh_token')
   @ApiOkResponse({
@@ -153,7 +173,8 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(JwtAuthGuard)
+  @AuthRateLimit('logout')
+  @UseGuards(AuthOriginGuard, AuthThrottlerGuard, JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiCookieAuth('toeic_refresh_token')
   @ApiNoContentResponse({ description: 'Session revoked and cookie cleared' })
@@ -167,14 +188,6 @@ export class AuthController {
     } finally {
       this.clearRefreshCookie(response);
     }
-  }
-
-  @Post('revoke')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  async revoke(@Req() request: AuthenticatedRequest): Promise<void> {
-    await this.authService.revoke(request.user);
   }
 
   @Get('me')

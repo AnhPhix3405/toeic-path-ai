@@ -11,6 +11,7 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { AuthSessionCleanupService } from './services/auth-session-cleanup.service';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailModule } from '../mail/mail.module';
+import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MailModule } from '../mail/mail.module';
     PassportModule,
     JwtModule.register({}),
     UsersModule,
+    RateLimitModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthSessionCleanupService, JwtAccessStrategy, JwtAuthGuard],

@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Matches, registerDecorator, type ValidationArguments } from 'class-validator';
+import {
+  IsString,
+  Matches,
+  MaxLength,
+  registerDecorator,
+  type ValidationArguments,
+} from 'class-validator';
 
 function MatchesNewPassword() {
   return (object: object, propertyName: string): void => {
@@ -22,6 +28,7 @@ function MatchesNewPassword() {
 export class ResetPasswordDto {
   @ApiProperty({ example: 'opaque-reset-token', description: 'Single-use, expiring token' })
   @IsString()
+  @MaxLength(2048)
   @Matches(/\S/, { message: 'token must not be empty' })
   token!: string;
 
