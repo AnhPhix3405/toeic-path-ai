@@ -95,6 +95,7 @@ describe('AuthController refresh cookie transport', () => {
   });
 
   it('clears the cookie and returns 401 when refresh cookie is missing', async () => {
+    authService.refresh.mockRejectedValueOnce(new UnauthorizedException());
     await expect(
       controller.refresh(createRequest(), response as unknown as Response),
     ).rejects.toBeInstanceOf(UnauthorizedException);
@@ -104,7 +105,10 @@ describe('AuthController refresh cookie transport', () => {
       sameSite: 'lax',
       path: '/api/v1/auth',
     });
-    expect(authService.refresh).not.toHaveBeenCalled();
+    expect(authService.refresh).toHaveBeenCalledWith(undefined, {
+      userAgent: 'jest',
+      ipAddress: '127.0.0.1',
+    });
   });
 
   it('revokes the session and clears the cookie on logout', async () => {
@@ -120,7 +124,11 @@ describe('AuthController refresh cookie transport', () => {
       response as unknown as Response,
     );
 
-    expect(authService.revoke).toHaveBeenCalledWith(user);
+    expect(authService.revoke).toHaveBeenCalledWith(user, {
+      ipAddress: '127.0.0.1',
+      traceId: undefined,
+      userAgent: 'jest',
+    });
     expect(response.clearCookie).toHaveBeenCalledTimes(1);
   });
 

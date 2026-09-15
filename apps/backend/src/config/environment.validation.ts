@@ -200,5 +200,26 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     throw new Error('AUTH_ALLOWED_ORIGINS or CORS_ORIGINS must contain at least one origin');
   }
 
+  const securityLogging = environment.SECURITY_EVENT_LOGGING_ENABLED ?? 'true';
+  if (typeof securityLogging !== 'string' || !['true', 'false'].includes(securityLogging))
+    throw new Error('SECURITY_EVENT_LOGGING_ENABLED must be either "true" or "false"');
+  const securityLevel = environment.SECURITY_EVENT_LOG_LEVEL ?? 'info';
+  if (typeof securityLevel !== 'string' || !['info', 'warn', 'error'].includes(securityLevel))
+    throw new Error('SECURITY_EVENT_LOG_LEVEL must be info, warn, or error');
+  const userAgentMax = Number(environment.SECURITY_EVENT_USER_AGENT_MAX_LENGTH ?? 500);
+  if (!Number.isInteger(userAgentMax) || userAgentMax <= 0)
+    throw new Error('SECURITY_EVENT_USER_AGENT_MAX_LENGTH must be a positive integer');
+  const sampleRate = Number(environment.SECURITY_EVENT_LOGIN_FAILURE_SAMPLE_RATE ?? 1);
+  if (!Number.isFinite(sampleRate) || sampleRate < 0 || sampleRate > 1)
+    throw new Error('SECURITY_EVENT_LOGIN_FAILURE_SAMPLE_RATE must be between 0 and 1');
+  const includeIp = environment.SECURITY_EVENT_INCLUDE_IP ?? 'true';
+  if (typeof includeIp !== 'string' || !['true', 'false'].includes(includeIp))
+    throw new Error('SECURITY_EVENT_INCLUDE_IP must be either "true" or "false"');
+  if ((environment.NODE_ENV ?? 'development') === 'production') {
+    const hmacKey = environment.SECURITY_EVENT_HMAC_KEY;
+    if (typeof hmacKey !== 'string' || hmacKey.length < 32)
+      throw new Error('SECURITY_EVENT_HMAC_KEY must contain at least 32 characters in production');
+  }
+
   return environment;
 }

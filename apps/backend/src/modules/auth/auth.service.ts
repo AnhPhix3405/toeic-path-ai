@@ -6,13 +6,14 @@ import {
   Injectable,
   Logger,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { compare, hash } from 'bcrypt';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
 import type { AccessTokenPayload } from '../../common/interfaces/access-token-payload.interface';
@@ -29,10 +30,13 @@ import type { ForgotPasswordDto } from './dto/forgot-password.dto';
 import type { ResetPasswordDto } from './dto/reset-password.dto';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MAIL_SERVICE, type MailService } from '../mail/mail.service';
+import { SecurityEventService } from '../../common/security-events/security-event.service';
+import { SecurityEventType } from '../../common/security-events/enums/security-event.enum';
 
 interface SessionMetadata {
   userAgent?: string;
   ipAddress?: string;
+  traceId?: string;
 }
 
 export interface SafeUser {
@@ -79,6 +83,7 @@ export class AuthService {
     @InjectRepository(AuthSession)
     private readonly sessionsRepository: Repository<AuthSession>,
     @Inject(MAIL_SERVICE) private readonly mailService: MailService,
+    @Optional() private readonly securityEvents?: SecurityEventService,
   ) {
     this.privateKey = configService.getOrThrow<string>('jwt.privateKey');
     this.publicKey = configService.getOrThrow<string>('jwt.publicKey');
@@ -96,9 +101,33 @@ export class AuthService {
     this.passwordResetUrl = configService.getOrThrow<string>('passwordReset.url');
   }
 
-  async forgotPassword(dto: ForgotPasswordDto): Promise<MessageResponse> {
-    const user = await this.usersService.findByEmail(this.normalizeEmail(dto.email));
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+    metadata: SessionMetadata = {},
+  ): Promise<MessageResponse> {
+    const emailFingerprint = this.securityEvents?.fingerprintEmail(dto.email);
+    let user: User | null;
+    try {
+      user = await this.usersService.findByEmail(this.normalizeEmail(dto.email));
+    } catch (error) {
+      this.securityEvents?.error({
+        event: SecurityEventType.AUTH_PASSWORD_RESET_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        emailFingerprint,
+        reasonCode: 'DATABASE_ERROR',
+      });
+      throw error;
+    }
     if (!user || user.status !== UserStatus.ACTIVE) {
+      this.securityEvents?.info({
+        event: SecurityEventType.AUTH_PASSWORD_RESET_REQUESTED,
+        result: 'success',
+        module: 'auth',
+        ...metadata,
+        emailFingerprint,
+      });
       return { message: FORGOT_PASSWORD_MESSAGE };
     }
 
@@ -106,20 +135,33 @@ export class AuthService {
     const tokenHash = this.hashResetToken(rawToken);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.passwordResetTtlMinutes * 60_000);
-    const tokenId = await this.dataSource.transaction(async (manager) => {
-      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [user.id]);
-      const tokens = manager.getRepository(PasswordResetToken);
-      await tokens
-        .createQueryBuilder()
-        .update(PasswordResetToken)
-        .set({ revokedAt: now })
-        .where('user_id = :userId', { userId: user.id })
-        .andWhere('used_at IS NULL')
-        .andWhere('revoked_at IS NULL')
-        .execute();
-      const saved = await tokens.save(tokens.create({ userId: user.id, tokenHash, expiresAt }));
-      return saved.id;
-    });
+    let tokenId: string;
+    try {
+      tokenId = await this.dataSource.transaction(async (manager) => {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [user.id]);
+        const tokens = manager.getRepository(PasswordResetToken);
+        await tokens
+          .createQueryBuilder()
+          .update(PasswordResetToken)
+          .set({ revokedAt: now })
+          .where('user_id = :userId', { userId: user.id })
+          .andWhere('used_at IS NULL')
+          .andWhere('revoked_at IS NULL')
+          .execute();
+        const saved = await tokens.save(tokens.create({ userId: user.id, tokenHash, expiresAt }));
+        return saved.id;
+      });
+    } catch (error) {
+      this.securityEvents?.error({
+        event: SecurityEventType.AUTH_PASSWORD_RESET_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'DATABASE_ERROR',
+      });
+      throw error;
+    }
 
     const resetUrl = new URL(this.passwordResetUrl);
     resetUrl.searchParams.set('token', rawToken);
@@ -131,67 +173,125 @@ export class AuthService {
       });
     } catch {
       await this.revokeResetTokenAfterMailFailure(tokenId);
-      this.logger.error('Password reset email delivery failed', { userId: user.id });
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_PASSWORD_RESET_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'MAIL_DELIVERY_FAILED',
+      });
+      return { message: FORGOT_PASSWORD_MESSAGE };
     }
+    this.securityEvents?.info({
+      event: SecurityEventType.AUTH_PASSWORD_RESET_REQUESTED,
+      result: 'success',
+      module: 'auth',
+      ...metadata,
+      userId: user.id,
+    });
     return { message: FORGOT_PASSWORD_MESSAGE };
   }
 
-  async resetPassword(dto: ResetPasswordDto): Promise<MessageResponse> {
+  async resetPassword(
+    dto: ResetPasswordDto,
+    metadata: SessionMetadata = {},
+  ): Promise<MessageResponse> {
     const tokenHash = this.hashResetToken(dto.token);
     const passwordHash = await hash(dto.newPassword, this.saltRounds);
 
-    await this.dataSource.transaction(async (manager) => {
-      const tokens = manager.getRepository(PasswordResetToken);
-      const resetToken = await tokens
-        .createQueryBuilder('resetToken')
-        .setLock('pessimistic_write')
-        .innerJoinAndSelect('resetToken.user', 'user')
-        .where('resetToken.tokenHash = :tokenHash', { tokenHash })
-        .getOne();
-      const now = new Date();
-      if (
-        !resetToken ||
-        resetToken.usedAt ||
-        resetToken.revokedAt ||
-        resetToken.expiresAt <= now ||
-        resetToken.user.status !== UserStatus.ACTIVE
-      ) {
-        throw new BadRequestException(INVALID_RESET_TOKEN_MESSAGE);
-      }
+    try {
+      const outcome = await this.dataSource.transaction(async (manager) => {
+        const tokens = manager.getRepository(PasswordResetToken);
+        const resetToken = await tokens
+          .createQueryBuilder('resetToken')
+          .setLock('pessimistic_write')
+          .innerJoinAndSelect('resetToken.user', 'user')
+          .where('resetToken.tokenHash = :tokenHash', { tokenHash })
+          .getOne();
+        const now = new Date();
+        if (
+          !resetToken ||
+          resetToken.usedAt ||
+          resetToken.revokedAt ||
+          resetToken.expiresAt <= now ||
+          resetToken.user.status !== UserStatus.ACTIVE
+        ) {
+          throw new BadRequestException(INVALID_RESET_TOKEN_MESSAGE);
+        }
 
-      await manager.getRepository(User).update(resetToken.userId, { passwordHash });
-      resetToken.usedAt = now;
-      await tokens.save(resetToken);
-      await tokens
-        .createQueryBuilder()
-        .update(PasswordResetToken)
-        .set({ revokedAt: now })
-        .where('user_id = :userId', { userId: resetToken.userId })
-        .andWhere('id != :tokenId', { tokenId: resetToken.id })
-        .andWhere('used_at IS NULL')
-        .andWhere('revoked_at IS NULL')
-        .execute();
-      await manager
-        .getRepository(AuthSession)
-        .createQueryBuilder()
-        .update(AuthSession)
-        .set({ revokedAt: now })
-        .where('user_id = :userId', { userId: resetToken.userId })
-        .andWhere('revoked_at IS NULL')
-        .execute();
-    });
+        await manager.getRepository(User).update(resetToken.userId, { passwordHash });
+        resetToken.usedAt = now;
+        await tokens.save(resetToken);
+        await tokens
+          .createQueryBuilder()
+          .update(PasswordResetToken)
+          .set({ revokedAt: now })
+          .where('user_id = :userId', { userId: resetToken.userId })
+          .andWhere('id != :tokenId', { tokenId: resetToken.id })
+          .andWhere('used_at IS NULL')
+          .andWhere('revoked_at IS NULL')
+          .execute();
+        const revoked = await manager
+          .getRepository(AuthSession)
+          .createQueryBuilder()
+          .update(AuthSession)
+          .set({ revokedAt: now })
+          .where('user_id = :userId', { userId: resetToken.userId })
+          .andWhere('revoked_at IS NULL')
+          .execute();
+        return { userId: resetToken.userId, revokedSessionCount: revoked.affected ?? 0 };
+      });
+      this.securityEvents?.info({
+        event: SecurityEventType.AUTH_PASSWORD_RESET_SUCCEEDED,
+        result: 'success',
+        module: 'auth',
+        ...metadata,
+        userId: outcome.userId,
+        metadata: { revokedSessionCount: outcome.revokedSessionCount },
+      });
+    } catch (error) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_PASSWORD_RESET_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        reasonCode: error instanceof BadRequestException ? 'RESET_TOKEN_INVALID' : 'DATABASE_ERROR',
+      });
+      throw error;
+    }
     return { message: RESET_PASSWORD_MESSAGE };
   }
 
-  async register(dto: RegisterDto): Promise<RegisterResponseDto> {
+  async register(dto: RegisterDto, metadata: SessionMetadata = {}): Promise<RegisterResponseDto> {
     const email = this.normalizeEmail(dto.email);
-    if (await this.usersService.findByEmail(email)) {
+    let existingUser: User | null;
+    try {
+      existingUser = await this.usersService.findByEmail(email);
+    } catch (error) {
+      this.securityEvents?.error({
+        event: SecurityEventType.AUTH_REGISTER_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        reasonCode: 'DATABASE_ERROR',
+      });
+      throw error;
+    }
+    if (existingUser) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_REGISTER_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        reasonCode: 'EMAIL_ALREADY_EXISTS',
+      });
       throw new ConflictException('Email is already registered');
     }
 
     const passwordHash = await hash(dto.password, this.saltRounds);
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const result = await this.dataSource.transaction(async (manager) => {
         const users = manager.getRepository(User);
         const profiles = manager.getRepository(UserProfile);
         const user = await users.save(
@@ -219,21 +319,80 @@ export class AuthService {
           createdAt: user.createdAt,
         };
       });
+      this.securityEvents?.info({
+        event: SecurityEventType.AUTH_REGISTER_SUCCEEDED,
+        result: 'success',
+        module: 'auth',
+        ...metadata,
+        userId: result.id,
+        role: result.role,
+      });
+      return result;
     } catch (error: unknown) {
       if (this.isUniqueViolation(error)) {
+        this.securityEvents?.warn({
+          event: SecurityEventType.AUTH_REGISTER_FAILED,
+          result: 'failure',
+          module: 'auth',
+          ...metadata,
+          reasonCode: 'EMAIL_ALREADY_EXISTS',
+        });
         throw new ConflictException('Email is already registered');
       }
+      this.securityEvents?.error({
+        event: SecurityEventType.AUTH_REGISTER_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        reasonCode: 'DATABASE_ERROR',
+      });
       throw error;
     }
   }
 
   async login(dto: LoginDto, metadata: SessionMetadata): Promise<TokenResponse> {
-    const user = await this.usersService.findByEmail(this.normalizeEmail(dto.email), true);
+    const startedAt = Date.now();
+    let user: User | null;
+    try {
+      user = await this.usersService.findByEmail(this.normalizeEmail(dto.email), true);
+    } catch (error) {
+      this.securityEvents?.error({
+        event: SecurityEventType.AUTH_LOGIN_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        emailFingerprint: this.securityEvents.fingerprintEmail(dto.email),
+        reasonCode: 'DATABASE_ERROR',
+        durationMs: Date.now() - startedAt,
+      });
+      throw error;
+    }
 
     if (!user || !(await compare(dto.password, user.passwordHash))) {
+      const sampleRate = this.configService.get<number>('securityEvents.loginFailureSampleRate', 1);
+      if (Math.random() < sampleRate)
+        this.securityEvents?.warn({
+          event: SecurityEventType.AUTH_LOGIN_FAILED,
+          result: 'failure',
+          module: 'auth',
+          ...metadata,
+          userId: user?.id ?? null,
+          emailFingerprint: user ? undefined : this.securityEvents.fingerprintEmail(dto.email),
+          reasonCode: 'INVALID_CREDENTIALS',
+          durationMs: Date.now() - startedAt,
+        });
       throw new UnauthorizedException('Invalid email or password');
     }
     if (user.status === UserStatus.LOCKED) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_LOGIN_FAILED,
+        result: 'blocked',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'ACCOUNT_LOCKED',
+        durationMs: Date.now() - startedAt,
+      });
       throw new ForbiddenException('Account is locked');
     }
 
@@ -252,13 +411,49 @@ export class AuthService {
     await this.sessionsRepository.save(session);
     await this.usersService.updateLastLogin(user.id, now);
 
+    this.securityEvents?.info({
+      event: SecurityEventType.AUTH_LOGIN_SUCCEEDED,
+      result: 'success',
+      module: 'auth',
+      ...metadata,
+      userId: user.id,
+      role: user.role,
+      sessionId,
+      durationMs: Date.now() - startedAt,
+    });
+
     return { ...tokens, user: this.toSafeUser(user) };
   }
 
-  async refresh(refreshToken: string, metadata: SessionMetadata): Promise<TokenResponse> {
-    const payload = await this.verifyRefreshToken(refreshToken);
+  async refresh(
+    refreshToken: string | undefined,
+    metadata: SessionMetadata,
+  ): Promise<TokenResponse> {
+    if (!refreshToken) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_REFRESH_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        reasonCode: 'REFRESH_TOKEN_MISSING',
+      });
+      throw new UnauthorizedException('Refresh token cookie is required');
+    }
+    let payload: RefreshTokenPayload;
+    try {
+      payload = await this.verifyRefreshToken(refreshToken);
+    } catch (error) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_REFRESH_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        reasonCode: 'REFRESH_TOKEN_INVALID',
+      });
+      throw error;
+    }
 
-    return this.dataSource.transaction(async (manager) => {
+    const outcome = await this.dataSource.transaction(async (manager) => {
       const sessions = manager.getRepository(AuthSession);
       const oldSession = await sessions
         .createQueryBuilder('session')
@@ -269,16 +464,18 @@ export class AuthService {
         .getOne();
       const now = new Date();
 
+      if (!oldSession) return { kind: 'failure' as const, reasonCode: 'SESSION_NOT_FOUND' };
+      if (oldSession.expiresAt <= now)
+        return { kind: 'failure' as const, reasonCode: 'SESSION_EXPIRED' };
       if (
-        !oldSession ||
         oldSession.revokedAt ||
-        oldSession.expiresAt <= now ||
         this.hashRefreshToken(refreshToken) !== oldSession.refreshTokenHash
       ) {
-        throw new UnauthorizedException('Refresh session is not valid');
+        await this.revokeSessionFamily(manager, oldSession.id, oldSession.userId, now);
+        return { kind: 'reuse' as const, userId: oldSession.userId, sessionId: oldSession.id };
       }
       if (oldSession.user.status === UserStatus.LOCKED) {
-        throw new ForbiddenException('Account is locked');
+        return { kind: 'blocked' as const, userId: oldSession.userId, sessionId: oldSession.id };
       }
 
       const newSessionId = randomUUID();
@@ -297,19 +494,95 @@ export class AuthService {
       oldSession.lastUsedAt = now;
       await sessions.save([oldSession, newSession]);
 
-      return { ...tokens, user: this.toSafeUser(oldSession.user) };
+      return {
+        kind: 'success' as const,
+        response: { ...tokens, user: this.toSafeUser(oldSession.user) },
+        oldSessionId: oldSession.id,
+        newSessionId,
+      };
     });
+    if (outcome.kind === 'reuse') {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_REFRESH_REUSE_DETECTED,
+        result: 'blocked',
+        module: 'auth',
+        ...metadata,
+        userId: outcome.userId,
+        sessionId: outcome.sessionId,
+        reasonCode: 'TOKEN_REUSE_DETECTED',
+      });
+      throw new UnauthorizedException('Refresh session is not valid');
+    }
+    if (outcome.kind === 'blocked') {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_REFRESH_FAILED,
+        result: 'blocked',
+        module: 'auth',
+        ...metadata,
+        userId: outcome.userId,
+        sessionId: outcome.sessionId,
+        reasonCode: 'ACCOUNT_LOCKED',
+      });
+      throw new ForbiddenException('Account is locked');
+    }
+    if (outcome.kind === 'failure') {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_REFRESH_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: payload.sub,
+        sessionId: payload.sid,
+        reasonCode: outcome.reasonCode,
+      });
+      throw new UnauthorizedException('Refresh session is not valid');
+    }
+    this.securityEvents?.info({
+      event: SecurityEventType.AUTH_REFRESH_SUCCEEDED,
+      result: 'success',
+      module: 'auth',
+      ...metadata,
+      userId: outcome.response.user.id,
+      sessionId: outcome.newSessionId,
+      metadata: { oldSessionId: outcome.oldSessionId, newSessionId: outcome.newSessionId },
+    });
+    return outcome.response;
   }
 
-  async revoke(user: AuthenticatedUser): Promise<void> {
-    await this.sessionsRepository
-      .createQueryBuilder()
-      .update(AuthSession)
-      .set({ revokedAt: new Date() })
-      .where('id = :sessionId', { sessionId: user.sessionId })
-      .andWhere('user_id = :userId', { userId: user.id })
-      .andWhere('revoked_at IS NULL')
-      .execute();
+  async revoke(user: AuthenticatedUser, metadata: SessionMetadata = {}): Promise<void> {
+    try {
+      const result = await this.sessionsRepository
+        .createQueryBuilder()
+        .update(AuthSession)
+        .set({ revokedAt: new Date() })
+        .where('id = :sessionId', { sessionId: user.sessionId })
+        .andWhere('user_id = :userId', { userId: user.id })
+        .andWhere('revoked_at IS NULL')
+        .execute();
+      this.securityEvents?.info({
+        event: SecurityEventType.AUTH_LOGOUT_SUCCEEDED,
+        result: 'success',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        sessionId: user.sessionId,
+        metadata: {
+          sessionRevoked: (result.affected ?? 0) > 0,
+          alreadyRevoked: (result.affected ?? 0) === 0,
+        },
+      });
+    } catch (error) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_LOGOUT_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        sessionId: user.sessionId,
+        reasonCode: 'DATABASE_ERROR',
+      });
+      throw error;
+    }
   }
 
   private async signTokenPair(user: User, sessionId: string): Promise<Omit<TokenResponse, 'user'>> {
@@ -367,6 +640,28 @@ export class AuthService {
 
   private hashResetToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async revokeSessionFamily(
+    manager: EntityManager,
+    sessionId: string,
+    userId: string,
+    revokedAt: Date,
+  ): Promise<void> {
+    await manager.query(
+      `WITH RECURSIVE family AS (
+         SELECT id, previous_session_id FROM auth_sessions WHERE id = $1 AND user_id = $2
+         UNION
+         SELECT session.id, session.previous_session_id
+         FROM auth_sessions session
+         JOIN family member
+           ON session.id = member.previous_session_id OR session.previous_session_id = member.id
+         WHERE session.user_id = $2
+       )
+       UPDATE auth_sessions SET revoked_at = COALESCE(revoked_at, $3)
+       WHERE id IN (SELECT id FROM family)`,
+      [sessionId, userId, revokedAt],
+    );
   }
 
   private async revokeResetTokenAfterMailFailure(tokenId: string): Promise<void> {

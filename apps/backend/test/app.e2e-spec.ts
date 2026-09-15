@@ -25,7 +25,7 @@ import { AuthOriginGuard } from '../src/common/rate-limit/guards/auth-origin.gua
 import { LoginFailureInterceptor } from '../src/common/rate-limit/interceptors/login-failure.interceptor';
 
 describe('Auth refresh cookie (e2e)', () => {
-  let app: INestApplication<App>;jest
+  let app: INestApplication<App>;
   const authService = {
     register: jest.fn(),
     login: jest.fn(),
@@ -108,10 +108,13 @@ describe('Auth refresh cookie (e2e)', () => {
       profile: { fullName: 'Nguyen Van A', avatarUrl: null, bio: null },
       createdAt: new Date('2026-08-31T00:00:00.000Z'),
     });
-    authService.refresh.mockResolvedValue({
-      ...tokenResponse,
-      accessToken: 'rotated-access-token',
-      refreshToken: 'rotated-refresh-token',
+    authService.refresh.mockImplementation((refreshToken?: string) => {
+      if (!refreshToken) return Promise.reject(new UnauthorizedException());
+      return Promise.resolve({
+        ...tokenResponse,
+        accessToken: 'rotated-access-token',
+        refreshToken: 'rotated-refresh-token',
+      });
     });
     authService.revoke.mockResolvedValue(undefined);
     authService.forgotPassword.mockResolvedValue({
@@ -135,11 +138,14 @@ describe('Auth refresh cookie (e2e)', () => {
       .send(payload)
       .expect(201);
 
-    expect(authService.register).toHaveBeenCalledWith({
-      ...payload,
-      fullName: 'Nguyen Van A',
-      email: 'student@example.com',
-    });
+    expect(authService.register).toHaveBeenCalledWith(
+      {
+        ...payload,
+        fullName: 'Nguyen Van A',
+        email: 'student@example.com',
+      },
+      expect.objectContaining({ ipAddress: expect.any(String) as string }),
+    );
     expect(response.body).not.toHaveProperty('passwordHash');
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
@@ -155,7 +161,10 @@ describe('Auth refresh cookie (e2e)', () => {
     expect(forgot.body).toEqual({
       message: 'If the email is registered, reset instructions will be sent.',
     });
-    expect(authService.forgotPassword).toHaveBeenCalledWith({ email: 'unknown@example.com' });
+    expect(authService.forgotPassword).toHaveBeenCalledWith(
+      { email: 'unknown@example.com' },
+      expect.objectContaining({ ipAddress: expect.any(String) as string }),
+    );
 
     const reset = await request(app.getHttpServer())
       .post('/api/v1/auth/reset-password')
@@ -214,6 +223,7 @@ describe('Auth refresh cookie (e2e)', () => {
 
     expect(authService.revoke).toHaveBeenCalledWith(
       expect.objectContaining({ sessionId: 'session-id' }),
+      expect.objectContaining({ ipAddress: expect.any(String) as string }),
     );
     expect(response.headers['set-cookie']?.[0]).toContain('toeic_refresh_token=');
   });

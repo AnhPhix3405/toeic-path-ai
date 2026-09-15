@@ -3,7 +3,7 @@ import {
   Injectable,
   HttpException,
   HttpStatus,
-  Logger,
+  Optional,
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
@@ -17,6 +17,9 @@ import {
 } from '../rate-limit.constants';
 import type { AuthRateLimitStore, RateLimitResult } from '../interfaces/rate-limit-store.interface';
 import { RateLimitKeyService } from '../services/rate-limit-key.service';
+import { SecurityEventService } from '../../security-events/security-event.service';
+import { SecurityEventType } from '../../security-events/enums/security-event.enum';
+import type { SecurityRequest } from '../../security-events/request-context.middleware';
 
 type Policy = {
   ttl: number;
@@ -30,12 +33,12 @@ type Policy = {
 
 @Injectable()
 export class AuthThrottlerGuard implements CanActivate {
-  private readonly logger = new Logger(AuthThrottlerGuard.name);
   constructor(
     private readonly reflector: Reflector,
     private readonly config: ConfigService,
     private readonly keys: RateLimitKeyService,
     @Inject(AUTH_RATE_LIMIT_STORE) private readonly store: AuthRateLimitStore,
+    @Optional() private readonly securityEvents?: SecurityEventService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,7 +47,7 @@ export class AuthThrottlerGuard implements CanActivate {
       context.getHandler(),
     );
     if (!name || !this.config.get<boolean>('rateLimit.enabled', true)) return true;
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<SecurityRequest>();
     const response = context.switchToHttp().getResponse<Response>();
     const policy = this.config.getOrThrow<Policy>(`rateLimit.${name}`);
     const endpoint = this.endpoint(name);
@@ -55,6 +58,7 @@ export class AuthThrottlerGuard implements CanActivate {
       policy.ttl,
       response,
       endpoint,
+      request,
     );
     const body = this.body(request);
     if (name === 'login') {
@@ -66,6 +70,7 @@ export class AuthThrottlerGuard implements CanActivate {
           policy.ttl,
           response,
           endpoint,
+          request,
         );
     } else if (name === 'forgotPassword') {
       const email = this.keys.normalizeEmail(body.email);
@@ -76,6 +81,7 @@ export class AuthThrottlerGuard implements CanActivate {
           policy.ttl,
           response,
           endpoint,
+          request,
         );
     } else if (name === 'resetPassword' && typeof body.token === 'string') {
       await this.consume(
@@ -84,6 +90,7 @@ export class AuthThrottlerGuard implements CanActivate {
         policy.ttl,
         response,
         endpoint,
+        request,
       );
     } else if (name === 'refresh') {
       const token = this.cookie(request);
@@ -94,6 +101,7 @@ export class AuthThrottlerGuard implements CanActivate {
           policy.ttl,
           response,
           endpoint,
+          request,
         );
     }
     return true;
@@ -105,10 +113,11 @@ export class AuthThrottlerGuard implements CanActivate {
     ttl: number,
     response: Response,
     endpoint: string,
+    request: SecurityRequest,
   ): Promise<void> {
     const result = await this.store.consume(key, limit, ttl);
     this.setHeaders(response, result);
-    if (!result.allowed) this.reject(result.retryAfterSeconds, response, endpoint);
+    if (!result.allowed) this.reject(result.retryAfterSeconds, response, endpoint, request);
   }
 
   private async rejectIfBlocked(
@@ -117,13 +126,28 @@ export class AuthThrottlerGuard implements CanActivate {
     ttl: number,
     response: Response,
     endpoint: string,
+    request: SecurityRequest,
   ): Promise<void> {
-    if (await this.store.isBlocked(key, limit)) this.reject(ttl, response, endpoint);
+    if (await this.store.isBlocked(key, limit)) this.reject(ttl, response, endpoint, request);
   }
 
-  private reject(seconds: number, response: Response, endpoint: string): never {
+  private reject(
+    seconds: number,
+    response: Response,
+    endpoint: string,
+    request: SecurityRequest,
+  ): never {
     response.setHeader('Retry-After', seconds);
-    this.logger.warn({ event: 'AUTH_RATE_LIMIT_EXCEEDED', endpoint });
+    this.securityEvents?.warn({
+      event: SecurityEventType.AUTH_RATE_LIMIT_EXCEEDED,
+      result: 'blocked',
+      module: 'security',
+      traceId: request.traceId,
+      ipAddress: request.ip,
+      userAgent: request.get('user-agent'),
+      reasonCode: 'RATE_LIMIT_EXCEEDED',
+      metadata: { endpoint, policyName: endpoint, retryAfterSeconds: seconds },
+    });
     throw new HttpException(
       {
         code: 'RATE_LIMIT_EXCEEDED',

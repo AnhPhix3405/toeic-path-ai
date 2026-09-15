@@ -13,6 +13,8 @@ import { AuthService } from './auth.service';
 import { AuthSession } from './entities/auth-session.entity';
 import { compare, hash } from 'bcrypt';
 import { UserProfile } from '../users/entities/user-profile.entity';
+import type { SecurityEventService } from '../../common/security-events/security-event.service';
+import { SecurityEventType } from '../../common/security-events/enums/security-event.enum';
 
 describe('AuthService', () => {
   const keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -37,6 +39,9 @@ describe('AuthService', () => {
   let sessionsRepository: jest.Mocked<Pick<Repository<AuthSession>, 'create' | 'save'>>;
   let dataSource: Pick<DataSource, 'transaction'>;
   let service: AuthService;
+  let securityEvents: jest.Mocked<
+    Pick<SecurityEventService, 'info' | 'warn' | 'error' | 'fingerprintEmail'>
+  >;
 
   beforeEach(() => {
     usersService = {
@@ -49,6 +54,12 @@ describe('AuthService', () => {
       save: jest.fn().mockImplementation((value) => Promise.resolve(value)),
     };
     dataSource = { transaction: jest.fn() };
+    securityEvents = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      fingerprintEmail: jest.fn().mockReturnValue('email-hmac'),
+    };
     const values: Record<string, unknown> = {
       'jwt.privateKey': privateKey,
       'jwt.publicKey': publicKey,
@@ -62,6 +73,7 @@ describe('AuthService', () => {
     };
     const configService = {
       getOrThrow: jest.fn((key: string) => values[key]),
+      get: jest.fn((key: string, fallback: unknown) => values[key] ?? fallback),
     } as unknown as ConfigService;
 
     service = new AuthService(
@@ -71,6 +83,7 @@ describe('AuthService', () => {
       dataSource as DataSource,
       sessionsRepository as unknown as Repository<AuthSession>,
       { sendPasswordResetEmail: jest.fn() },
+      securityEvents as unknown as SecurityEventService,
     );
   });
 
@@ -125,6 +138,12 @@ describe('AuthService', () => {
     });
     expect(result).not.toHaveProperty('passwordHash');
     expect(result.profile).toEqual({ fullName: 'Nguyen Van A', avatarUrl: null, bio: null });
+    expect(securityEvents.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: SecurityEventType.AUTH_REGISTER_SUCCEEDED,
+        userId: user.id,
+      }),
+    );
   });
 
   it('maps a transaction unique violation to conflict', async () => {
@@ -140,6 +159,7 @@ describe('AuthService', () => {
         acceptTerms: true,
       }),
     ).rejects.toMatchObject({ status: 409 });
+    expect(securityEvents.info).not.toHaveBeenCalled();
   });
 
   it('issues RS256 access and refresh tokens and stores only the refresh hash', async () => {
@@ -166,6 +186,13 @@ describe('AuthService', () => {
     expect(createdSession.previousSessionId).toBeNull();
     expect(createdSession.refreshTokenHash).not.toContain(result.refreshToken);
     expect(usersService.findByEmail).toHaveBeenCalledWith('student@example.com', true);
+    expect(securityEvents.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: SecurityEventType.AUTH_LOGIN_SUCCEEDED,
+        userId: user.id,
+        sessionId: refresh.sid,
+      }),
+    );
   });
 
   it('builds a previous-session chain while revoking every rotated session', async () => {
@@ -207,8 +234,12 @@ describe('AuthService', () => {
       })),
     };
     (dataSource.transaction as jest.Mock).mockImplementation(
-      (work: (manager: { getRepository: () => typeof transactionRepository }) => unknown) =>
-        Promise.resolve(work({ getRepository: () => transactionRepository })),
+      (
+        work: (manager: {
+          getRepository: () => typeof transactionRepository;
+          query: jest.Mock;
+        }) => unknown,
+      ) => Promise.resolve(work({ getRepository: () => transactionRepository, query: jest.fn() })),
     );
 
     const firstRotation = await service.refresh(initialRefreshToken, {});
@@ -224,7 +255,23 @@ describe('AuthService', () => {
     await expect(service.refresh(initialRefreshToken, {})).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+    expect(securityEvents.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ event: SecurityEventType.AUTH_REFRESH_REUSE_DETECTED }),
+    );
     expect(secondRotation.refreshToken).toBeDefined();
+  });
+
+  it('records a missing refresh token without logging a token value', async () => {
+    await expect(service.refresh(undefined, { traceId: 'trace-1' })).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(securityEvents.warn).toHaveBeenCalledWith({
+      event: SecurityEventType.AUTH_REFRESH_FAILED,
+      result: 'failure',
+      module: 'auth',
+      traceId: 'trace-1',
+      reasonCode: 'REFRESH_TOKEN_MISSING',
+    });
   });
 
   it('rejects tokens signed with HS256 or another RSA private key', async () => {

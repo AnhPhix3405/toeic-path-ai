@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -28,6 +29,7 @@ import { QueryUsersDto } from './dto/query-users.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UsersService, type PaginatedUsers, type SafeUser } from './users.service';
+import type { SecurityRequest } from '../../common/security-events/request-context.middleware';
 
 @ApiTags('Admin Users')
 @ApiBearerAuth('JWT-auth')
@@ -65,8 +67,9 @@ export class AdminUsersController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateUserRoleDto,
     @CurrentUser('id') actorId: string,
+    @Req() request: SecurityRequest,
   ): Promise<SafeUser> {
-    return this.usersService.updateRole(id, dto.role, actorId);
+    return this.usersService.updateRole(id, dto.role, actorId, this.requestMetadata(request));
   }
 
   @Patch(':id/status')
@@ -79,7 +82,16 @@ export class AdminUsersController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateUserStatusDto,
     @CurrentUser('id') actorId: string,
+    @Req() request: SecurityRequest,
   ): Promise<SafeUser> {
-    return this.usersService.updateStatus(id, dto.status, actorId);
+    return this.usersService.updateStatus(id, dto.status, actorId, this.requestMetadata(request));
+  }
+
+  private requestMetadata(request: SecurityRequest) {
+    return {
+      traceId: request.traceId,
+      ipAddress: request.ip,
+      userAgent: request.get('user-agent'),
+    };
   }
 }

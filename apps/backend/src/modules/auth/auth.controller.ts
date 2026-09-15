@@ -7,7 +7,6 @@ import {
   Post,
   Req,
   Res,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -44,6 +43,7 @@ import { AuthThrottlerGuard } from '../../common/rate-limit/guards/auth-throttle
 import { LoginFailureInterceptor } from '../../common/rate-limit/interceptors/login-failure.interceptor';
 import { AuthOriginGuard } from '../../common/rate-limit/guards/auth-origin.guard';
 import { UseInterceptors } from '@nestjs/common';
+import type { SecurityRequest } from '../../common/security-events/request-context.middleware';
 
 type AuthenticatedRequest = Request & { user: AuthenticatedUser };
 type LoginResponse = Omit<TokenResponse, 'refreshToken'>;
@@ -78,8 +78,11 @@ export class AuthController {
   })
   @ApiBadRequestResponse({ description: 'Invalid registration input or terms not accepted' })
   @ApiConflictResponse({ description: 'Email is already registered' })
-  register(@Body() dto: RegisterDto): Promise<RegisterResponseDto> {
-    return this.authService.register(dto);
+  register(
+    @Body() dto: RegisterDto,
+    @Req() request: SecurityRequest,
+  ): Promise<RegisterResponseDto> {
+    return this.authService.register(dto, this.getSessionMetadata(request));
   }
 
   @Post('forgot-password')
@@ -94,8 +97,11 @@ export class AuthController {
     },
   })
   @ApiBadRequestResponse({ description: 'Invalid request input' })
-  forgotPassword(@Body() dto: ForgotPasswordDto): Promise<MessageResponse> {
-    return this.authService.forgotPassword(dto);
+  forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Req() request: SecurityRequest,
+  ): Promise<MessageResponse> {
+    return this.authService.forgotPassword(dto, this.getSessionMetadata(request));
   }
 
   @Post('reset-password')
@@ -110,9 +116,10 @@ export class AuthController {
   @ApiBadRequestResponse({ description: 'The reset token is invalid, expired, revoked, or used' })
   async resetPassword(
     @Body() dto: ResetPasswordDto,
+    @Req() request: SecurityRequest,
     @Res({ passthrough: true }) response: Response,
   ): Promise<MessageResponse> {
-    const result = await this.authService.resetPassword(dto);
+    const result = await this.authService.resetPassword(dto, this.getSessionMetadata(request));
     this.clearRefreshCookie(response);
     return result;
   }
@@ -129,7 +136,7 @@ export class AuthController {
   @ApiForbiddenResponse({ description: 'Account is locked' })
   async login(
     @Body() dto: LoginDto,
-    @Req() request: Request,
+    @Req() request: SecurityRequest,
     @Res({ passthrough: true }) response: Response,
   ): Promise<LoginResponse> {
     const { refreshToken, ...body } = await this.authService.login(
@@ -150,15 +157,11 @@ export class AuthController {
   })
   @ApiUnauthorizedResponse({ description: 'Refresh cookie is invalid or absent' })
   async refresh(
-    @Req() request: Request,
+    @Req() request: SecurityRequest,
     @Res({ passthrough: true }) response: Response,
   ): Promise<RefreshResponse> {
     try {
       const refreshToken = this.getRefreshTokenFromRequest(request);
-      if (!refreshToken) {
-        throw new UnauthorizedException('Refresh token cookie is required');
-      }
-
       const result = await this.authService.refresh(refreshToken, this.getSessionMetadata(request));
       this.setRefreshCookie(response, result.refreshToken);
       return {
@@ -184,7 +187,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     try {
-      await this.authService.revoke(request.user);
+      await this.authService.revoke(request.user, this.getSessionMetadata(request));
     } finally {
       this.clearRefreshCookie(response);
     }
@@ -220,10 +223,11 @@ export class AuthController {
     return typeof token === 'string' && token.length > 0 ? token : undefined;
   }
 
-  private getSessionMetadata(request: Request) {
+  private getSessionMetadata(request: SecurityRequest) {
     return {
       userAgent: request.get('user-agent'),
       ipAddress: request.ip,
+      traceId: request.traceId,
     };
   }
 }

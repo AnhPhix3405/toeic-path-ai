@@ -2,6 +2,7 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } fr
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
+import type { SecurityRequest } from '../security-events/request-context.middleware';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -9,7 +10,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<SecurityRequest>();
     const response = ctx.getResponse<Response>();
 
     const { method, originalUrl } = request;
@@ -21,7 +22,16 @@ export class LoggingInterceptor implements NestInterceptor {
         const { statusCode } = response;
         const delay = Date.now() - now;
 
-        this.logger.log(`${method} ${originalUrl} ${statusCode} - ${delay}ms [${userAgent}]`);
+        this.logger.log(
+          JSON.stringify({
+            method,
+            path: originalUrl,
+            statusCode,
+            durationMs: delay,
+            traceId: request.traceId,
+            userAgent,
+          }),
+        );
       }),
     );
   }

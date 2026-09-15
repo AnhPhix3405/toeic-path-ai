@@ -18,6 +18,8 @@ import { ProfileModule } from './modules/profile/profile.module';
 import avatarConfig from './config/avatar.config';
 import storageConfig from './config/storage.config';
 import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
+import securityEventConfig from './common/security-events/security-event.config';
+import { SecurityEventModule } from './common/security-events/security-event.module';
 
 @Module({
   imports: [
@@ -33,10 +35,12 @@ import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
         avatarConfig,
         storageConfig,
         rateLimitConfig,
+        securityEventConfig,
       ],
       validate: validateEnvironment,
     }),
     ScheduleModule.forRoot(),
+    SecurityEventModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
