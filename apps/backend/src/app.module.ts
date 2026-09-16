@@ -20,6 +20,7 @@ import storageConfig from './config/storage.config';
 import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
 import securityEventConfig from './common/security-events/security-event.config';
 import { SecurityEventModule } from './common/security-events/security-event.module';
+import { QuestionsModule } from './modules/questions/questions.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { SecurityEventModule } from './common/security-events/security-event.mod
     AuthModule,
     UsersModule,
     ProfileModule,
+    QuestionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

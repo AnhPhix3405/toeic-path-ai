@@ -106,6 +106,23 @@ Role-protected administrator endpoints are:
 - `PATCH /api/v1/admin/users/:id/role`
 - `PATCH /api/v1/admin/users/:id/status`
 
+## Quản lý ngân hàng câu hỏi
+
+Các API câu hỏi yêu cầu access token và chỉ cho phép tài khoản có role `teacher` hoặc `admin`:
+
+- `POST /api/v1/questions`
+- `GET /api/v1/questions`
+- `GET /api/v1/questions/:id`
+- `PATCH /api/v1/questions/:id`
+- `DELETE /api/v1/questions/:id`
+
+Trong phạm vi CRUD nền tảng hiện tại, hệ thống hỗ trợ `questionType=single_choice` và tự gán
+`status=draft`. `createdBy` được lấy từ access token, không nhận từ request. Chạy
+`pnpm migration:run` trước khi sử dụng các API này để tạo bảng `questions`.
+
+Question Bank dùng policy `Read-All, Edit-Own`: Teacher và Admin đọc được toàn bộ câu hỏi, nhưng
+chỉ được sửa hoặc xóa câu hỏi do chính mình tạo. Admin không được bỏ qua giới hạn ownership.
+
 Public registration always creates an active Student. To create the first
 administrator, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then run
 `pnpm seed:admin`. The command is idempotent for an existing administrator and

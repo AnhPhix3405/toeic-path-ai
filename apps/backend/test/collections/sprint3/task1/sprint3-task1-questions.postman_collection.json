@@ -1,0 +1,759 @@
+{
+  "info": {
+    "_postman_id": "6fcde833-f3c2-43df-a903-7def9018a301",
+    "name": "TOEIC Path AI - Sprint 3 Task 1 Question CRUD",
+    "description": "Kiểm thử CRUD câu hỏi nền tảng. Chỉ chạy trên database development/test. Chạy toàn bộ collection theo đúng thứ tự; thư mục 00 chuẩn bị tài khoản và token trước các test case.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "sprint3.task1.student@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "sprint3.task1.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "", "type": "string" },
+    { "key": "adminPassword", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "teacherUserId", "value": "", "type": "string" },
+    { "key": "questionId", "value": "", "type": "string" },
+    { "key": "adminQuestionId", "value": "", "type": "string" },
+    { "key": "teacherPolicyQuestionId", "value": "", "type": "string" },
+    {
+      "key": "missingQuestionId",
+      "value": "00000000-0000-4000-8000-000000000091",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response time is below 5 seconds', function () { pm.expect(pm.response.responseTime).to.be.below(5000); });",
+          "if (pm.response.code !== 204) { pm.test('Response body is valid JSON', function () { pm.expect(function () { pm.response.json(); }).not.to.throw(); }); }",
+          "if (pm.response.code >= 400) {",
+          "  pm.test('Error does not expose implementation details or secrets', function () {",
+          "    const raw = pm.response.text().toLowerCase();",
+          "    ['password_hash', 'refreshtokenhash', 'node_modules', 'queryfailed', 'stacktrace'].forEach((value) => pm.expect(raw).not.to.include(value));",
+          "  });",
+          "}",
+          "const isQuestionSuccess = [200, 201].includes(pm.response.code) && pm.request.url.toString().includes('/questions');",
+          "if (isQuestionSuccess) {",
+          "  const payload = pm.response.json(); const rows = Array.isArray(payload) ? payload : [payload];",
+          "  rows.forEach((body) => {",
+          "    pm.expect(body).to.have.all.keys('id', 'content', 'questionType', 'status', 'createdAt', 'updatedAt');",
+          "    pm.expect(body.questionType).to.eql('single_choice'); pm.expect(body.status).to.eql('draft');",
+          "    ['createdBy', 'creator', 'passwordHash'].forEach((key) => pm.expect(body).not.to.have.property(key));",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup",
+      "description": "Điền adminEmail và adminPassword trước khi chạy. Setup tạo Student, tạo ứng viên Teacher, dùng Admin để gán role teacher rồi đăng nhập lấy token.",
+      "item": [
+        {
+          "name": "Register Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 3 Task 1 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student is created or already exists', function () { pm.expect(pm.response.code).to.be.oneOf([201, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Teacher Candidate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 3 Task 1 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teacher candidate is created or already exists', function () { pm.expect(pm.response.code).to.be.oneOf([201, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.user.role).to.eql('student'); pm.collectionVariables.set('studentToken', body.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.user.role).to.eql('admin'); pm.collectionVariables.set('adminToken', body.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Find Teacher Candidate",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/users?search={{teacherEmail}}&page=1&limit=20"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const rows = pm.response.json().data; const user = rows.find((item) => item.email === pm.collectionVariables.get('teacherEmail'));",
+                  "pm.expect(user, 'Teacher candidate must exist').to.exist; pm.collectionVariables.set('teacherUserId', user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Promote Teacher Candidate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"teacher\"\n}" },
+            "url": "{{baseUrl}}/admin/users/{{teacherUserId}}/role"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.expect(pm.response.json().role).to.eql('teacher');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Teacher",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.user.role).to.eql('teacher');",
+                  "pm.collectionVariables.set('teacherToken', body.accessToken); pm.collectionVariables.set('teacherUserId', body.user.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Successful CRUD flow",
+      "item": [
+        {
+          "name": "TC01 - Teacher creates a question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"  [S3T1] Where is the meeting being held?  \",\n  \"questionType\": \"single_choice\"\n}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "const body = pm.response.json(); pm.expect(body.content).to.eql('[S3T1] Where is the meeting being held?');",
+                  "pm.collectionVariables.set('questionId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC02 - Teacher lists questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body).to.be.an('array');",
+                  "pm.expect(body.some((item) => item.id === pm.collectionVariables.get('questionId'))).to.eql(true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC03 - Teacher gets question detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('questionId'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC04 - Teacher updates a question",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"  [S3T1] Updated question content  \"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.content).to.eql('[S3T1] Updated question content');",
+                  "pm.expect(body.id).to.eql(pm.collectionVariables.get('questionId'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC05 - Updated question persists",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.expect(pm.response.json().content).to.eql('[S3T1] Updated question content');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC06 - Teacher deletes a question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(204);",
+                  "pm.expect(pm.response.text()).to.eql('');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC07 - Deleted question returns 404",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Authentication and roles",
+      "item": [
+        {
+          "name": "TC08 - Guest cannot list questions",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/questions" },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(401);"] } }
+          ]
+        },
+        {
+          "name": "TC09 - Invalid token is rejected",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer invalid-token" }],
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(401);"] } }
+          ]
+        },
+        {
+          "name": "TC10 - Student cannot list questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }
+          ]
+        },
+        {
+          "name": "TC11 - Student cannot create questions",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"[S3T1] Forbidden Student question\",\"questionType\":\"single_choice\"}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }
+          ]
+        },
+        {
+          "name": "TC12 - Admin can list all questions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Read-All and Edit-Own policy",
+      "description": "Xác nhận cả Teacher và Admin đọc được câu hỏi của nhau, nhưng không ai—including Admin—được sửa/xóa resource không thuộc sở hữu.",
+      "item": [
+        {
+          "name": "TC13 - Admin creates own question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"[S3T1] Admin-owned question\",\"questionType\":\"single_choice\"}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "pm.collectionVariables.set('adminQuestionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC14 - Teacher reads Admin question",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);"] } }
+          ]
+        },
+        {
+          "name": "TC15 - Teacher cannot update Admin question",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"content\":\"[S3T1] Forbidden Teacher update\"}" },
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }
+          ]
+        },
+        {
+          "name": "TC16 - Teacher cannot delete Admin question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }
+          ]
+        },
+        {
+          "name": "TC17 - Admin updates own question",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"content\":\"[S3T1] Admin-owned updated\"}" },
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);"] } }
+          ]
+        },
+        {
+          "name": "TC18 - Teacher creates policy question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"[S3T1] Teacher-owned policy question\",\"questionType\":\"single_choice\"}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "pm.collectionVariables.set('teacherPolicyQuestionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC19 - Admin reads Teacher question",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/questions/{{teacherPolicyQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);"] } }
+          ]
+        },
+        {
+          "name": "TC20 - Admin cannot update Teacher question",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"content\":\"[S3T1] Forbidden Admin update\"}" },
+            "url": "{{baseUrl}}/questions/{{teacherPolicyQuestionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(403);",
+                  "pm.expect(pm.response.json().message).to.include('only modify questions created by yourself');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC21 - Admin cannot delete Teacher question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/questions/{{teacherPolicyQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }
+          ]
+        },
+        {
+          "name": "TC22 - Admin deletes own question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(204);"] } }
+          ]
+        },
+        {
+          "name": "TC23 - Teacher deletes own policy question",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{teacherPolicyQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(204);"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Validation and not found",
+      "item": [
+        {
+          "name": "TC13 - Blank content is rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"   \",\"questionType\":\"single_choice\"}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }
+          ]
+        },
+        {
+          "name": "TC14 - Unsupported question type is rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"[S3T1] Invalid type\",\"questionType\":\"multiple_choice\"}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }
+          ]
+        },
+        {
+          "name": "TC15 - Missing required fields are rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }
+          ]
+        },
+        {
+          "name": "TC16 - Client-managed fields are rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"[S3T1] Mass assignment\",\"questionType\":\"single_choice\",\"status\":\"draft\",\"createdBy\":\"{{teacherUserId}}\"}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }
+          ]
+        },
+        {
+          "name": "TC17 - Malformed UUID is rejected",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/not-a-uuid"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }
+          ]
+        },
+        {
+          "name": "TC18 - Empty patch of missing question returns 404",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/questions/{{missingQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        },
+        {
+          "name": "TC19 - Blank update content is rejected",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"content\":\"   \"}" },
+            "url": "{{baseUrl}}/questions/{{missingQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }
+          ]
+        },
+        {
+          "name": "TC20 - Missing question detail returns 404",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{missingQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        },
+        {
+          "name": "TC21 - Missing question update returns 404",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"content\":\"[S3T1] Missing question\"}" },
+            "url": "{{baseUrl}}/questions/{{missingQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        },
+        {
+          "name": "TC22 - Missing question delete returns 404",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/questions/{{missingQuestionId}}"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        }
+      ]
+    }
+  ]
+}
