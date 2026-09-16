@@ -21,6 +21,7 @@ import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
 import securityEventConfig from './common/security-events/security-event.config';
 import { SecurityEventModule } from './common/security-events/security-event.module';
 import { QuestionsModule } from './modules/questions/questions.module';
+import { QuestionGroupsModule } from './modules/question-groups/question-groups.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { QuestionsModule } from './modules/questions/questions.module';
     UsersModule,
     ProfileModule,
     QuestionsModule,
+    QuestionGroupsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

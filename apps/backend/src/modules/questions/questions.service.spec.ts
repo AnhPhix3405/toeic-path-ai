@@ -6,6 +6,7 @@ import { Question } from './entities/question.entity';
 import { QuestionStatus } from './enums/question-status.enum';
 import { QuestionType } from './enums/question-type.enum';
 import { QuestionsService } from './questions.service';
+import { QuestionGroupsService } from '../question-groups/question-groups.service';
 
 describe('QuestionsService', () => {
   const repository = {
@@ -16,6 +17,7 @@ describe('QuestionsService', () => {
     merge: jest.fn(),
     remove: jest.fn(),
   };
+  const questionGroupsService = { ensureExists: jest.fn() };
   let service: QuestionsService;
   const question: Question = {
     id: '10000000-0000-4000-8000-000000000001',
@@ -36,6 +38,7 @@ describe('QuestionsService', () => {
           provide: getRepositoryToken(Question),
           useValue: repository as Partial<Repository<Question>>,
         },
+        { provide: QuestionGroupsService, useValue: questionGroupsService },
       ],
     }).compile();
     service = module.get(QuestionsService);
@@ -102,5 +105,24 @@ describe('QuestionsService', () => {
     );
     expect(repository.save).not.toHaveBeenCalled();
     expect(repository.remove).not.toHaveBeenCalled();
+  });
+
+  it('assigns and detaches an owned question group', async () => {
+    const questionGroupId = '40000000-0000-4000-8000-000000000004';
+    repository.findOneBy.mockResolvedValueOnce(question).mockResolvedValueOnce(null);
+    repository.merge.mockReturnValue({ ...question, questionGroupId, groupOrder: 1 });
+    repository.save.mockResolvedValue({ ...question, questionGroupId, groupOrder: 1 });
+
+    await expect(
+      service.assignGroup(question.id, { questionGroupId, groupOrder: 1 }, question.createdBy),
+    ).resolves.toMatchObject({ groupOrder: 1 });
+    expect(questionGroupsService.ensureExists).toHaveBeenCalledWith(questionGroupId);
+
+    repository.findOneBy.mockResolvedValue(question);
+    repository.merge.mockReturnValue({ ...question, questionGroupId: null, groupOrder: null });
+    repository.save.mockResolvedValue({ ...question, questionGroupId: null, groupOrder: null });
+    await expect(service.detachGroup(question.id, question.createdBy)).resolves.toMatchObject({
+      groupOrder: null,
+    });
   });
 });

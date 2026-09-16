@@ -15,6 +15,9 @@ export class QuestionResponseDto {
   @ApiProperty({ enum: QuestionStatus })
   status!: QuestionStatus;
 
+  @ApiProperty({ example: 1, nullable: true })
+  groupOrder!: number | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 

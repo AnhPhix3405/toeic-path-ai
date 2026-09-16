@@ -1,0 +1,87 @@
+{
+  "info": {
+    "_postman_id": "741db9c4-5ed4-4b09-86d5-23a9fdd5f09d",
+    "name": "TOEIC Path AI - Sprint 3 Task 2 Question Groups",
+    "description": "Kiểm thử câu hỏi độc lập, QuestionGroup, thứ tự câu hỏi và policy Read-All, Edit-Own. Chỉ chạy trên database development/test; bắt đầu từ thư mục 00 - Setup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "sprint3.task2.student@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "sprint3.task2.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "", "type": "string" },
+    { "key": "adminPassword", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "teacherUserId", "value": "", "type": "string" },
+    { "key": "groupId", "value": "", "type": "string" },
+    { "key": "questionId", "value": "", "type": "string" },
+    { "key": "secondQuestionId", "value": "", "type": "string" },
+    { "key": "adminGroupId", "value": "", "type": "string" },
+    { "key": "adminQuestionId", "value": "", "type": "string" },
+    { "key": "missingGroupId", "value": "00000000-0000-4000-8000-000000000092", "type": "string" }
+  ],
+  "event": [{
+    "listen": "test",
+    "script": { "type": "text/javascript", "exec": [
+      "pm.test('Response time is below 5 seconds', function () { pm.expect(pm.response.responseTime).to.be.below(5000); });",
+      "if (pm.response.code !== 204) { pm.test('Response body is valid JSON', function () { pm.expect(function () { pm.response.json(); }).not.to.throw(); }); }",
+      "if (pm.response.code >= 400) { pm.test('Error does not expose implementation details', function () { const raw = pm.response.text().toLowerCase(); ['password_hash', 'queryfailed', 'stacktrace', 'node_modules'].forEach((value) => pm.expect(raw).not.to.include(value)); }); }"
+    ] }
+  }],
+  "item": [
+    {
+      "name": "00 - Setup",
+      "description": "Điền adminEmail và adminPassword của admin phát triển trước khi chạy. Setup tạo Student, ứng viên Teacher, nâng role bằng Admin và lấy các access token.",
+      "item": [
+        { "name": "Register Student", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Sprint 3 Task 2 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}" }, "url": "{{baseUrl}}/auth/register" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([201, 409]);"] } }] },
+        { "name": "Register Teacher Candidate", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Sprint 3 Task 2 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}" }, "url": "{{baseUrl}}/auth/register" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([201, 409]);"] } }] },
+        { "name": "Login Student", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{studentEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/auth/login" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.collectionVariables.set('studentToken', pm.response.json().accessToken);"] } }] },
+        { "name": "Login Admin", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}" }, "url": "{{baseUrl}}/auth/login" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body.user.role).to.eql('admin'); pm.collectionVariables.set('adminToken', body.accessToken);"] } }] },
+        { "name": "Find Teacher Candidate", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/admin/users?search={{teacherEmail}}&page=1&limit=20" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const user = pm.response.json().data.find((item) => item.email === pm.collectionVariables.get('teacherEmail'));", "pm.expect(user, 'Teacher candidate must exist').to.exist; pm.collectionVariables.set('teacherUserId', user.id);"] } }] },
+        { "name": "Promote Teacher Candidate", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"role\":\"teacher\"}" }, "url": "{{baseUrl}}/admin/users/{{teacherUserId}}/role" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().role).to.eql('teacher');"] } }] },
+        { "name": "Login Teacher", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{teacherEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/auth/login" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body.user.role).to.eql('teacher'); pm.collectionVariables.set('teacherToken', body.accessToken);"] } }] }
+      ]
+    },
+    {
+      "name": "01 - Independent and grouped questions",
+      "item": [
+        { "name": "TC01 - Teacher creates QuestionGroup", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"  [S3T2] Questions 151-152  \",\n  \"context\": \"  From: sender@example.com\\nTo: learner@example.com  \"\n}" }, "url": "{{baseUrl}}/question-groups" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "const body = pm.response.json(); pm.expect(body.title).to.eql('[S3T2] Questions 151-152'); pm.expect(body.context).to.include('From:'); pm.expect(body.questions).to.eql([]); pm.collectionVariables.set('groupId', body.id);"] } }] },
+        { "name": "TC02 - Teacher creates independent Question", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"[S3T2] What is the email mainly about?\",\"questionType\":\"single_choice\"}" }, "url": "{{baseUrl}}/questions" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "const body = pm.response.json(); pm.expect(body.groupOrder).to.be.null; pm.collectionVariables.set('questionId', body.id);"] } }] },
+        { "name": "TC03 - Attach owned Question at order 1", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"questionGroupId\":\"{{groupId}}\",\"groupOrder\":1}" }, "url": "{{baseUrl}}/questions/{{questionId}}/group" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().groupOrder).to.eql(1);"] } }] },
+        { "name": "TC04 - Group detail returns ordered Question", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/question-groups/{{groupId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body.questions).to.have.length(1); pm.expect(body.questions[0].id).to.eql(pm.collectionVariables.get('questionId')); pm.expect(body.questions[0].groupOrder).to.eql(1);"] } }] },
+        { "name": "TC05 - Create second independent Question", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"[S3T2] When will the meeting occur?\",\"questionType\":\"single_choice\"}" }, "url": "{{baseUrl}}/questions" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "pm.collectionVariables.set('secondQuestionId', pm.response.json().id);"] } }] },
+        { "name": "TC06 - Duplicate order is rejected", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"questionGroupId\":\"{{groupId}}\",\"groupOrder\":1}" }, "url": "{{baseUrl}}/questions/{{secondQuestionId}}/group" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(409);"] } }] },
+        { "name": "TC07 - Detach owned Question", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}/group" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().groupOrder).to.be.null;"] } }] },
+        { "name": "TC08 - Assign order 2 then delete Group", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"questionGroupId\":\"{{groupId}}\",\"groupOrder\":2}" }, "url": "{{baseUrl}}/questions/{{questionId}}/group" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);"] } }] },
+        { "name": "TC09 - Delete Group detaches but does not delete Questions", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/question-groups/{{groupId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(204);"] } }] },
+        { "name": "TC10 - Detached Question remains independent", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().groupOrder).to.be.null;"] } }] }
+      ]
+    },
+    {
+      "name": "02 - Authorization and ownership",
+      "item": [
+        { "name": "TC11 - Student cannot manage groups", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/question-groups" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }] },
+        { "name": "TC12 - Admin creates own group", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\":\"[S3T2] Admin group\",\"context\":\"Admin shared context\"}" }, "url": "{{baseUrl}}/question-groups" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "pm.collectionVariables.set('adminGroupId', pm.response.json().id);"] } }] },
+        { "name": "TC13 - Teacher reads Admin group", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/question-groups/{{adminGroupId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);"] } }] },
+        { "name": "TC14 - Teacher cannot update Admin group", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\":\"Forbidden update\"}" }, "url": "{{baseUrl}}/question-groups/{{adminGroupId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }] },
+        { "name": "TC15 - Teacher cannot delete Admin group", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/question-groups/{{adminGroupId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }] },
+        { "name": "TC16 - Admin creates Question", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"[S3T2] Admin owned question\",\"questionType\":\"single_choice\"}" }, "url": "{{baseUrl}}/questions" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "pm.collectionVariables.set('adminQuestionId', pm.response.json().id);"] } }] },
+        { "name": "TC17 - Teacher cannot attach Admin Question", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"questionGroupId\":\"{{adminGroupId}}\",\"groupOrder\":1}" }, "url": "{{baseUrl}}/questions/{{adminQuestionId}}/group" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }] },
+        { "name": "TC18 - Missing QuestionGroup returns 404", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/question-groups/{{missingGroupId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }] }
+      ]
+    },
+    {
+      "name": "99 - Cleanup",
+      "description": "Chỉ chạy trên development/test. Xóa đúng các resource được collection tạo; các Question còn lại vẫn có thể được xóa riêng.",
+      "item": [
+        { "name": "Delete Admin Question", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/questions/{{adminQuestionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([204, 404]);"] } }] },
+        { "name": "Delete Admin Group", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/question-groups/{{adminGroupId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([204, 404]);"] } }] },
+        { "name": "Delete Teacher Questions", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([204, 404]);"] } }] },
+        { "name": "Delete Second Teacher Question", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{secondQuestionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([204, 404]);"] } }] }
+      ]
+    }
+  ]
+}

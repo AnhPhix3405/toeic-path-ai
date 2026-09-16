@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -31,6 +32,7 @@ import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { AssignQuestionGroupDto } from './dto/assign-question-group.dto';
 import { QuestionResponseDto } from './dto/question-response.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { QuestionsService } from './questions.service';
@@ -93,6 +95,41 @@ export class QuestionsController {
     @CurrentUser('id') actorId: string,
   ): Promise<QuestionResponseDto> {
     return this.questionsService.update(id, dto, actorId);
+  }
+
+  @Patch(':id/group')
+  @ApiOperation({
+    summary: 'Assign or move an owned question to a group',
+    description: 'Only the question owner may change its group. Admin does not bypass ownership.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: AssignQuestionGroupDto })
+  @ApiOkResponse({ type: QuestionResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid id, group id, or group order' })
+  @ApiNotFoundResponse({ description: 'Question or question group not found' })
+  @ApiConflictResponse({ description: 'The group order is already in use' })
+  assignGroup(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AssignQuestionGroupDto,
+    @CurrentUser('id') actorId: string,
+  ): Promise<QuestionResponseDto> {
+    return this.questionsService.assignGroup(id, dto, actorId);
+  }
+
+  @Delete(':id/group')
+  @ApiOperation({
+    summary: 'Detach an owned question from its group',
+    description: 'The question remains available as an independent question.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: QuestionResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid question id' })
+  @ApiNotFoundResponse({ description: 'Question not found' })
+  detachGroup(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser('id') actorId: string,
+  ): Promise<QuestionResponseDto> {
+    return this.questionsService.detachGroup(id, actorId);
   }
 
   @Delete(':id')

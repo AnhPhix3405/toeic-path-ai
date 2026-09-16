@@ -123,6 +123,22 @@ Trong phạm vi CRUD nền tảng hiện tại, hệ thống hỗ trợ `questio
 Question Bank dùng policy `Read-All, Edit-Own`: Teacher và Admin đọc được toàn bộ câu hỏi, nhưng
 chỉ được sửa hoặc xóa câu hỏi do chính mình tạo. Admin không được bỏ qua giới hạn ownership.
 
+Question Bank cũng hỗ trợ câu hỏi độc lập và nhóm câu hỏi dùng chung ngữ cảnh. Các API quản lý
+nhóm yêu cầu access token của `teacher` hoặc `admin`:
+
+- `POST /api/v1/question-groups`
+- `GET /api/v1/question-groups`
+- `GET /api/v1/question-groups/:id`
+- `PATCH /api/v1/question-groups/:id`
+- `DELETE /api/v1/question-groups/:id`
+- `PATCH /api/v1/questions/:id/group`
+- `DELETE /api/v1/questions/:id/group`
+
+Question không thuộc nhóm có `questionGroupId` và `groupOrder` đều là `null`. Chỉ owner của
+Question có thể gắn, chuyển hoặc gỡ Question khỏi nhóm. Xóa QuestionGroup chỉ gỡ liên kết, không
+xóa Question; các thao tác này được thực hiện trong transaction. Chạy `pnpm migration:run` để áp
+dụng migration `question_groups` trước khi dùng các API mới.
+
 Public registration always creates an active Student. To create the first
 administrator, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then run
 `pnpm seed:admin`. The command is idempotent for an existing administrator and
