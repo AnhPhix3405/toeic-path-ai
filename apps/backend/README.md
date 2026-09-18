@@ -139,6 +139,13 @@ Question có thể gắn, chuyển hoặc gỡ Question khỏi nhóm. Xóa Quest
 xóa Question; các thao tác này được thực hiện trong transaction. Chạy `pnpm migration:run` để áp
 dụng migration `question_groups` trước khi dùng các API mới.
 
+Mỗi Question cũng có thể lưu `explanation` và các option có thứ tự. Teacher/Admin đọc được option
+và lời giải trong Question Bank, nhưng chỉ owner mới quản lý chúng; Admin không bypass ownership.
+Các endpoint là `POST /api/v1/questions/:id/options`, `PATCH`/`DELETE
+/api/v1/questions/:id/options/:optionId` và `PATCH /api/v1/questions/:id/correct-answer`.
+Backend tự sinh label option từ `position` và đặt đáp án đúng theo transaction để chỉ còn một option
+correct. Chạy `pnpm migration:run` để áp dụng migration `question_options`.
+
 Public registration always creates an active Student. To create the first
 administrator, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then run
 `pnpm seed:admin`. The command is idempotent for an existing administrator and

@@ -1,0 +1,93 @@
+{
+  "info": {
+    "_postman_id": "c534222d-820b-4a45-bf7e-f1d874101003",
+    "name": "TOEIC Path AI - Sprint 3 Task 3 Question Options",
+    "description": "Kiểm thử explanation, quản lý option theo thứ tự, đáp án đúng duy nhất và policy Read-All, Edit-Own. Chỉ chạy trên database development/test và chạy tuần tự từ 00 - Setup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "sprint3.task3.student@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "sprint3.task3.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "", "type": "string" },
+    { "key": "adminPassword", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "teacherUserId", "value": "", "type": "string" },
+    { "key": "questionId", "value": "", "type": "string" },
+    { "key": "adminQuestionId", "value": "", "type": "string" },
+    { "key": "optionAId", "value": "", "type": "string" },
+    { "key": "optionBId", "value": "", "type": "string" },
+    { "key": "optionCId", "value": "", "type": "string" },
+    { "key": "deletedOptionId", "value": "", "type": "string" },
+    { "key": "missingOptionId", "value": "00000000-0000-4000-8000-000000000093", "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response time is below 5 seconds', function () { pm.expect(pm.response.responseTime).to.be.below(5000); });",
+          "if (pm.response.code !== 204) { pm.test('Response body is valid JSON', function () { pm.expect(function () { pm.response.json(); }).not.to.throw(); }); }",
+          "if (pm.response.code >= 400) { pm.test('Error does not expose implementation details', function () { const raw = pm.response.text().toLowerCase(); ['password_hash', 'queryfailed', 'stacktrace', 'node_modules'].forEach((value) => pm.expect(raw).not.to.include(value)); }); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup",
+      "description": "Điền adminEmail/adminPassword trước khi chạy. Folder tạo Student và Teacher candidate, dùng Admin nâng role rồi lấy token.",
+      "item": [
+        { "name": "Register Student", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Sprint 3 Task 3 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}" }, "url": "{{baseUrl}}/auth/register" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([201, 409]);"] } }] },
+        { "name": "Register Teacher Candidate", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Sprint 3 Task 3 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}" }, "url": "{{baseUrl}}/auth/register" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([201, 409]);"] } }] },
+        { "name": "Login Student", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{studentEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/auth/login" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.collectionVariables.set('studentToken', pm.response.json().accessToken);"] } }] },
+        { "name": "Login Admin", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}" }, "url": "{{baseUrl}}/auth/login" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body.user.role).to.eql('admin'); pm.collectionVariables.set('adminToken', body.accessToken);"] } }] },
+        { "name": "Find Teacher Candidate", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/admin/users?search={{teacherEmail}}&page=1&limit=20" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const user = pm.response.json().data.find((item) => item.email === pm.collectionVariables.get('teacherEmail'));", "pm.expect(user, 'Teacher candidate must exist').to.exist; pm.collectionVariables.set('teacherUserId', user.id);"] } }] },
+        { "name": "Promote Teacher Candidate", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"role\":\"teacher\"}" }, "url": "{{baseUrl}}/admin/users/{{teacherUserId}}/role" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().role).to.eql('teacher');"] } }] },
+        { "name": "Login Teacher", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{teacherEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/auth/login" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body.user.role).to.eql('teacher'); pm.collectionVariables.set('teacherToken', body.accessToken);"] } }] },
+        { "name": "Create Teacher Question with Explanation", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"[S3T3] The report was ___ yesterday.\",\n  \"questionType\": \"single_choice\",\n  \"explanation\": \"  Yesterday indicates the simple past tense.  \"\n}" }, "url": "{{baseUrl}}/questions" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "const body = pm.response.json(); pm.expect(body.explanation).to.eql('Yesterday indicates the simple past tense.'); pm.expect(body.options).to.eql([]); pm.collectionVariables.set('questionId', body.id);"] } }] },
+        { "name": "Create Admin Question", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"[S3T3] Admin owned question\",\"questionType\":\"single_choice\"}" }, "url": "{{baseUrl}}/questions" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "pm.collectionVariables.set('adminQuestionId', pm.response.json().id);"] } }] }
+      ]
+    },
+    {
+      "name": "01 - Option lifecycle and correct answer",
+      "item": [
+        { "name": "TC01 - Create option A", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"  reviewed  \",\"position\":1,\"isCorrect\":false}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "const body = pm.response.json(); pm.expect(body).to.include({ label: 'A', content: 'reviewed', position: 1, isCorrect: false }); pm.collectionVariables.set('optionAId', body.id);"] } }] },
+        { "name": "TC02 - Create correct option B", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"submitted\",\"position\":2,\"isCorrect\":true}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "const body = pm.response.json(); pm.expect(body.label).to.eql('B'); pm.expect(body.isCorrect).to.eql(true); pm.collectionVariables.set('optionBId', body.id);"] } }] },
+        { "name": "TC03 - Create option C with default isCorrect", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"submitting\",\"position\":3}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(201);", "const body = pm.response.json(); pm.expect(body).to.include({ label: 'C', position: 3, isCorrect: false }); pm.collectionVariables.set('optionCId', body.id);"] } }] },
+        { "name": "TC04 - Get question returns explanation and sorted options", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body.explanation).to.eql('Yesterday indicates the simple past tense.'); pm.expect(body.options.map((item) => item.position)).to.eql([1, 2, 3]); pm.expect(body.options.filter((item) => item.isCorrect)).to.have.length(1); pm.expect(body.options.find((item) => item.isCorrect).id).to.eql(pm.collectionVariables.get('optionBId'));"] } }] },
+        { "name": "TC04b - Question Bank list includes options", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const question = pm.response.json().find((item) => item.id === pm.collectionVariables.get('questionId')); pm.expect(question, 'Created question must be listed').to.exist; pm.expect(question.options.map((item) => item.position)).to.eql([1, 2, 3]);"] } }] },
+        { "name": "TC05 - Set option A as correct", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"optionId\":\"{{optionAId}}\"}" }, "url": "{{baseUrl}}/questions/{{questionId}}/correct-answer" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body.id).to.eql(pm.collectionVariables.get('optionAId')); pm.expect(body.isCorrect).to.eql(true);"] } }] },
+        { "name": "TC06 - Correct answer remains unique", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const correct = pm.response.json().options.filter((item) => item.isCorrect); pm.expect(correct).to.have.length(1); pm.expect(correct[0].id).to.eql(pm.collectionVariables.get('optionAId'));"] } }] },
+        { "name": "TC07 - Update option C position and label", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"submitted promptly\",\"position\":27}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options/{{optionCId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "const body = pm.response.json(); pm.expect(body).to.include({ label: 'AA', content: 'submitted promptly', position: 27 });"] } }] },
+        { "name": "TC08 - Duplicate position is rejected", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"duplicate\",\"position\":2}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(409);"] } }] },
+        { "name": "TC09 - Empty option update is rejected", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options/{{optionBId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }] },
+        { "name": "TC10 - Invalid position is rejected", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"invalid\",\"position\":0}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(400);"] } }] },
+        { "name": "TC11 - Delete option B", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}/options/{{optionBId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(204);", "pm.collectionVariables.set('deletedOptionId', pm.collectionVariables.get('optionBId'));"] } }] },
+        { "name": "TC12 - Deleted option returns 404", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"must not update\"}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options/{{deletedOptionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }] }
+      ]
+    },
+    {
+      "name": "02 - Authorization and ownership",
+      "item": [
+        { "name": "TC13 - Student cannot add option", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"forbidden\",\"position\":9}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }] },
+        { "name": "TC14 - Admin can read Teacher question and options", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().options.length).to.eql(2);"] } }] },
+        { "name": "TC15 - Admin cannot add option to Teacher question", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"admin bypass attempt\",\"position\":9}" }, "url": "{{baseUrl}}/questions/{{questionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }] },
+        { "name": "TC16 - Teacher cannot add option to Admin question", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"teacher bypass attempt\",\"position\":1}" }, "url": "{{baseUrl}}/questions/{{adminQuestionId}}/options" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(403);"] } }] },
+        { "name": "TC17 - Option from another question cannot become correct", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"optionId\":\"{{missingOptionId}}\"}" }, "url": "{{baseUrl}}/questions/{{questionId}}/correct-answer" }, "event": [{ "listen": "test", "script": { "exec": ["pm.response.to.have.status(404);"] } }] }
+      ]
+    },
+    {
+      "name": "99 - Cleanup",
+      "description": "Chỉ chạy trên development/test. Question options được xóa cascade cùng Question.",
+      "item": [
+        { "name": "Delete Teacher Question and Options", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }], "url": "{{baseUrl}}/questions/{{questionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([204, 404]);"] } }] },
+        { "name": "Delete Admin Question", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/questions/{{adminQuestionId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.expect(pm.response.code).to.be.oneOf([204, 404]);"] } }] }
+      ]
+    }
+  ]
+}

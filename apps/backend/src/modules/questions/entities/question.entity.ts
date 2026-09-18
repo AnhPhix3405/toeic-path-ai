@@ -4,6 +4,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -11,6 +12,7 @@ import { User } from '../../users/entities/user.entity';
 import { QuestionStatus } from '../enums/question-status.enum';
 import { QuestionType } from '../enums/question-type.enum';
 import { QuestionGroup } from '../../question-groups/entities/question-group.entity';
+import { QuestionOption } from './question-option.entity';
 
 @Entity({ name: 'questions' })
 export class Question {
@@ -45,6 +47,12 @@ export class Question {
 
   @Column({ name: 'group_order', type: 'integer', nullable: true })
   groupOrder!: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  explanation!: string | null;
+
+  @OneToMany(() => QuestionOption, (option) => option.question)
+  options!: QuestionOption[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

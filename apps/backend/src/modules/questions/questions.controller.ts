@@ -33,7 +33,11 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { AssignQuestionGroupDto } from './dto/assign-question-group.dto';
+import { CreateQuestionOptionDto } from './dto/create-question-option.dto';
+import { QuestionOptionResponseDto } from './dto/question-option-response.dto';
 import { QuestionResponseDto } from './dto/question-response.dto';
+import { SetCorrectAnswerDto } from './dto/set-correct-answer.dto';
+import { UpdateQuestionOptionDto } from './dto/update-question-option.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { QuestionsService } from './questions.service';
 
@@ -130,6 +134,78 @@ export class QuestionsController {
     @CurrentUser('id') actorId: string,
   ): Promise<QuestionResponseDto> {
     return this.questionsService.detachGroup(id, actorId);
+  }
+
+  @Post(':id/options')
+  @ApiOperation({
+    summary: 'Add an option to an owned question',
+    description: 'Only the question owner may manage options. Admin does not bypass ownership.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: CreateQuestionOptionDto })
+  @ApiCreatedResponse({ type: QuestionOptionResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid question id or option data' })
+  @ApiConflictResponse({ description: 'The option position conflicts with an existing option' })
+  @ApiNotFoundResponse({ description: 'Question not found' })
+  createOption(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CreateQuestionOptionDto,
+    @CurrentUser('id') actorId: string,
+  ): Promise<QuestionOptionResponseDto> {
+    return this.questionsService.createOption(id, dto, actorId);
+  }
+
+  @Patch(':id/options/:optionId')
+  @ApiOperation({ summary: 'Update an option of an owned question' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: 'optionId', format: 'uuid' })
+  @ApiBody({ type: UpdateQuestionOptionDto })
+  @ApiOkResponse({ type: QuestionOptionResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid id or option data' })
+  @ApiConflictResponse({ description: 'The option position conflicts with an existing option' })
+  @ApiNotFoundResponse({ description: 'Question or option not found' })
+  updateOption(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('optionId', new ParseUUIDPipe()) optionId: string,
+    @Body() dto: UpdateQuestionOptionDto,
+    @CurrentUser('id') actorId: string,
+  ): Promise<QuestionOptionResponseDto> {
+    return this.questionsService.updateOption(id, optionId, dto, actorId);
+  }
+
+  @Delete(':id/options/:optionId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete an option of an owned question' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiParam({ name: 'optionId', format: 'uuid' })
+  @ApiNoContentResponse({ description: 'Question option deleted' })
+  @ApiBadRequestResponse({ description: 'Invalid question or option id' })
+  @ApiNotFoundResponse({ description: 'Question or option not found' })
+  removeOption(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('optionId', new ParseUUIDPipe()) optionId: string,
+    @CurrentUser('id') actorId: string,
+  ): Promise<void> {
+    return this.questionsService.removeOption(id, optionId, actorId);
+  }
+
+  @Patch(':id/correct-answer')
+  @ApiOperation({
+    summary: 'Set the correct option for an owned question',
+    description:
+      'This atomically clears the previous correct option before setting the selected one.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: SetCorrectAnswerDto })
+  @ApiOkResponse({ type: QuestionOptionResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid question or option id' })
+  @ApiNotFoundResponse({ description: 'Question or option not found' })
+  setCorrectAnswer(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetCorrectAnswerDto,
+    @CurrentUser('id') actorId: string,
+  ): Promise<QuestionOptionResponseDto> {
+    return this.questionsService.setCorrectAnswer(id, dto, actorId);
   }
 
   @Delete(':id')

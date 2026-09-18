@@ -115,6 +115,8 @@ export class QuestionGroupsService {
       questionType: question.questionType,
       status: question.status,
       groupOrder: question.groupOrder,
+      explanation: question.explanation,
+      options: [],
       createdAt: question.createdAt,
       updatedAt: question.updatedAt,
     };

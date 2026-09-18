@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { QuestionStatus } from '../enums/question-status.enum';
 import { QuestionType } from '../enums/question-type.enum';
+import { QuestionOptionResponseDto } from './question-option-response.dto';
 
 export class QuestionResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -17,6 +18,12 @@ export class QuestionResponseDto {
 
   @ApiProperty({ example: 1, nullable: true })
   groupOrder!: number | null;
+
+  @ApiProperty({ nullable: true, example: 'Yesterday indicates the simple past tense.' })
+  explanation!: string | null;
+
+  @ApiProperty({ type: () => QuestionOptionResponseDto, isArray: true })
+  options!: QuestionOptionResponseDto[];
 
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;

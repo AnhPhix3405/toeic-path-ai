@@ -1,8 +1,10 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import type { Repository } from 'typeorm';
 import { Question } from './entities/question.entity';
+import { QuestionOption } from './entities/question-option.entity';
 import { QuestionStatus } from './enums/question-status.enum';
 import { QuestionType } from './enums/question-type.enum';
 import { QuestionsService } from './questions.service';
@@ -13,11 +15,14 @@ describe('QuestionsService', () => {
     create: jest.fn(),
     save: jest.fn(),
     find: jest.fn(),
+    findOne: jest.fn(),
     findOneBy: jest.fn(),
     merge: jest.fn(),
     remove: jest.fn(),
   };
   const questionGroupsService = { ensureExists: jest.fn() };
+  const questionOptionsRepository = { findOneBy: jest.fn(), remove: jest.fn() };
+  const dataSource = { transaction: jest.fn() };
   let service: QuestionsService;
   const question: Question = {
     id: '10000000-0000-4000-8000-000000000001',
@@ -39,6 +44,11 @@ describe('QuestionsService', () => {
           useValue: repository as Partial<Repository<Question>>,
         },
         { provide: QuestionGroupsService, useValue: questionGroupsService },
+        {
+          provide: getRepositoryToken(QuestionOption),
+          useValue: questionOptionsRepository,
+        },
+        { provide: DataSource, useValue: dataSource },
       ],
     }).compile();
     service = module.get(QuestionsService);
@@ -60,15 +70,38 @@ describe('QuestionsService', () => {
     expect(result).not.toHaveProperty('createdBy');
   });
 
-  it('returns questions newest first without internal ownership data', async () => {
-    repository.find.mockResolvedValue([question]);
+  it('returns questions newest first with ordered options and without ownership data', async () => {
+    const optionAtPositionTwo = {
+      id: '50000000-0000-4000-8000-000000000002',
+      label: 'B',
+      content: 'Second option',
+      isCorrect: false,
+      position: 2,
+    } as QuestionOption;
+    const optionAtPositionOne = {
+      id: '50000000-0000-4000-8000-000000000001',
+      label: 'A',
+      content: 'First option',
+      isCorrect: true,
+      position: 1,
+    } as QuestionOption;
+    repository.find.mockResolvedValue([
+      { ...question, options: [optionAtPositionTwo, optionAtPositionOne] },
+    ]);
+
     const result = await service.findAll();
-    expect(repository.find).toHaveBeenCalledWith({ order: { createdAt: 'DESC' } });
+
+    expect(repository.find).toHaveBeenCalledWith({
+      relations: { options: true },
+      order: { createdAt: 'DESC', options: { position: 'ASC' } },
+    });
     expect(result[0]).not.toHaveProperty('createdBy');
+    expect(result[0]?.options.map((option) => option.position)).toEqual([1, 2]);
   });
 
   it('rejects missing questions', async () => {
     repository.findOneBy.mockResolvedValue(null);
+    repository.findOne.mockResolvedValue(null);
     await expect(service.findOne(question.id)).rejects.toBeInstanceOf(NotFoundException);
     await expect(service.update(question.id, {}, question.createdBy)).rejects.toBeInstanceOf(
       NotFoundException,
@@ -124,5 +157,47 @@ describe('QuestionsService', () => {
     await expect(service.detachGroup(question.id, question.createdBy)).resolves.toMatchObject({
       groupOrder: null,
     });
+  });
+
+  it('creates options and atomically changes the correct answer', async () => {
+    const option: QuestionOption = {
+      id: '50000000-0000-4000-8000-000000000005',
+      questionId: question.id,
+      question,
+      label: 'B',
+      content: 'reviewed',
+      isCorrect: true,
+      position: 2,
+      createdAt: question.createdAt,
+      updatedAt: question.updatedAt,
+    };
+    const manager = {
+      update: jest.fn(),
+      create: jest.fn().mockReturnValue(option),
+      save: jest.fn().mockResolvedValue(option),
+    };
+    dataSource.transaction.mockImplementation(
+      (callback: (transactionManager: typeof manager) => Promise<QuestionOption>) =>
+        callback(manager),
+    );
+    repository.findOneBy.mockResolvedValue(question);
+
+    await expect(
+      service.createOption(
+        question.id,
+        { content: option.content, position: option.position, isCorrect: true },
+        question.createdBy,
+      ),
+    ).resolves.toMatchObject({ label: 'B', isCorrect: true });
+    expect(manager.update).toHaveBeenCalledWith(
+      QuestionOption,
+      { questionId: question.id },
+      { isCorrect: false },
+    );
+
+    questionOptionsRepository.findOneBy.mockResolvedValue(option);
+    await expect(
+      service.setCorrectAnswer(question.id, { optionId: option.id }, question.createdBy),
+    ).resolves.toMatchObject({ id: option.id, isCorrect: true });
   });
 });
