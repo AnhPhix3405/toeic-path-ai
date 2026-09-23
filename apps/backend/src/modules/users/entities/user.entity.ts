@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToOne,
 } from 'typeorm';
+import { AuthProvider } from '../../../common/enums/auth-provider.enum';
 import { UserRole } from '../../../common/enums/user-role.enum';
 import { UserStatus } from '../../../common/enums/user-status.enum';
 import { UserProfile } from './user-profile.entity';
@@ -18,8 +19,19 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true })
   email!: string;
 
-  @Column({ name: 'password_hash', type: 'varchar', length: 255, select: false })
-  passwordHash!: string;
+  @Column({ name: 'password_hash', type: 'varchar', length: 255, nullable: true, select: false })
+  passwordHash!: string | null;
+
+  @Column({
+    name: 'auth_provider',
+    type: 'enum',
+    enum: AuthProvider,
+    default: AuthProvider.LOCAL,
+  })
+  authProvider!: AuthProvider;
+
+  @Column({ name: 'provider_id', type: 'varchar', length: 255, nullable: true })
+  providerId!: string | null;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.STUDENT })
   role!: UserRole;

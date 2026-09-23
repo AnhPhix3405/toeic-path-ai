@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { AuthProvider } from '../../common/enums/auth-provider.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { AuthSession } from '../auth/entities/auth-session.entity';
@@ -50,6 +51,13 @@ export class UsersService {
     }
 
     return query.getOne();
+  }
+
+  findByProvider(authProvider: AuthProvider, providerId: string): Promise<User | null> {
+    return this.usersRepository.findOneBy({
+      authProvider,
+      providerId,
+    });
   }
 
   findById(id: string): Promise<User | null> {

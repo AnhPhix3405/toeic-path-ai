@@ -33,7 +33,7 @@ import { MAIL_SERVICE, type MailService } from '../mail/mail.service';
 import { SecurityEventService } from '../../common/security-events/security-event.service';
 import { SecurityEventType } from '../../common/security-events/enums/security-event.enum';
 
-interface SessionMetadata {
+export interface SessionMetadata {
   userAgent?: string;
   ipAddress?: string;
   traceId?: string;
@@ -368,7 +368,7 @@ export class AuthService {
       throw error;
     }
 
-    if (!user || !(await compare(dto.password, user.passwordHash))) {
+    if (!user || !user.passwordHash || !(await compare(dto.password, user.passwordHash))) {
       const sampleRate = this.configService.get<number>('securityEvents.loginFailureSampleRate', 1);
       if (Math.random() < sampleRate)
         this.securityEvents?.warn({
@@ -383,6 +383,53 @@ export class AuthService {
         });
       throw new UnauthorizedException('Invalid email or password');
     }
+    if (user.status === UserStatus.LOCKED) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_LOGIN_FAILED,
+        result: 'blocked',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'ACCOUNT_LOCKED',
+        durationMs: Date.now() - startedAt,
+      });
+      throw new ForbiddenException('Account is locked');
+    }
+
+    const sessionId = randomUUID();
+    const tokens = await this.signTokenPair(user, sessionId);
+    const now = new Date();
+    const session = this.sessionsRepository.create({
+      id: sessionId,
+      userId: user.id,
+      refreshTokenHash: this.hashRefreshToken(tokens.refreshToken),
+      expiresAt: new Date(now.getTime() + this.refreshExpiresInSeconds * 1000),
+      previousSessionId: null,
+      userAgent: metadata.userAgent ?? null,
+      ipAddress: metadata.ipAddress ?? null,
+    });
+    await this.sessionsRepository.save(session);
+    await this.usersService.updateLastLogin(user.id, now);
+
+    this.securityEvents?.info({
+      event: SecurityEventType.AUTH_LOGIN_SUCCEEDED,
+      result: 'success',
+      module: 'auth',
+      ...metadata,
+      userId: user.id,
+      role: user.role,
+      sessionId,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return { ...tokens, user: this.toSafeUser(user) };
+  }
+
+  async issueSessionForUser(
+    user: User,
+    metadata: SessionMetadata = {},
+    startedAt = Date.now(),
+  ): Promise<TokenResponse> {
     if (user.status === UserStatus.LOCKED) {
       this.securityEvents?.warn({
         event: SecurityEventType.AUTH_LOGIN_FAILED,

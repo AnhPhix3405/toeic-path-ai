@@ -13,4 +13,5 @@ export default registerAs('app', () => ({
   trustProxyHops: Number.parseInt(process.env.TRUST_PROXY_HOPS ?? '0', 10),
   jsonBodyLimit: process.env.JSON_BODY_LIMIT ?? '16kb',
   termsVersion: process.env.TERMS_VERSION,
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
 }));

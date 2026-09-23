@@ -1,0 +1,402 @@
+{
+  "info": {
+    "_postman_id": "7f8b91a2-4e31-4b72-8822-bc0882194a01",
+    "name": "TOEIC Path AI - Sprint 3 Task 4 Ticket 1 Google Auth",
+    "description": "Kiểm thử API POST /api/v1/auth/google cho tính năng Sign in or Sign up qua Google OAuth2 ID Token. Bao gồm validation, invalid token, account conflict, happy path và cookie refresh token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "localTestEmail",
+      "value": "s3t4.ticket1.local@example.com",
+      "type": "string"
+    },
+    {
+      "key": "localTestPassword",
+      "value": "StrongPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "googleIdToken",
+      "value": "mock_google_id_token_for_validation_test",
+      "type": "string"
+    },
+    {
+      "key": "googleAccessToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response time is below 5 seconds', function () {",
+          "  pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Pre-setup: Register Local Account (Conflict Prep)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://localhost:3000"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{localTestEmail}}\",\n  \"password\": \"{{localTestPassword}}\",\n  \"confirmPassword\": \"{{localTestPassword}}\",\n  \"fullName\": \"Local Password User\",\n  \"acceptTerms\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
+        },
+        "description": "Tạo trước một tài khoản dạng local/password để chuẩn bị kiểm tra xung đột tài khoản (Account Conflict) khi trùng email."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201 Created or 409 Conflict (already exists)', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Validation: Empty Request Body",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://localhost:3000"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/google",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "google"
+          ]
+        },
+        "description": "Kiểm tra gửi body rỗng không có idToken."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 400 Bad Request', function () {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Error response mentions idToken', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(JSON.stringify(body)).to.include('idToken');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Validation: Blank or Non-string idToken",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://localhost:3000"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/google",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "google"
+          ]
+        },
+        "description": "Kiểm tra idToken là chuỗi rỗng."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 400 Bad Request', function () {",
+              "  pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Security: Disallowed Origin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://malicious-site.com"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"mock-token\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/google",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "google"
+          ]
+        },
+        "description": "Kiểm tra AuthOriginGuard chặn request từ domain không thuộc allowlist."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 403 Forbidden', function () {",
+              "  pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Security: Invalid or Malformed Google idToken",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://localhost:3000"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/google",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "google"
+          ]
+        },
+        "description": "Kiểm tra OAuth2Client verify token thất bại ném 401 Unauthorized."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 401 Unauthorized', function () {",
+              "  pm.response.to.have.status(401);",
+              "});",
+              "pm.test('Response error message indicates invalid token', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.message).to.be.oneOf([",
+              "    'Invalid or expired Google token',",
+              "    'Invalid Google token payload'",
+              "  ]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Happy Path: Google Sign in or Sign up",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Origin",
+            "value": "http://localhost:3000"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"{{googleIdToken}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/google",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "google"
+          ]
+        },
+        "description": "Gửi Google ID token thật (cấu hình trong biến googleIdToken). Nếu idToken là token mẫu, API sẽ trả về 401. Nếu là token thật, API sẽ trả về 200 kèm access token và cookie toeic_refresh_token."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.variables.get('googleIdToken') === 'mock_google_id_token_for_validation_test') {",
+              "  pm.test('Mock token correctly rejected with 401 (Set valid googleIdToken to test 200)', function () {",
+              "    pm.response.to.have.status(401);",
+              "  });",
+              "} else {",
+              "  pm.test('Status is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "  });",
+              "  pm.test('Response body contains user and accessToken', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('user');",
+              "    pm.expect(body).to.have.property('accessToken');",
+              "    pm.expect(body).to.have.property('accessTokenExpiresIn');",
+              "    pm.expect(body.user.role).to.eql('student');",
+              "    pm.expect(body.user.status).to.eql('active');",
+              "    pm.environment.set('googleAccessToken', body.accessToken);",
+              "    pm.variables.set('googleAccessToken', body.accessToken);",
+              "  });",
+              "  pm.test('HTTP-only refresh cookie is set', function () {",
+              "    pm.expect(pm.cookies.has('toeic_refresh_token')).to.be.true;",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Verify: GET /auth/me with Google Access Token",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{googleAccessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/auth/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "me"
+          ]
+        },
+        "description": "Sử dụng access token vừa được cấp từ Google Auth để gọi endpoint bảo vệ /auth/me."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('googleAccessToken')) {",
+              "  pm.test('Skipped because real Google token was not executed', function () {",
+              "    pm.expect(true).to.be.true;",
+              "  });",
+              "} else {",
+              "  pm.test('Status is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "  });",
+              "  pm.test('User identity matches Google student', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.role).to.eql('student');",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

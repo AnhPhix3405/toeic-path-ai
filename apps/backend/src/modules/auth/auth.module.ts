@@ -9,6 +9,7 @@ import { AuthSession } from './entities/auth-session.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { AuthSessionCleanupService } from './services/auth-session-cleanup.service';
+import { GoogleAuthService } from './services/google-auth.service';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailModule } from '../mail/mail.module';
 import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
@@ -23,6 +24,13 @@ import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
     RateLimitModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthSessionCleanupService, JwtAccessStrategy, JwtAuthGuard],
+  providers: [
+    AuthService,
+    GoogleAuthService,
+    AuthSessionCleanupService,
+    JwtAccessStrategy,
+    JwtAuthGuard,
+  ],
+  exports: [AuthService, GoogleAuthService],
 })
 export class AuthModule {}

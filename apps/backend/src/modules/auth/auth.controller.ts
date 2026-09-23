@@ -36,6 +36,8 @@ import { RegisterDto } from './dto/register.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { GoogleAuthDto } from './dto/google-auth.dto';
+import { GoogleAuthService } from './services/google-auth.service';
 import type { MessageResponse } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthRateLimit } from '../../common/rate-limit/decorators/auth-rate-limit.decorator';
@@ -59,6 +61,7 @@ export class AuthController {
 
   constructor(
     private readonly authService: AuthService,
+    private readonly googleAuthService: GoogleAuthService,
     private readonly configService: ConfigService,
   ) {
     this.refreshCookieName = configService.getOrThrow<string>('refreshCookie.name');
@@ -140,6 +143,35 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<LoginResponse> {
     const { refreshToken, ...body } = await this.authService.login(
+      dto,
+      this.getSessionMetadata(request),
+    );
+    this.setRefreshCookie(response, refreshToken);
+    return body;
+  }
+
+  @Post('google')
+  @AuthRateLimit('login')
+  @UseGuards(AuthOriginGuard, AuthThrottlerGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sign in or sign up using Google ID token',
+    description:
+      'Verifies Google token, creates student account if new, and issues session tokens.',
+  })
+  @ApiOkResponse({
+    description: 'Access token returned and refresh token set as HTTP-only cookie',
+  })
+  @ApiBadRequestResponse({ description: 'Invalid Google token or unverified email' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired Google token' })
+  @ApiConflictResponse({ description: 'Email is registered with another provider' })
+  @ApiForbiddenResponse({ description: 'Account is locked' })
+  async googleAuth(
+    @Body() dto: GoogleAuthDto,
+    @Req() request: SecurityRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LoginResponse> {
+    const { refreshToken, ...body } = await this.googleAuthService.authenticateGoogle(
       dto,
       this.getSessionMetadata(request),
     );

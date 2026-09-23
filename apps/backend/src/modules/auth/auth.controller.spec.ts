@@ -6,6 +6,7 @@ import { UserStatus } from '../../common/enums/user-status.enum';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { AuthController } from './auth.controller';
 import type { AuthService, TokenResponse } from './auth.service';
+import type { GoogleAuthService } from './services/google-auth.service';
 
 describe('AuthController refresh cookie transport', () => {
   const tokenResponse: TokenResponse = {
@@ -27,6 +28,7 @@ describe('AuthController refresh cookie transport', () => {
     maxAge: 604800000,
   } as const;
   let authService: jest.Mocked<Pick<AuthService, 'login' | 'refresh' | 'revoke'>>;
+  let googleAuthService: jest.Mocked<Pick<GoogleAuthService, 'authenticateGoogle'>>;
   let response: jest.Mocked<Pick<Response, 'cookie' | 'clearCookie'>>;
   let controller: AuthController;
 
@@ -35,6 +37,9 @@ describe('AuthController refresh cookie transport', () => {
       login: jest.fn().mockResolvedValue(tokenResponse),
       refresh: jest.fn().mockResolvedValue(tokenResponse),
       revoke: jest.fn().mockResolvedValue(undefined),
+    };
+    googleAuthService = {
+      authenticateGoogle: jest.fn().mockResolvedValue(tokenResponse),
     };
     response = {
       cookie: jest.fn(),
@@ -50,7 +55,11 @@ describe('AuthController refresh cookie transport', () => {
     const configService = {
       getOrThrow: jest.fn((key: string) => values[key]),
     } as unknown as ConfigService;
-    controller = new AuthController(authService as unknown as AuthService, configService);
+    controller = new AuthController(
+      authService as unknown as AuthService,
+      googleAuthService as unknown as GoogleAuthService,
+      configService,
+    );
   });
 
   it('sets an HTTP-only refresh cookie and omits the token from login JSON', async () => {
@@ -60,6 +69,30 @@ describe('AuthController refresh cookie transport', () => {
       response as unknown as Response,
     );
 
+    expect(response.cookie).toHaveBeenCalledWith(
+      'toeic_refresh_token',
+      'refresh-token',
+      cookieOptions,
+    );
+    expect(body).toEqual({
+      user: tokenResponse.user,
+      accessToken: 'access-token',
+      accessTokenExpiresIn: 900,
+    });
+    expect('refreshToken' in body).toBe(false);
+  });
+
+  it('authenticates with Google, sets refresh cookie and omits token from response', async () => {
+    const body = await controller.googleAuth(
+      { idToken: 'valid-google-id-token' },
+      createRequest(),
+      response as unknown as Response,
+    );
+
+    expect(googleAuthService.authenticateGoogle).toHaveBeenCalledWith(
+      { idToken: 'valid-google-id-token' },
+      expect.objectContaining({ ipAddress: '127.0.0.1' }),
+    );
     expect(response.cookie).toHaveBeenCalledWith(
       'toeic_refresh_token',
       'refresh-token',

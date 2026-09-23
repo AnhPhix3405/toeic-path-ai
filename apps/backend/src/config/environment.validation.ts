@@ -219,6 +219,10 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     const hmacKey = environment.SECURITY_EVENT_HMAC_KEY;
     if (typeof hmacKey !== 'string' || hmacKey.length < 32)
       throw new Error('SECURITY_EVENT_HMAC_KEY must contain at least 32 characters in production');
+    const googleClientId = environment.GOOGLE_CLIENT_ID;
+    if (typeof googleClientId !== 'string' || googleClientId.trim() === '') {
+      throw new Error('GOOGLE_CLIENT_ID must be configured in production');
+    }
   }
 
   return environment;
