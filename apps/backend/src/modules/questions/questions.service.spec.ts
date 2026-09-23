@@ -9,6 +9,10 @@ import { QuestionStatus } from './enums/question-status.enum';
 import { QuestionType } from './enums/question-type.enum';
 import { QuestionsService } from './questions.service';
 import { QuestionGroupsService } from '../question-groups/question-groups.service';
+import { QuestionDifficulty } from './enums/question-difficulty.enum';
+import { ToeicPart } from './entities/toeic-part.entity';
+import { Topic } from './entities/topic.entity';
+import { Skill } from './entities/skill.entity';
 
 describe('QuestionsService', () => {
   const repository = {
@@ -31,6 +35,16 @@ describe('QuestionsService', () => {
     status: QuestionStatus.DRAFT,
     createdBy: '20000000-0000-4000-8000-000000000002',
     creator: undefined as never,
+    questionGroupId: null,
+    questionGroup: null,
+    groupOrder: null,
+    explanation: null,
+    options: [],
+    partId: null,
+    part: null,
+    difficulty: null,
+    topics: [],
+    skills: [],
     createdAt: new Date('2026-09-15T00:00:00.000Z'),
     updatedAt: new Date('2026-09-15T00:00:00.000Z'),
   };
@@ -92,7 +106,7 @@ describe('QuestionsService', () => {
     const result = await service.findAll();
 
     expect(repository.find).toHaveBeenCalledWith({
-      relations: { options: true },
+      relations: { options: true, part: true, topics: true, skills: true },
       order: { createdAt: 'DESC', options: { position: 'ASC' } },
     });
     expect(result[0]).not.toHaveProperty('createdBy');
@@ -100,7 +114,6 @@ describe('QuestionsService', () => {
   });
 
   it('rejects missing questions', async () => {
-    repository.findOneBy.mockResolvedValue(null);
     repository.findOne.mockResolvedValue(null);
     await expect(service.findOne(question.id)).rejects.toBeInstanceOf(NotFoundException);
     await expect(service.update(question.id, {}, question.createdBy)).rejects.toBeInstanceOf(
@@ -109,14 +122,14 @@ describe('QuestionsService', () => {
   });
 
   it('rejects an empty update for an owned question', async () => {
-    repository.findOneBy.mockResolvedValue(question);
+    repository.findOne.mockResolvedValue(question);
     await expect(service.update(question.id, {}, question.createdBy)).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
   it('updates and deletes existing questions', async () => {
-    repository.findOneBy.mockResolvedValue(question);
+    repository.findOne.mockResolvedValue(question);
     repository.merge.mockReturnValue({ ...question, content: 'Updated' });
     repository.save.mockResolvedValue({ ...question, content: 'Updated' });
     await expect(
@@ -127,7 +140,7 @@ describe('QuestionsService', () => {
   });
 
   it('forbids update and delete by a non-owner regardless of role', async () => {
-    repository.findOneBy.mockResolvedValue(question);
+    repository.findOne.mockResolvedValue(question);
     const otherUserId = '30000000-0000-4000-8000-000000000003';
 
     await expect(
@@ -142,7 +155,8 @@ describe('QuestionsService', () => {
 
   it('assigns and detaches an owned question group', async () => {
     const questionGroupId = '40000000-0000-4000-8000-000000000004';
-    repository.findOneBy.mockResolvedValueOnce(question).mockResolvedValueOnce(null);
+    repository.findOne.mockResolvedValue(question);
+    repository.findOneBy.mockResolvedValue(null);
     repository.merge.mockReturnValue({ ...question, questionGroupId, groupOrder: 1 });
     repository.save.mockResolvedValue({ ...question, questionGroupId, groupOrder: 1 });
 
@@ -151,7 +165,7 @@ describe('QuestionsService', () => {
     ).resolves.toMatchObject({ groupOrder: 1 });
     expect(questionGroupsService.ensureExists).toHaveBeenCalledWith(questionGroupId);
 
-    repository.findOneBy.mockResolvedValue(question);
+    repository.findOne.mockResolvedValue(question);
     repository.merge.mockReturnValue({ ...question, questionGroupId: null, groupOrder: null });
     repository.save.mockResolvedValue({ ...question, questionGroupId: null, groupOrder: null });
     await expect(service.detachGroup(question.id, question.createdBy)).resolves.toMatchObject({
@@ -180,7 +194,7 @@ describe('QuestionsService', () => {
       (callback: (transactionManager: typeof manager) => Promise<QuestionOption>) =>
         callback(manager),
     );
-    repository.findOneBy.mockResolvedValue(question);
+    repository.findOne.mockResolvedValue(question);
 
     await expect(
       service.createOption(
@@ -199,5 +213,122 @@ describe('QuestionsService', () => {
     await expect(
       service.setCorrectAnswer(question.id, { optionId: option.id }, question.createdBy),
     ).resolves.toMatchObject({ id: option.id, isCorrect: true });
+  });
+
+  it('atomically replaces a complete classification and returns populated relations', async () => {
+    const part = {
+      id: '40000000-0000-4000-8000-000000000004',
+      partNumber: 5,
+      name: 'Incomplete Sentences',
+      description: null,
+    } as ToeicPart;
+    const topic = {
+      id: '50000000-0000-4000-8000-000000000005',
+      name: 'Business',
+      description: null,
+    } as Topic;
+    const skill = {
+      id: '60000000-0000-4000-8000-000000000006',
+      name: 'Grammar',
+      description: null,
+    } as Skill;
+    const manager = {
+      findOne: jest.fn().mockResolvedValue({ ...question, topics: [], skills: [] }),
+      findOneBy: jest.fn().mockResolvedValue(part),
+      findBy: jest.fn().mockResolvedValueOnce([topic]).mockResolvedValueOnce([skill]),
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    dataSource.transaction.mockImplementation(
+      (callback: (transactionManager: typeof manager) => Promise<void>) => callback(manager),
+    );
+    repository.findOne.mockResolvedValue({
+      ...question,
+      partId: part.id,
+      part,
+      difficulty: QuestionDifficulty.MEDIUM,
+      topics: [topic],
+      skills: [skill],
+    });
+
+    const result = await service.updateClassification(
+      question.id,
+      {
+        partId: part.id,
+        topicIds: [topic.id],
+        skillIds: [skill.id],
+        difficulty: QuestionDifficulty.MEDIUM,
+      },
+      question.createdBy,
+    );
+
+    expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+    expect(manager.save).toHaveBeenCalledWith(
+      Question,
+      expect.objectContaining({
+        partId: part.id,
+        difficulty: QuestionDifficulty.MEDIUM,
+        topics: [topic],
+        skills: [skill],
+      }),
+    );
+    expect(result).toMatchObject({
+      part: { partNumber: 5 },
+      difficulty: QuestionDifficulty.MEDIUM,
+      topics: [{ name: 'Business' }],
+      skills: [{ name: 'Grammar' }],
+    });
+  });
+
+  it('rejects an unknown classification reference before writing', async () => {
+    const manager = {
+      findOne: jest.fn().mockResolvedValue({ ...question, topics: [], skills: [] }),
+      findOneBy: jest.fn().mockResolvedValue({ id: '40000000-0000-4000-8000-000000000004' }),
+      findBy: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]),
+      save: jest.fn(),
+    };
+    dataSource.transaction.mockImplementation(
+      (callback: (transactionManager: typeof manager) => Promise<void>) => callback(manager),
+    );
+
+    await expect(
+      service.updateClassification(
+        question.id,
+        {
+          partId: '40000000-0000-4000-8000-000000000004',
+          topicIds: ['50000000-0000-4000-8000-000000000005'],
+          skillIds: ['60000000-0000-4000-8000-000000000006'],
+          difficulty: QuestionDifficulty.HARD,
+        },
+        question.createdBy,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  it('forbids classification changes by a non-owner before reading catalogs', async () => {
+    const manager = {
+      findOne: jest.fn().mockResolvedValue(question),
+      findOneBy: jest.fn(),
+      findBy: jest.fn(),
+      save: jest.fn(),
+    };
+    dataSource.transaction.mockImplementation(
+      (callback: (transactionManager: typeof manager) => Promise<void>) => callback(manager),
+    );
+
+    await expect(
+      service.updateClassification(
+        question.id,
+        {
+          partId: '40000000-0000-4000-8000-000000000004',
+          topicIds: [],
+          skillIds: [],
+          difficulty: QuestionDifficulty.EASY,
+        },
+        '30000000-0000-4000-8000-000000000003',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(manager.findOneBy).not.toHaveBeenCalled();
+    expect(manager.save).not.toHaveBeenCalled();
   });
 });

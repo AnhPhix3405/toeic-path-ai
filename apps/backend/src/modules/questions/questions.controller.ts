@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -40,6 +41,7 @@ import { SetCorrectAnswerDto } from './dto/set-correct-answer.dto';
 import { UpdateQuestionOptionDto } from './dto/update-question-option.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { QuestionsService } from './questions.service';
+import { UpdateQuestionClassificationDto } from './dto/update-question-classification.dto';
 
 @ApiTags('Questions')
 @ApiBearerAuth('JWT-auth')
@@ -99,6 +101,27 @@ export class QuestionsController {
     @CurrentUser('id') actorId: string,
   ): Promise<QuestionResponseDto> {
     return this.questionsService.update(id, dto, actorId);
+  }
+
+  @Put(':id/classification')
+  @ApiOperation({
+    summary: 'Replace the classification of an owned question',
+    description:
+      'Validates all references and atomically replaces Part, Topics, Skills, and Difficulty. Admin does not bypass ownership.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: UpdateQuestionClassificationDto })
+  @ApiOkResponse({ type: QuestionResponseDto })
+  @ApiBadRequestResponse({
+    description: 'Invalid id, duplicate ids, or unknown classification reference',
+  })
+  @ApiNotFoundResponse({ description: 'Question not found' })
+  updateClassification(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateQuestionClassificationDto,
+    @CurrentUser('id') actorId: string,
+  ): Promise<QuestionResponseDto> {
+    return this.questionsService.updateClassification(id, dto, actorId);
   }
 
   @Patch(':id/group')

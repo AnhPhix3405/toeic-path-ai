@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
 import type { AssignQuestionGroupDto } from './dto/assign-question-group.dto';
 import type { CreateQuestionDto } from './dto/create-question.dto';
 import type { QuestionResponseDto } from './dto/question-response.dto';
@@ -18,6 +18,10 @@ import type { QuestionOptionResponseDto } from './dto/question-option-response.d
 import type { SetCorrectAnswerDto } from './dto/set-correct-answer.dto';
 import type { UpdateQuestionOptionDto } from './dto/update-question-option.dto';
 import { QuestionOption } from './entities/question-option.entity';
+import { ToeicPart } from './entities/toeic-part.entity';
+import { Topic } from './entities/topic.entity';
+import { Skill } from './entities/skill.entity';
+import type { UpdateQuestionClassificationDto } from './dto/update-question-classification.dto';
 
 @Injectable()
 export class QuestionsService {
@@ -40,7 +44,7 @@ export class QuestionsService {
 
   async findAll(): Promise<QuestionResponseDto[]> {
     const questions = await this.questionsRepository.find({
-      relations: { options: true },
+      relations: { options: true, part: true, topics: true, skills: true },
       order: { createdAt: 'DESC', options: { position: 'ASC' } },
     });
     return questions.map((question) => this.toResponse(question));
@@ -49,7 +53,7 @@ export class QuestionsService {
   async findOne(id: string): Promise<QuestionResponseDto> {
     const question = await this.questionsRepository.findOne({
       where: { id },
-      relations: { options: true },
+      relations: { options: true, part: true, topics: true, skills: true },
       order: { options: { position: 'ASC' } },
     });
     if (!question) throw new NotFoundException('Question not found');
@@ -72,6 +76,41 @@ export class QuestionsService {
     const question = await this.findRequired(id);
     this.assertOwner(question, actorId);
     await this.questionsRepository.remove(question);
+  }
+
+  async updateClassification(
+    id: string,
+    dto: UpdateQuestionClassificationDto,
+    actorId: string,
+  ): Promise<QuestionResponseDto> {
+    await this.dataSource.transaction(async (manager) => {
+      const question = await manager.findOne(Question, {
+        where: { id },
+        relations: { topics: true, skills: true },
+      });
+      if (!question) throw new NotFoundException('Question not found');
+      this.assertOwner(question, actorId);
+
+      const part = await manager.findOneBy(ToeicPart, { id: dto.partId });
+      const topics = await manager.findBy(Topic, { id: In(dto.topicIds) });
+      const skills = await manager.findBy(Skill, { id: In(dto.skillIds) });
+      if (!part) throw new BadRequestException('TOEIC part does not exist');
+      if (topics.length !== dto.topicIds.length) {
+        throw new BadRequestException('One or more topics do not exist');
+      }
+      if (skills.length !== dto.skillIds.length) {
+        throw new BadRequestException('One or more skills do not exist');
+      }
+
+      question.partId = part.id;
+      question.part = part;
+      question.difficulty = dto.difficulty;
+      question.topics = topics;
+      question.skills = skills;
+      await manager.save(Question, question);
+    });
+
+    return this.findOne(id);
   }
 
   async assignGroup(
@@ -199,7 +238,11 @@ export class QuestionsService {
   }
 
   private async findRequired(id: string): Promise<Question> {
-    const question = await this.questionsRepository.findOneBy({ id });
+    const question = await this.questionsRepository.findOne({
+      where: { id },
+      relations: { options: true, part: true, topics: true, skills: true },
+      order: { options: { position: 'ASC' } },
+    });
     if (!question) throw new NotFoundException('Question not found');
     return question;
   }
@@ -221,6 +264,21 @@ export class QuestionsService {
       options: (question.options ?? [])
         .sort((first, second) => first.position - second.position)
         .map((option) => this.toOptionResponse(option)),
+      part: question.part
+        ? {
+            id: question.part.id,
+            partNumber: question.part.partNumber,
+            name: question.part.name,
+            description: question.part.description,
+          }
+        : null,
+      difficulty: question.difficulty ?? null,
+      topics: (question.topics ?? [])
+        .sort((first, second) => first.name.localeCompare(second.name))
+        .map(({ id, name, description }) => ({ id, name, description })),
+      skills: (question.skills ?? [])
+        .sort((first, second) => first.name.localeCompare(second.name))
+        .map(({ id, name, description }) => ({ id, name, description })),
       createdAt: question.createdAt,
       updatedAt: question.updatedAt,
     };

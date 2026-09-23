@@ -146,6 +146,21 @@ Các endpoint là `POST /api/v1/questions/:id/options`, `PATCH`/`DELETE
 Backend tự sinh label option từ `position` và đặt đáp án đúng theo transaction để chỉ còn một option
 correct. Chạy `pnpm migration:run` để áp dụng migration `question_options`.
 
+### Phân loại câu hỏi
+
+Teacher và Admin có thể đọc các danh mục dùng để phân loại Question qua:
+
+- `GET /api/v1/toeic-parts`
+- `GET /api/v1/topics`
+- `GET /api/v1/skills`
+
+Owner của Question cập nhật toàn bộ classification bằng
+`PUT /api/v1/questions/:id/classification` với `partId`, `topicIds`, `skillIds` và `difficulty`
+(`easy`, `medium` hoặc `hard`). Endpoint dùng replace semantics và transaction: mọi reference phải
+hợp lệ trước khi Part, Topics, Skills và Difficulty được thay thế; Admin không bypass ownership.
+Migration `AddQuestionClassification1788000012000` tạo schema và seed idempotent 7 TOEIC Parts,
+6 Topics cùng 6 Skills baseline. Chạy `pnpm migration:run` trước khi sử dụng các endpoint này.
+
 Public registration always creates an active Student. To create the first
 administrator, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then run
 `pnpm seed:admin`. The command is idempotent for an existing administrator and

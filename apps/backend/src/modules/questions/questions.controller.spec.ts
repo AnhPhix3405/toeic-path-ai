@@ -16,6 +16,7 @@ import { QuestionStatus } from './enums/question-status.enum';
 import { QuestionType } from './enums/question-type.enum';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService } from './questions.service';
+import { QuestionDifficulty } from './enums/question-difficulty.enum';
 
 describe('QuestionsController', () => {
   let app: INestApplication<App>;
@@ -36,6 +37,7 @@ describe('QuestionsController', () => {
     findAll: jest.fn().mockResolvedValue([response]),
     findOne: jest.fn().mockResolvedValue(response),
     update: jest.fn().mockResolvedValue({ ...response, content: 'Updated' }),
+    updateClassification: jest.fn().mockResolvedValue(response),
     remove: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -117,6 +119,32 @@ describe('QuestionsController', () => {
       { content: 'Admin question', questionType: QuestionType.SINGLE_CHOICE },
       currentUserId,
     );
+  });
+
+  it('validates and forwards a complete classification update', async () => {
+    const auth = { Authorization: 'Bearer access-token' };
+    const classification = {
+      partId: '40000000-0000-4000-8000-000000000004',
+      topicIds: ['50000000-0000-4000-8000-000000000005'],
+      skillIds: ['60000000-0000-4000-8000-000000000006'],
+      difficulty: QuestionDifficulty.MEDIUM,
+    };
+
+    await request(app.getHttpServer())
+      .put(`/api/v1/questions/${id}/classification`)
+      .set(auth)
+      .send(classification)
+      .expect(200);
+    expect(service.updateClassification).toHaveBeenCalledWith(id, classification, teacherId);
+
+    await request(app.getHttpServer())
+      .put(`/api/v1/questions/${id}/classification`)
+      .set(auth)
+      .send({
+        ...classification,
+        topicIds: [classification.topicIds[0], classification.topicIds[0]],
+      })
+      .expect(400);
   });
 
   it('rejects guests, students, malformed ids, invalid bodies, and client-managed fields', async () => {

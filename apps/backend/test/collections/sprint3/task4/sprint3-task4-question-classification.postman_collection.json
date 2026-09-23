@@ -1,0 +1,1154 @@
+{
+  "info": {
+    "_postman_id": "1a3a8230-29b7-4cc6-9f9d-cb538b101004",
+    "name": "TOEIC Path AI - Sprint 3 Task 4 Question Classification",
+    "description": "Kiểm thử catalog Part/Topic/Skill, classification replace semantics, transaction atomic và policy Read-All, Edit-Own. Chỉ chạy trên database development/test và chạy tuần tự từ 00 - Setup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{teacherToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "studentEmail",
+      "value": "sprint3.task4.student@example.com",
+      "type": "string"
+    },
+    {
+      "key": "teacherEmail",
+      "value": "sprint3.task4.teacher@example.com",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "StrongPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "questionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminQuestionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "part5Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "part6Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "businessTopicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "officeTopicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "travelTopicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "grammarSkillId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vocabularySkillId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "readingSkillId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "missingPartId",
+      "value": "00000000-0000-4000-8000-000000000041",
+      "type": "string"
+    },
+    {
+      "key": "missingTopicId",
+      "value": "00000000-0000-4000-8000-000000000042",
+      "type": "string"
+    },
+    {
+      "key": "missingSkillId",
+      "value": "00000000-0000-4000-8000-000000000043",
+      "type": "string"
+    },
+    {
+      "key": "missingQuestionId",
+      "value": "00000000-0000-4000-8000-000000000044",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Response time is below 5 seconds', function () { pm.expect(pm.response.responseTime).to.be.below(5000); });",
+          "if (pm.response.code !== 204) { pm.test('Response body is valid JSON', function () { pm.expect(function () { pm.response.json(); }).not.to.throw(); }); }",
+          "if (pm.response.code >= 400) { pm.test('Error does not expose implementation details', function () { const raw = pm.response.text().toLowerCase(); ['password_hash', 'queryfailed', 'stacktrace', 'node_modules'].forEach((value) => pm.expect(raw).not.to.include(value)); }); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup",
+      "description": "Điền adminEmail/adminPassword trước khi chạy. Folder tạo tài khoản test, nâng role Teacher, lấy catalog IDs theo tên và tạo hai Question.",
+      "item": [
+        {
+          "name": "Register Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 3 Task 4 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.expect(pm.response.code).to.be.oneOf([201, 409]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Teacher Candidate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 3 Task 4 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": "{{baseUrl}}/auth/register",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.expect(pm.response.code).to.be.oneOf([201, 409]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{studentEmail}}\",\"password\":\"{{testPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.collectionVariables.set('studentToken', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.user.role).to.eql('admin'); pm.collectionVariables.set('adminToken', body.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Find Teacher Candidate",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/users?search={{teacherEmail}}&page=1&limit=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const user = pm.response.json().data.find((item) => item.email === pm.collectionVariables.get('teacherEmail'));",
+                  "pm.expect(user, 'Teacher candidate must exist').to.exist; pm.collectionVariables.set('teacherUserId', user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Promote Teacher Candidate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"teacher\"}"
+            },
+            "url": "{{baseUrl}}/admin/users/{{teacherUserId}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.expect(pm.response.json().role).to.eql('teacher');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Teacher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{teacherEmail}}\",\"password\":\"{{testPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.user.role).to.eql('teacher'); pm.collectionVariables.set('teacherToken', body.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Load TOEIC Parts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/toeic-parts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body).to.have.length(7); pm.expect(body.map((item) => item.partNumber)).to.eql([1,2,3,4,5,6,7]);",
+                  "const part5 = body.find((item) => item.partNumber === 5); const part6 = body.find((item) => item.partNumber === 6); pm.expect(part5).to.exist; pm.expect(part6).to.exist; pm.collectionVariables.set('part5Id', part5.id); pm.collectionVariables.set('part6Id', part6.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Load Topics",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/topics"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body).to.have.length(6); ['Business','Office','Travel','Shopping','Transportation','Technology'].forEach((name) => pm.expect(body.some((item) => item.name === name), name).to.eql(true));",
+                  "pm.collectionVariables.set('businessTopicId', body.find((item) => item.name === 'Business').id); pm.collectionVariables.set('officeTopicId', body.find((item) => item.name === 'Office').id); pm.collectionVariables.set('travelTopicId', body.find((item) => item.name === 'Travel').id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Load Skills",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/skills"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body).to.have.length(6); ['Grammar','Vocabulary','Listening Comprehension','Reading Comprehension','Inference','Detail Recognition'].forEach((name) => pm.expect(body.some((item) => item.name === name), name).to.eql(true));",
+                  "pm.collectionVariables.set('grammarSkillId', body.find((item) => item.name === 'Grammar').id); pm.collectionVariables.set('vocabularySkillId', body.find((item) => item.name === 'Vocabulary').id); pm.collectionVariables.set('readingSkillId', body.find((item) => item.name === 'Reading Comprehension').id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Teacher Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"[S3T4] The manager _____ the report yesterday.\",\"questionType\":\"single_choice\"}"
+            },
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "const body = pm.response.json(); pm.expect(body.part).to.be.null; pm.expect(body.difficulty).to.be.null; pm.expect(body.topics).to.eql([]); pm.expect(body.skills).to.eql([]); pm.collectionVariables.set('questionId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Admin Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"content\":\"[S3T4] Admin owned classification question.\",\"questionType\":\"single_choice\"}"
+            },
+            "url": "{{baseUrl}}/questions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "pm.collectionVariables.set('adminQuestionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Classification lifecycle",
+      "item": [
+        {
+          "name": "TC01 - Owner assigns multiple Topics and Skills",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{part5Id}}\",\n  \"topicIds\": [\"{{businessTopicId}}\", \"{{officeTopicId}}\"],\n  \"skillIds\": [\"{{grammarSkillId}}\", \"{{vocabularySkillId}}\"],\n  \"difficulty\": \"medium\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.part.partNumber).to.eql(5); pm.expect(body.difficulty).to.eql('medium'); pm.expect(body.topics.map((item) => item.name).sort()).to.eql(['Business','Office']); pm.expect(body.skills.map((item) => item.name).sort()).to.eql(['Grammar','Vocabulary']);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC02 - Detail returns populated classification",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.part).to.include({ partNumber: 5, name: 'Incomplete Sentences' }); pm.expect(body.difficulty).to.eql('medium'); pm.expect(body.topics).to.have.length(2); pm.expect(body.skills).to.have.length(2);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC03 - PUT replaces the whole classification",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{part6Id}}\",\n  \"topicIds\": [\"{{travelTopicId}}\"],\n  \"skillIds\": [\"{{readingSkillId}}\"],\n  \"difficulty\": \"hard\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.part.partNumber).to.eql(6); pm.expect(body.difficulty).to.eql('hard'); pm.expect(body.topics.map((item) => item.name)).to.eql(['Travel']); pm.expect(body.skills.map((item) => item.name)).to.eql(['Reading Comprehension']);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC04 - Question Bank list includes classification summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/questions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const question = pm.response.json().find((item) => item.id === pm.collectionVariables.get('questionId')); pm.expect(question, 'Created question must be listed').to.exist; pm.expect(question.part.partNumber).to.eql(6); pm.expect(question.difficulty).to.eql('hard'); pm.expect(question.topics.map((item) => item.name)).to.eql(['Travel']); pm.expect(question.skills.map((item) => item.name)).to.eql(['Reading Comprehension']);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Authorization and ownership",
+      "item": [
+        {
+          "name": "TC05 - Admin reads Teacher classification",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/questions/{{questionId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.expect(pm.response.json().part.partNumber).to.eql(6);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC06 - Admin cannot classify Teacher Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(403);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC07 - Admin classifies own Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{officeTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}/classification",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.expect(pm.response.json().difficulty).to.eql('easy');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC08 - Teacher reads Admin classification",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "pm.expect(pm.response.json().part.partNumber).to.eql(5);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC09 - Teacher cannot classify Admin Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part6Id}}\",\"topicIds\":[\"{{travelTopicId}}\"],\"skillIds\":[\"{{readingSkillId}}\"],\"difficulty\":\"hard\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(403);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC10 - Student cannot read catalogs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/topics",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(403);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC11 - Student cannot classify Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(403);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC12 - Unauthenticated catalog request is rejected",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/skills",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(401);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Validation and atomicity",
+      "item": [
+        {
+          "name": "TC13 - Duplicate Topic ID is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\",\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC14 - Duplicate Skill ID is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\",\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC15 - Unknown Part is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{missingPartId}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC16 - Unknown Topic is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\",\"{{missingTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC17 - Unknown Skill rolls back the whole update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\",\"{{missingSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC18 - Classification remains unchanged after failed update",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const body = pm.response.json(); pm.expect(body.part.partNumber).to.eql(6); pm.expect(body.difficulty).to.eql('hard'); pm.expect(body.topics.map((item) => item.name)).to.eql(['Travel']); pm.expect(body.skills.map((item) => item.name)).to.eql(['Reading Comprehension']);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC19 - Unsupported Difficulty is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"intermediate\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC20 - Malformed reference UUID is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"not-a-uuid\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC21 - Missing Question returns 404",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{missingQuestionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(404);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC22 - Unknown client field is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"partId\":\"{{part5Id}}\",\"topicIds\":[\"{{businessTopicId}}\"],\"skillIds\":[\"{{grammarSkillId}}\"],\"difficulty\":\"easy\",\"topicName\":\"Business\"}"
+            },
+            "url": "{{baseUrl}}/questions/{{questionId}}/classification"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.response.to.have.status(400);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99 - Cleanup",
+      "description": "Chỉ chạy trên development/test. Xóa đúng hai Question do collection tạo; quan hệ classification được cascade.",
+      "item": [
+        {
+          "name": "Delete Teacher Question",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/questions/{{questionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.expect(pm.response.code).to.be.oneOf([204, 404]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Admin Question",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/questions/{{adminQuestionId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.expect(pm.response.code).to.be.oneOf([204, 404]);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

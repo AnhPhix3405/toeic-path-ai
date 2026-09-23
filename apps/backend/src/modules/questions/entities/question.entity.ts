@@ -3,6 +3,8 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -13,6 +15,10 @@ import { QuestionStatus } from '../enums/question-status.enum';
 import { QuestionType } from '../enums/question-type.enum';
 import { QuestionGroup } from '../../question-groups/entities/question-group.entity';
 import { QuestionOption } from './question-option.entity';
+import { ToeicPart } from './toeic-part.entity';
+import { Topic } from './topic.entity';
+import { Skill } from './skill.entity';
+import { QuestionDifficulty } from '../enums/question-difficulty.enum';
 
 @Entity({ name: 'questions' })
 export class Question {
@@ -53,6 +59,32 @@ export class Question {
 
   @OneToMany(() => QuestionOption, (option) => option.question)
   options!: QuestionOption[];
+
+  @Column({ name: 'part_id', type: 'uuid', nullable: true })
+  partId!: string | null;
+
+  @ManyToOne(() => ToeicPart, (part) => part.questions, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'part_id' })
+  part!: ToeicPart | null;
+
+  @Column({ type: 'enum', enum: QuestionDifficulty, nullable: true })
+  difficulty!: QuestionDifficulty | null;
+
+  @ManyToMany(() => Topic, (topic) => topic.questions)
+  @JoinTable({
+    name: 'question_topics',
+    joinColumn: { name: 'question_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'topic_id', referencedColumnName: 'id' },
+  })
+  topics!: Topic[];
+
+  @ManyToMany(() => Skill, (skill) => skill.questions)
+  @JoinTable({
+    name: 'question_skills',
+    joinColumn: { name: 'question_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'skill_id', referencedColumnName: 'id' },
+  })
+  skills!: Skill[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

@@ -81,6 +81,9 @@ export class QuestionGroupsService {
     if (withQuestions) {
       queryBuilder
         .leftJoinAndSelect('questionGroup.questions', 'question')
+        .leftJoinAndSelect('question.part', 'part')
+        .leftJoinAndSelect('question.topics', 'topic')
+        .leftJoinAndSelect('question.skills', 'skill')
         .orderBy('question.groupOrder', 'ASC');
     }
     const questionGroup = await queryBuilder.getOne();
@@ -117,6 +120,21 @@ export class QuestionGroupsService {
       groupOrder: question.groupOrder,
       explanation: question.explanation,
       options: [],
+      part: question.part
+        ? {
+            id: question.part.id,
+            partNumber: question.part.partNumber,
+            name: question.part.name,
+            description: question.part.description,
+          }
+        : null,
+      difficulty: question.difficulty ?? null,
+      topics: (question.topics ?? [])
+        .sort((first, second) => first.name.localeCompare(second.name))
+        .map(({ id, name, description }) => ({ id, name, description })),
+      skills: (question.skills ?? [])
+        .sort((first, second) => first.name.localeCompare(second.name))
+        .map(({ id, name, description }) => ({ id, name, description })),
       createdAt: question.createdAt,
       updatedAt: question.updatedAt,
     };

@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { QuestionStatus } from '../enums/question-status.enum';
 import { QuestionType } from '../enums/question-type.enum';
 import { QuestionOptionResponseDto } from './question-option-response.dto';
+import { QuestionDifficulty } from '../enums/question-difficulty.enum';
+import { TaxonomyItemResponseDto, ToeicPartResponseDto } from './classification-response.dto';
 
 export class QuestionResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -24,6 +26,18 @@ export class QuestionResponseDto {
 
   @ApiProperty({ type: () => QuestionOptionResponseDto, isArray: true })
   options!: QuestionOptionResponseDto[];
+
+  @ApiProperty({ type: () => ToeicPartResponseDto, nullable: true })
+  part!: ToeicPartResponseDto | null;
+
+  @ApiProperty({ enum: QuestionDifficulty, nullable: true })
+  difficulty!: QuestionDifficulty | null;
+
+  @ApiProperty({ type: () => TaxonomyItemResponseDto, isArray: true })
+  topics!: TaxonomyItemResponseDto[];
+
+  @ApiProperty({ type: () => TaxonomyItemResponseDto, isArray: true })
+  skills!: TaxonomyItemResponseDto[];
 
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
