@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole } from '../../../common/enums/user-role.enum';
-import { Gender } from '../../../common/enums/gender.enum';
+import { UserRole } from '../../../../common/enums/user-role.enum';
+import { Gender } from '../../../../common/enums/gender.enum';
 
 export class PersonalProfileDto {
   @ApiProperty({ example: 'Nguyen Van A' })

@@ -31,9 +31,9 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateQuestionGroupDto } from './dto/create-question-group.dto';
-import { QuestionGroupResponseDto } from './dto/question-group-response.dto';
-import { UpdateQuestionGroupDto } from './dto/update-question-group.dto';
+import { CreateQuestionGroupDto } from './dto/request/create-question-group.dto';
+import { QuestionGroupResponseDto } from './dto/response/question-group-response.dto';
+import { UpdateQuestionGroupDto } from './dto/request/update-question-group.dto';
 import { QuestionGroupsService } from './question-groups.service';
 
 @ApiTags('Question groups')

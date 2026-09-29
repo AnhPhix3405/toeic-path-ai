@@ -1,8 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { UserRole } from '../../../common/enums/user-role.enum';
-import { UserStatus } from '../../../common/enums/user-status.enum';
+import { UserRole } from '../../../../common/enums/user-role.enum';
+import { UserStatus } from '../../../../common/enums/user-status.enum';
 
 export class QueryUsersDto {
   @ApiPropertyOptional({ type: Number, default: 1, minimum: 1 })

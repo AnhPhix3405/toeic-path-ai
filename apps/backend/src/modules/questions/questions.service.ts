@@ -7,21 +7,21 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
-import type { AssignQuestionGroupDto } from './dto/assign-question-group.dto';
-import type { CreateQuestionDto } from './dto/create-question.dto';
-import type { QuestionResponseDto } from './dto/question-response.dto';
-import type { UpdateQuestionDto } from './dto/update-question.dto';
+import type { AssignQuestionGroupDto } from './dto/request/assign-question-group.dto';
+import type { CreateQuestionDto } from './dto/request/create-question.dto';
+import type { QuestionResponseDto } from './dto/response/question-response.dto';
+import type { UpdateQuestionDto } from './dto/request/update-question.dto';
 import { Question } from './entities/question.entity';
 import { QuestionGroupsService } from '../question-groups/question-groups.service';
-import type { CreateQuestionOptionDto } from './dto/create-question-option.dto';
-import type { QuestionOptionResponseDto } from './dto/question-option-response.dto';
-import type { SetCorrectAnswerDto } from './dto/set-correct-answer.dto';
-import type { UpdateQuestionOptionDto } from './dto/update-question-option.dto';
+import type { CreateQuestionOptionDto } from './dto/request/create-question-option.dto';
+import type { QuestionOptionResponseDto } from './dto/response/question-option-response.dto';
+import type { SetCorrectAnswerDto } from './dto/request/set-correct-answer.dto';
+import type { UpdateQuestionOptionDto } from './dto/request/update-question-option.dto';
 import { QuestionOption } from './entities/question-option.entity';
 import { ToeicPart } from './entities/toeic-part.entity';
 import { Topic } from './entities/topic.entity';
 import { Skill } from './entities/skill.entity';
-import type { UpdateQuestionClassificationDto } from './dto/update-question-classification.dto';
+import type { UpdateQuestionClassificationDto } from './dto/request/update-question-classification.dto';
 
 @Injectable()
 export class QuestionsService {

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import type {
   TaxonomyItemResponseDto,
   ToeicPartResponseDto,
-} from './dto/classification-response.dto';
+} from './dto/response/classification-response.dto';
 import { Skill } from './entities/skill.entity';
 import { ToeicPart } from './entities/toeic-part.entity';
 import { Topic } from './entities/topic.entity';

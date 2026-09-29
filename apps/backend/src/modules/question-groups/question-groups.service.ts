@@ -6,11 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import type { QuestionResponseDto } from '../questions/dto/question-response.dto';
+import type { QuestionResponseDto } from '../questions/dto/response/question-response.dto';
 import { Question } from '../questions/entities/question.entity';
-import type { CreateQuestionGroupDto } from './dto/create-question-group.dto';
-import type { QuestionGroupResponseDto } from './dto/question-group-response.dto';
-import type { UpdateQuestionGroupDto } from './dto/update-question-group.dto';
+import type { CreateQuestionGroupDto } from './dto/request/create-question-group.dto';
+import type { QuestionGroupResponseDto } from './dto/response/question-group-response.dto';
+import type { UpdateQuestionGroupDto } from './dto/request/update-question-group.dto';
 import { QuestionGroup } from './entities/question-group.entity';
 
 @Injectable()

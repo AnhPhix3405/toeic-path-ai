@@ -31,12 +31,12 @@ import {
   getRefreshCookieClearOptions,
   getRefreshCookieOptions,
 } from './config/refresh-cookie.config';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { RegisterResponseDto } from './dto/register-response.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { GoogleAuthDto } from './dto/google-auth.dto';
+import { LoginDto } from './dto/request/login.dto';
+import { RegisterDto } from './dto/request/register.dto';
+import { RegisterResponseDto } from './dto/response/register-response.dto';
+import { ForgotPasswordDto } from './dto/request/forgot-password.dto';
+import { ResetPasswordDto } from './dto/request/reset-password.dto';
+import { GoogleAuthDto } from './dto/request/google-auth.dto';
 import { GoogleAuthService } from './services/google-auth.service';
 import type { MessageResponse } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';

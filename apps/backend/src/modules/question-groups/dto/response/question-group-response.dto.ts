@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { QuestionResponseDto } from '../../questions/dto/question-response.dto';
+import { QuestionResponseDto } from '../../../questions/dto/response/question-response.dto';
 
 export class QuestionGroupResponseDto {
   @ApiProperty({ format: 'uuid' })

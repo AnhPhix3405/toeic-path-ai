@@ -12,7 +12,7 @@ import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ClassificationCatalogService } from './classification-catalog.service';
-import { TaxonomyItemResponseDto, ToeicPartResponseDto } from './dto/classification-response.dto';
+import { TaxonomyItemResponseDto, ToeicPartResponseDto } from './dto/response/classification-response.dto';
 
 @ApiTags('Question Classification')
 @ApiBearerAuth('JWT-auth')

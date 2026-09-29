@@ -15,7 +15,7 @@ import { UserProfile } from '../../users/entities/user-profile.entity';
 import { User } from '../../users/entities/user.entity';
 import { UsersService } from '../../users/users.service';
 import { AuthService, type SessionMetadata, type TokenResponse } from '../auth.service';
-import type { GoogleAuthDto } from '../dto/google-auth.dto';
+import type { GoogleAuthDto } from '../dto/request/google-auth.dto';
 
 export interface GooglePayload {
   sub: string;

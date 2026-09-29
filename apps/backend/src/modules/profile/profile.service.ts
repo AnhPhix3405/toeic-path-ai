@@ -8,8 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { UserProfile } from '../users/entities/user-profile.entity';
-import type { UpdateMyProfileDto } from './dto/update-my-profile.dto';
-import { ProfileResponseDto } from './dto/profile-response.dto';
+import type { UpdateMyProfileDto } from './dto/request/update-my-profile.dto';
+import { ProfileResponseDto } from './dto/response/profile-response.dto';
 import { STORAGE_SERVICE } from '../storage/storage.constants';
 import type { StorageService, StoredFile } from '../storage/interfaces/storage-service.interface';
 import { AvatarImageService } from './services/avatar-image.service';

@@ -5,7 +5,7 @@ import { AuthProvider } from '../../common/enums/auth-provider.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { AuthSession } from '../auth/entities/auth-session.entity';
-import type { QueryUsersDto } from './dto/query-users.dto';
+import type { QueryUsersDto } from './dto/request/query-users.dto';
 import { User } from './entities/user.entity';
 import { SecurityEventService } from '../../common/security-events/security-event.service';
 import { SecurityEventType } from '../../common/security-events/enums/security-event.enum';

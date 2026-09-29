@@ -31,8 +31,8 @@ import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ProfileResponseDto } from './dto/profile-response.dto';
-import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
+import { ProfileResponseDto } from './dto/response/profile-response.dto';
+import { UpdateMyProfileDto } from './dto/request/update-my-profile.dto';
 import { ProfileService } from './profile.service';
 
 @ApiTags('Profile')

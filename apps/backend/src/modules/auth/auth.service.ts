@@ -22,12 +22,12 @@ import type { RefreshTokenPayload } from '../../common/interfaces/refresh-token-
 import { User } from '../users/entities/user.entity';
 import { UserProfile } from '../users/entities/user-profile.entity';
 import { UsersService } from '../users/users.service';
-import type { LoginDto } from './dto/login.dto';
-import type { RegisterDto } from './dto/register.dto';
-import type { RegisterResponseDto } from './dto/register-response.dto';
+import type { LoginDto } from './dto/request/login.dto';
+import type { RegisterDto } from './dto/request/register.dto';
+import type { RegisterResponseDto } from './dto/response/register-response.dto';
 import { AuthSession } from './entities/auth-session.entity';
-import type { ForgotPasswordDto } from './dto/forgot-password.dto';
-import type { ResetPasswordDto } from './dto/reset-password.dto';
+import type { ForgotPasswordDto } from './dto/request/forgot-password.dto';
+import type { ResetPasswordDto } from './dto/request/reset-password.dto';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MAIL_SERVICE, type MailService } from '../mail/mail.service';
 import { SecurityEventService } from '../../common/security-events/security-event.service';

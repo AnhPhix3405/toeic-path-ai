@@ -11,7 +11,7 @@ import {
   type ValidationArguments,
   type ValidationOptions,
 } from 'class-validator';
-import { Gender } from '../../../common/enums/gender.enum';
+import { Gender } from '../../../../common/enums/gender.enum';
 
 function IsNotFutureDate(validationOptions?: ValidationOptions): PropertyDecorator {
   return (object: object, propertyName: string | symbol): void => {

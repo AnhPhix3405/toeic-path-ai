@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayUnique, IsArray, IsEnum, IsUUID } from 'class-validator';
-import { QuestionDifficulty } from '../enums/question-difficulty.enum';
+import { QuestionDifficulty } from '../../enums/question-difficulty.enum';
 
 export class UpdateQuestionClassificationDto {
   @ApiProperty({ format: 'uuid' })

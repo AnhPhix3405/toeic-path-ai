@@ -25,9 +25,9 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { QueryUsersDto } from './dto/query-users.dto';
-import { UpdateUserRoleDto } from './dto/update-user-role.dto';
-import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { QueryUsersDto } from './dto/request/query-users.dto';
+import { UpdateUserRoleDto } from './dto/request/update-user-role.dto';
+import { UpdateUserStatusDto } from './dto/request/update-user-status.dto';
 import { UsersService, type PaginatedUsers, type SafeUser } from './users.service';
 import type { SecurityRequest } from '../../common/security-events/request-context.middleware';
 

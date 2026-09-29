@@ -32,16 +32,16 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateQuestionDto } from './dto/create-question.dto';
-import { AssignQuestionGroupDto } from './dto/assign-question-group.dto';
-import { CreateQuestionOptionDto } from './dto/create-question-option.dto';
-import { QuestionOptionResponseDto } from './dto/question-option-response.dto';
-import { QuestionResponseDto } from './dto/question-response.dto';
-import { SetCorrectAnswerDto } from './dto/set-correct-answer.dto';
-import { UpdateQuestionOptionDto } from './dto/update-question-option.dto';
-import { UpdateQuestionDto } from './dto/update-question.dto';
+import { CreateQuestionDto } from './dto/request/create-question.dto';
+import { AssignQuestionGroupDto } from './dto/request/assign-question-group.dto';
+import { CreateQuestionOptionDto } from './dto/request/create-question-option.dto';
+import { QuestionOptionResponseDto } from './dto/response/question-option-response.dto';
+import { QuestionResponseDto } from './dto/response/question-response.dto';
+import { SetCorrectAnswerDto } from './dto/request/set-correct-answer.dto';
+import { UpdateQuestionOptionDto } from './dto/request/update-question-option.dto';
+import { UpdateQuestionDto } from './dto/request/update-question.dto';
 import { QuestionsService } from './questions.service';
-import { UpdateQuestionClassificationDto } from './dto/update-question-classification.dto';
+import { UpdateQuestionClassificationDto } from './dto/request/update-question-classification.dto';
 
 @ApiTags('Questions')
 @ApiBearerAuth('JWT-auth')

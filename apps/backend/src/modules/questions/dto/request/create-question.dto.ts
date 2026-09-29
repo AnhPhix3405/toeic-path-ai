@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { QuestionType } from '../enums/question-type.enum';
+import { QuestionType } from '../../enums/question-type.enum';
 
 export class CreateQuestionDto {
   @ApiProperty({ example: 'Where is the meeting being held?' })

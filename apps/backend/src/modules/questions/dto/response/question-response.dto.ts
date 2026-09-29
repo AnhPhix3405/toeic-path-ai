@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { QuestionStatus } from '../enums/question-status.enum';
-import { QuestionType } from '../enums/question-type.enum';
+import { QuestionStatus } from '../../enums/question-status.enum';
+import { QuestionType } from '../../enums/question-type.enum';
 import { QuestionOptionResponseDto } from './question-option-response.dto';
-import { QuestionDifficulty } from '../enums/question-difficulty.enum';
+import { QuestionDifficulty } from '../../enums/question-difficulty.enum';
 import { TaxonomyItemResponseDto, ToeicPartResponseDto } from './classification-response.dto';
 
 export class QuestionResponseDto {

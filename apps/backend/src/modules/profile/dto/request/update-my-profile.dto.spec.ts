@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { Gender } from '../../../common/enums/gender.enum';
+import { Gender } from '../../../../common/enums/gender.enum';
 import { UpdateMyProfileDto } from './update-my-profile.dto';
 
 describe('UpdateMyProfileDto', () => {
