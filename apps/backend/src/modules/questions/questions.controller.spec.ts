@@ -32,8 +32,16 @@ describe('QuestionsController', () => {
     createdAt: new Date('2026-09-15T00:00:00.000Z'),
     updatedAt: new Date('2026-09-15T00:00:00.000Z'),
   };
+  const paginatedResponse = {
+    data: [response],
+    total: 1,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+  };
   const service = {
     create: jest.fn().mockResolvedValue(response),
+    findPaginated: jest.fn().mockResolvedValue(paginatedResponse),
     findAll: jest.fn().mockResolvedValue([response]),
     findOne: jest.fn().mockResolvedValue(response),
     update: jest.fn().mockResolvedValue({ ...response, content: 'Updated' }),
@@ -91,7 +99,16 @@ describe('QuestionsController', () => {
       { content: response.content, questionType: QuestionType.SINGLE_CHOICE },
       teacherId,
     );
-    await request(app.getHttpServer()).get('/api/v1/questions').set(auth).expect(200);
+    const getRes = await request(app.getHttpServer()).get('/api/v1/questions').set(auth).expect(200);
+    expect(getRes.body).toMatchObject({
+      data: [{ id, content: response.content }],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    expect(service.findPaginated).toHaveBeenCalledWith({ page: 1, limit: 20 });
+
     await request(app.getHttpServer()).get(`/api/v1/questions/${id}`).set(auth).expect(200);
     await request(app.getHttpServer())
       .patch(`/api/v1/questions/${id}`)
@@ -101,6 +118,66 @@ describe('QuestionsController', () => {
     expect(service.update).toHaveBeenCalledWith(id, { content: 'Updated' }, teacherId);
     await request(app.getHttpServer()).delete(`/api/v1/questions/${id}`).set(auth).expect(204);
     expect(service.remove).toHaveBeenCalledWith(id, teacherId);
+  });
+
+  it('parses and forwards search, filter, and pagination query params', async () => {
+    const auth = { Authorization: 'Bearer access-token' };
+    const topicId1 = '50000000-0000-4000-8000-000000000001';
+    const topicId2 = '50000000-0000-4000-8000-000000000002';
+    const skillId = '60000000-0000-4000-8000-000000000003';
+    const partId = '40000000-0000-4000-8000-000000000004';
+
+    await request(app.getHttpServer())
+      .get(
+        `/api/v1/questions?search=meeting&page=2&limit=10&topicIds=${topicId1},${topicId2}&skillIds=${skillId}&partId=${partId}&difficulty=${QuestionDifficulty.MEDIUM}`,
+      )
+      .set(auth)
+      .expect(200);
+
+    expect(service.findPaginated).toHaveBeenCalledWith({
+      search: 'meeting',
+      page: 2,
+      limit: 10,
+      topicIds: [topicId1, topicId2],
+      skillIds: [skillId],
+      partId,
+      difficulty: QuestionDifficulty.MEDIUM,
+    });
+  });
+
+  it('handles empty array query params gracefully without error', async () => {
+    const auth = { Authorization: 'Bearer access-token' };
+    await request(app.getHttpServer())
+      .get('/api/v1/questions?topicIds=&skillIds=')
+      .set(auth)
+      .expect(200);
+
+    expect(service.findPaginated).toHaveBeenCalledWith({
+      page: 1,
+      limit: 20,
+    });
+  });
+
+  it('rejects invalid query parameters', async () => {
+    const auth = { Authorization: 'Bearer access-token' };
+
+    // page < 1
+    await request(app.getHttpServer()).get('/api/v1/questions?page=0').set(auth).expect(400);
+
+    // limit > 100
+    await request(app.getHttpServer()).get('/api/v1/questions?limit=101').set(auth).expect(400);
+
+    // invalid difficulty enum
+    await request(app.getHttpServer())
+      .get('/api/v1/questions?difficulty=INVALID_DIFFICULTY')
+      .set(auth)
+      .expect(400);
+
+    // invalid UUID partId
+    await request(app.getHttpServer())
+      .get('/api/v1/questions?partId=not-a-uuid')
+      .set(auth)
+      .expect(400);
   });
 
   it('allows Admin to read and create questions', async () => {

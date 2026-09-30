@@ -12,6 +12,7 @@ import { Topic } from './entities/topic.entity';
 import { Skill } from './entities/skill.entity';
 import { ClassificationCatalogController } from './classification-catalog.controller';
 import { ClassificationCatalogService } from './classification-catalog.service';
+import { QuestionRepository } from './repositories/question.repository';
 
 @Module({
   imports: [
@@ -19,6 +20,13 @@ import { ClassificationCatalogService } from './classification-catalog.service';
     QuestionGroupsModule,
   ],
   controllers: [QuestionsController, ClassificationCatalogController],
-  providers: [QuestionsService, ClassificationCatalogService, JwtAuthGuard, RolesGuard],
+  providers: [
+    QuestionsService,
+    ClassificationCatalogService,
+    QuestionRepository,
+    JwtAuthGuard,
+    RolesGuard,
+  ],
+  exports: [QuestionsService, QuestionRepository],
 })
 export class QuestionsModule {}

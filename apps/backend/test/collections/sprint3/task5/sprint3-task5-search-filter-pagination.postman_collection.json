@@ -1,0 +1,1444 @@
+{
+  "info": {
+    "_postman_id": "8f2a4c10-53a9-4b6e-821b-d5438a195005",
+    "name": "TOEIC Path AI - Sprint 3 Task 5 Search, Filter and Pagination",
+    "description": "Kiểm thử tìm kiếm full-text, escape wildcard SQL, lọc danh mục đa tiêu chí (OR logic), parse query string array, phân trang Two-pass, validation và phân quyền. Chỉ chạy trên database development/test.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{teacherToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "studentEmail",
+      "value": "sprint3.task5.student@example.com",
+      "type": "string"
+    },
+    {
+      "key": "teacherEmail",
+      "value": "sprint3.task5.teacher@example.com",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "StrongPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "part5Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "part6Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "part7Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "businessTopicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "officeTopicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "travelTopicId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "grammarSkillId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vocabularySkillId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "readingSkillId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "q1Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "q2Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "q3Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "q4Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "q5Id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup",
+      "item": [
+        {
+          "name": "00.1 - Register Student Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 3 Task 5 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student registered or already exists\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Register Teacher Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 3 Task 5 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher registered or already exists\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "  if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set(\"teacherUserId\", json.id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin login succeeded\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"adminToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Find Teacher Candidate User ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?search={{teacherEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [{ "key": "search", "value": "{{teacherEmail}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Found candidate user\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var list = json.data || json;",
+                  "  var found = Array.isArray(list) ? list.find(function (u) { return u.email === pm.collectionVariables.get(\"teacherEmail\"); }) : null;",
+                  "  pm.expect(found).to.be.an(\"object\");",
+                  "  pm.collectionVariables.set(\"teacherUserId\", found.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Promote Candidate to Teacher Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"teacher\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{teacherUserId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{teacherUserId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Candidate promoted to teacher\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.6 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher logged in\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"teacherToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.7 - Login Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student logged in\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"studentToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.8 - Read TOEIC Parts Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/toeic-parts", "host": ["{{baseUrl}}"], "path": ["toeic-parts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Parts catalog resolved\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var list = pm.response.json();",
+                  "  var p5 = list.find(function (p) { return p.partNumber === 5; });",
+                  "  var p6 = list.find(function (p) { return p.partNumber === 6; });",
+                  "  var p7 = list.find(function (p) { return p.partNumber === 7; });",
+                  "  pm.expect(p5).to.be.an(\"object\");",
+                  "  pm.collectionVariables.set(\"part5Id\", p5.id);",
+                  "  pm.collectionVariables.set(\"part6Id\", p6 ? p6.id : \"\");",
+                  "  pm.collectionVariables.set(\"part7Id\", p7 ? p7.id : \"\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.9 - Read Topics Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/topics", "host": ["{{baseUrl}}"], "path": ["topics"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Topics catalog resolved\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var list = pm.response.json();",
+                  "  var business = list.find(function (t) { return t.name.toLowerCase().includes(\"business\"); }) || list[0];",
+                  "  var office = list.find(function (t) { return t.name.toLowerCase().includes(\"office\"); }) || list[1];",
+                  "  var travel = list.find(function (t) { return t.name.toLowerCase().includes(\"travel\"); }) || list[2];",
+                  "  pm.collectionVariables.set(\"businessTopicId\", business ? business.id : \"\");",
+                  "  pm.collectionVariables.set(\"officeTopicId\", office ? office.id : \"\");",
+                  "  pm.collectionVariables.set(\"travelTopicId\", travel ? travel.id : \"\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.10 - Read Skills Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/skills", "host": ["{{baseUrl}}"], "path": ["skills"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Skills catalog resolved\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var list = pm.response.json();",
+                  "  var grammar = list.find(function (s) { return s.name.toLowerCase().includes(\"grammar\"); }) || list[0];",
+                  "  var vocab = list.find(function (s) { return s.name.toLowerCase().includes(\"vocab\"); }) || list[1];",
+                  "  var reading = list.find(function (s) { return s.name.toLowerCase().includes(\"reading\"); }) || list[2];",
+                  "  pm.collectionVariables.set(\"grammarSkillId\", grammar ? grammar.id : \"\");",
+                  "  pm.collectionVariables.set(\"vocabularySkillId\", vocab ? vocab.id : \"\");",
+                  "  pm.collectionVariables.set(\"readingSkillId\", reading ? reading.id : \"\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.11 - Seed Question Q1",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"[S3T5] The manager scheduled an urgent meeting yesterday.\",\n  \"questionType\": \"single_choice\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q1 created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"q1Id\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.12 - Classify Question Q1",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{part5Id}}\",\n  \"topicIds\": [\"{{businessTopicId}}\", \"{{officeTopicId}}\"],\n  \"skillIds\": [\"{{grammarSkillId}}\", \"{{vocabularySkillId}}\"],\n  \"difficulty\": \"medium\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/{{q1Id}}/classification", "host": ["{{baseUrl}}"], "path": ["questions", "{{q1Id}}", "classification"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q1 classified\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.13 - Seed Question Q2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"[S3T5] Flight 100% departure was delayed due to weather_conditions.\",\n  \"questionType\": \"single_choice\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q2 created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"q2Id\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.14 - Classify Question Q2",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{part6Id}}\",\n  \"topicIds\": [\"{{travelTopicId}}\"],\n  \"skillIds\": [\"{{vocabularySkillId}}\"],\n  \"difficulty\": \"hard\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/{{q2Id}}/classification", "host": ["{{baseUrl}}"], "path": ["questions", "{{q2Id}}", "classification"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q2 classified\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.15 - Seed Question Q3",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"[S3T5] All employees must review the quarterly budget.\",\n  \"questionType\": \"single_choice\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q3 created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"q3Id\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.16 - Classify Question Q3",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{part5Id}}\",\n  \"topicIds\": [\"{{businessTopicId}}\"],\n  \"skillIds\": [\"{{grammarSkillId}}\"],\n  \"difficulty\": \"easy\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/{{q3Id}}/classification", "host": ["{{baseUrl}}"], "path": ["questions", "{{q3Id}}", "classification"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q3 classified\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.17 - Seed Question Q4",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"[S3T5] Please submit your application form before Friday.\",\n  \"questionType\": \"single_choice\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q4 created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"q4Id\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.18 - Classify Question Q4",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{part7Id}}\",\n  \"topicIds\": [\"{{officeTopicId}}\"],\n  \"skillIds\": [\"{{readingSkillId}}\"],\n  \"difficulty\": \"easy\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/{{q4Id}}/classification", "host": ["{{baseUrl}}"], "path": ["questions", "{{q4Id}}", "classification"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q4 classified\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.19 - Seed Question Q5",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"[S3T5] The conference agenda has been updated.\",\n  \"questionType\": \"single_choice\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q5 created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"q5Id\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.20 - Classify Question Q5",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{part5Id}}\",\n  \"topicIds\": [\"{{businessTopicId}}\"],\n  \"skillIds\": [\"{{vocabularySkillId}}\"],\n  \"difficulty\": \"medium\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/{{q5Id}}/classification", "host": ["{{baseUrl}}"], "path": ["questions", "{{q5Id}}", "classification"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q5 classified\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Search & Filters",
+      "item": [
+        {
+          "name": "01.1 - List All (Default Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Response has paginated shape\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property(\"data\").that.is.an(\"array\");",
+                  "  pm.expect(json).to.have.property(\"total\").that.is.a(\"number\");",
+                  "  pm.expect(json).to.have.property(\"page\", 1);",
+                  "  pm.expect(json).to.have.property(\"limit\", 20);",
+                  "  pm.expect(json).to.have.property(\"totalPages\").that.is.a(\"number\");",
+                  "  pm.expect(json.total).to.be.at.least(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Full-Text Search Keyword",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?search=urgent meeting",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "search", "value": "urgent meeting" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Search matches Q1\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data.length).to.be.at.least(1);",
+                  "  var found = json.data.find(function (q) { return q.id === pm.collectionVariables.get(\"q1Id\"); });",
+                  "  pm.expect(found).to.be.an(\"object\");",
+                  "  pm.expect(found.content).to.include(\"urgent meeting\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Search Special Characters (Wildcard Escaping)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?search=100% departure",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "search", "value": "100% departure" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Escaped percent wildcard matches Q2 strictly\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data.length).to.equal(1);",
+                  "  pm.expect(json.data[0].id).to.equal(pm.collectionVariables.get(\"q2Id\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Filter by TOEIC Part",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?partId={{part5Id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "partId", "value": "{{part5Id}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Filters Part 5 questions correctly\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.total).to.be.at.least(3);",
+                  "  json.data.forEach(function (q) {",
+                  "    pm.expect(q.part.id).to.equal(pm.collectionVariables.get(\"part5Id\"));",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.5 - Filter by Topics (OR logic, Comma-Separated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?topicIds={{travelTopicId}},{{officeTopicId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "topicIds", "value": "{{travelTopicId}},{{officeTopicId}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"OR filter matches questions having Travel OR Office topic\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var ids = json.data.map(function (q) { return q.id; });",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get(\"q1Id\"));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get(\"q2Id\"));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get(\"q4Id\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.6 - Filter by Skills (OR logic)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?skillIds={{readingSkillId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "skillIds", "value": "{{readingSkillId}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Skill filter matches Reading Comprehension\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var ids = json.data.map(function (q) { return q.id; });",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get(\"q4Id\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.7 - Filter by Difficulty",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?difficulty=hard",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "difficulty", "value": "hard" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Difficulty hard matched\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  json.data.forEach(function (q) {",
+                  "    pm.expect(q.difficulty).to.equal(\"hard\");",
+                  "  });",
+                  "  var ids = json.data.map(function (q) { return q.id; });",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get(\"q2Id\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.8 - Filter by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?status=draft",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "status", "value": "draft" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status draft matched\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  json.data.forEach(function (q) {",
+                  "    pm.expect(q.status).to.equal(\"draft\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.9 - Filter by QuestionType",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?questionType=single_choice",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "questionType", "value": "single_choice" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"QuestionType single_choice matched\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  json.data.forEach(function (q) {",
+                  "    pm.expect(q.questionType).to.equal(\"single_choice\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.10 - Combined Search and Multi-Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?search=manager&partId={{part5Id}}&difficulty=medium&topicIds={{businessTopicId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [
+                { "key": "search", "value": "manager" },
+                { "key": "partId", "value": "{{part5Id}}" },
+                { "key": "difficulty", "value": "medium" },
+                { "key": "topicIds", "value": "{{businessTopicId}}" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Combined query isolates Q1\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data.length).to.equal(1);",
+                  "  pm.expect(json.data[0].id).to.equal(pm.collectionVariables.get(\"q1Id\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.11 - Pagination Page 1 with Limit 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?search=%5BS3T5%5D&page=1&limit=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [
+                { "key": "search", "value": "[S3T5]" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "2" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Page 1 returns exactly 2 items\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data.length).to.equal(2);",
+                  "  pm.expect(json.page).to.equal(1);",
+                  "  pm.expect(json.limit).to.equal(2);",
+                  "  pm.expect(json.total).to.equal(5);",
+                  "  pm.expect(json.totalPages).to.equal(3);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.12 - Pagination Page 2 with Limit 2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?search=%5BS3T5%5D&page=2&limit=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [
+                { "key": "search", "value": "[S3T5]" },
+                { "key": "page", "value": "2" },
+                { "key": "limit", "value": "2" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Page 2 returns next 2 items\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data.length).to.equal(2);",
+                  "  pm.expect(json.page).to.equal(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.13 - Out-of-Range Page (page=999)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?page=999&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [
+                { "key": "page", "value": "999" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Out-of-range page returns empty data array with 200 OK\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an(\"array\").that.is.empty;",
+                  "  pm.expect(json.page).to.equal(999);",
+                  "  pm.expect(json.total).to.be.at.least(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.14 - Tolerant Empty Array Parameters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?topicIds=&skillIds=",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [
+                { "key": "topicIds", "value": "" },
+                { "key": "skillIds", "value": "" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Empty array query string does not crash\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Validation & Errors",
+      "item": [
+        {
+          "name": "02.1 - Reject Invalid Page (page=0)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?page=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "page", "value": "0" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects page < 1 with 400 Bad Request\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Reject Overlimit (limit=101)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?limit=101",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "limit", "value": "101" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects limit > 100 with 400 Bad Request\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - Reject Invalid Difficulty Enum",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?difficulty=ultra_extreme",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "difficulty", "value": "ultra_extreme" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects unsupported difficulty enum with 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Reject Non-UUID PartId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions?partId=not-a-valid-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [{ "key": "partId", "value": "not-a-valid-uuid" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects invalid partId UUID with 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Authorization & Role Guards",
+      "item": [
+        {
+          "name": "03.1 - Reject Unauthenticated Request",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects guest with 401 Unauthorized\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Reject Student Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects student with 403 Forbidden\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Allow Admin Access",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions", "host": ["{{baseUrl}}"], "path": ["questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin can query questions with 200 OK\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99 - Cleanup",
+      "item": [
+        {
+          "name": "99.1 - Delete Question Q1",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions/{{q1Id}}", "host": ["{{baseUrl}}"], "path": ["questions", "{{q1Id}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q1 cleaned up\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.2 - Delete Question Q2",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions/{{q2Id}}", "host": ["{{baseUrl}}"], "path": ["questions", "{{q2Id}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q2 cleaned up\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.3 - Delete Question Q3",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions/{{q3Id}}", "host": ["{{baseUrl}}"], "path": ["questions", "{{q3Id}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q3 cleaned up\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.4 - Delete Question Q4",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions/{{q4Id}}", "host": ["{{baseUrl}}"], "path": ["questions", "{{q4Id}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q4 cleaned up\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.5 - Delete Question Q5",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/questions/{{q5Id}}", "host": ["{{baseUrl}}"], "path": ["questions", "{{q5Id}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Q5 cleaned up\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

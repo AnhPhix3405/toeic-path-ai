@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -35,6 +36,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateQuestionDto } from './dto/request/create-question.dto';
 import { AssignQuestionGroupDto } from './dto/request/assign-question-group.dto';
 import { CreateQuestionOptionDto } from './dto/request/create-question-option.dto';
+import { QueryQuestionsDto } from './dto/request/query-questions.dto';
+import { PaginatedQuestionsResponseDto } from './dto/response/paginated-questions-response.dto';
 import { QuestionOptionResponseDto } from './dto/response/question-option-response.dto';
 import { QuestionResponseDto } from './dto/response/question-response.dto';
 import { SetCorrectAnswerDto } from './dto/request/set-correct-answer.dto';
@@ -68,10 +71,11 @@ export class QuestionsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all questions as a Teacher or Admin' })
-  @ApiOkResponse({ type: QuestionResponseDto, isArray: true })
-  findAll(): Promise<QuestionResponseDto[]> {
-    return this.questionsService.findAll();
+  @ApiOperation({ summary: 'Search and filter questions with pagination as a Teacher or Admin' })
+  @ApiOkResponse({ type: PaginatedQuestionsResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid query parameters' })
+  findPaginated(@Query() dto: QueryQuestionsDto): Promise<PaginatedQuestionsResponseDto> {
+    return this.questionsService.findPaginated(dto);
   }
 
   @Get(':id')

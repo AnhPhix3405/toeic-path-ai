@@ -9,6 +9,8 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
 import type { AssignQuestionGroupDto } from './dto/request/assign-question-group.dto';
 import type { CreateQuestionDto } from './dto/request/create-question.dto';
+import type { QueryQuestionsDto } from './dto/request/query-questions.dto';
+import type { PaginatedQuestionsResponseDto } from './dto/response/paginated-questions-response.dto';
 import type { QuestionResponseDto } from './dto/response/question-response.dto';
 import type { UpdateQuestionDto } from './dto/request/update-question.dto';
 import { Question } from './entities/question.entity';
@@ -22,6 +24,7 @@ import { ToeicPart } from './entities/toeic-part.entity';
 import { Topic } from './entities/topic.entity';
 import { Skill } from './entities/skill.entity';
 import type { UpdateQuestionClassificationDto } from './dto/request/update-question-classification.dto';
+import { QuestionRepository } from './repositories/question.repository';
 
 @Injectable()
 export class QuestionsService {
@@ -30,6 +33,7 @@ export class QuestionsService {
     private readonly questionsRepository: Repository<Question>,
     @InjectRepository(QuestionOption)
     private readonly questionOptionsRepository: Repository<QuestionOption>,
+    private readonly questionRepository: QuestionRepository,
     private readonly questionGroupsService: QuestionGroupsService,
     @InjectDataSource()
     private readonly dataSource: DataSource,
@@ -42,6 +46,21 @@ export class QuestionsService {
     return this.toResponse(question);
   }
 
+  async findPaginated(dto: QueryQuestionsDto): Promise<PaginatedQuestionsResponseDto> {
+    const { questions, total } = await this.questionRepository.findPaginated(dto);
+    const totalPages = total === 0 ? 0 : Math.ceil(total / dto.limit);
+    return {
+      data: questions.map((question) => this.toResponse(question)),
+      total,
+      page: dto.page,
+      limit: dto.limit,
+      totalPages,
+    };
+  }
+
+  /**
+   * @deprecated Use findPaginated() instead. Kept for internal seeding or testing compatibility.
+   */
   async findAll(): Promise<QuestionResponseDto[]> {
     const questions = await this.questionsRepository.find({
       relations: { options: true, part: true, topics: true, skills: true },

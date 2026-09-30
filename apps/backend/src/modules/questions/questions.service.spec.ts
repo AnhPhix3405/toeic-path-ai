@@ -14,6 +14,8 @@ import { ToeicPart } from './entities/toeic-part.entity';
 import { Topic } from './entities/topic.entity';
 import { Skill } from './entities/skill.entity';
 
+import { QuestionRepository } from './repositories/question.repository';
+
 describe('QuestionsService', () => {
   const repository = {
     create: jest.fn(),
@@ -24,6 +26,7 @@ describe('QuestionsService', () => {
     merge: jest.fn(),
     remove: jest.fn(),
   };
+  const questionRepository = { findPaginated: jest.fn() };
   const questionGroupsService = { ensureExists: jest.fn() };
   const questionOptionsRepository = { findOneBy: jest.fn(), remove: jest.fn() };
   const dataSource = { transaction: jest.fn() };
@@ -57,6 +60,7 @@ describe('QuestionsService', () => {
           provide: getRepositoryToken(Question),
           useValue: repository as Partial<Repository<Question>>,
         },
+        { provide: QuestionRepository, useValue: questionRepository },
         { provide: QuestionGroupsService, useValue: questionGroupsService },
         {
           provide: getRepositoryToken(QuestionOption),
@@ -330,5 +334,51 @@ describe('QuestionsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(manager.findOneBy).not.toHaveBeenCalled();
     expect(manager.save).not.toHaveBeenCalled();
+  });
+
+  it('delegates findPaginated to QuestionRepository and calculates pagination metadata', async () => {
+    questionRepository.findPaginated.mockResolvedValue({
+      questions: [question],
+      total: 42,
+    });
+
+    const result = await service.findPaginated({
+      page: 2,
+      limit: 10,
+      search: 'meeting',
+    });
+
+    expect(questionRepository.findPaginated).toHaveBeenCalledWith({
+      page: 2,
+      limit: 10,
+      search: 'meeting',
+    });
+    expect(result).toEqual({
+      data: [expect.objectContaining({ id: question.id, content: question.content })],
+      total: 42,
+      page: 2,
+      limit: 10,
+      totalPages: 5,
+    });
+  });
+
+  it('returns totalPages as 0 when total is 0 or result is empty', async () => {
+    questionRepository.findPaginated.mockResolvedValue({
+      questions: [],
+      total: 0,
+    });
+
+    const result = await service.findPaginated({
+      page: 1,
+      limit: 20,
+    });
+
+    expect(result).toEqual({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0,
+    });
   });
 });
