@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Question } from '../../questions/entities/question.entity';
+import { MediaResource } from '../../questions/entities/media-resource.entity';
 
 @Entity({ name: 'question_groups' })
 export class QuestionGroup {
@@ -31,6 +32,9 @@ export class QuestionGroup {
 
   @OneToMany(() => Question, (question) => question.questionGroup)
   questions!: Question[];
+
+  @OneToMany(() => MediaResource, (media) => media.questionGroup)
+  mediaResources!: MediaResource[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

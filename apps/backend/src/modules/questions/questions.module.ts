@@ -10,13 +10,27 @@ import { QuestionsService } from './questions.service';
 import { ToeicPart } from './entities/toeic-part.entity';
 import { Topic } from './entities/topic.entity';
 import { Skill } from './entities/skill.entity';
+import { MediaResource } from './entities/media-resource.entity';
+import { QuestionHistory } from './entities/question-history.entity';
+import { QuestionReview } from './entities/question-review.entity';
+import { ImportJob } from './entities/import-job.entity';
 import { ClassificationCatalogController } from './classification-catalog.controller';
 import { ClassificationCatalogService } from './classification-catalog.service';
 import { QuestionRepository } from './repositories/question.repository';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Question, QuestionOption, ToeicPart, Topic, Skill]),
+    TypeOrmModule.forFeature([
+      Question,
+      QuestionOption,
+      ToeicPart,
+      Topic,
+      Skill,
+      MediaResource,
+      QuestionHistory,
+      QuestionReview,
+      ImportJob,
+    ]),
     QuestionGroupsModule,
   ],
   controllers: [QuestionsController, ClassificationCatalogController],
@@ -27,6 +41,6 @@ import { QuestionRepository } from './repositories/question.repository';
     JwtAuthGuard,
     RolesGuard,
   ],
-  exports: [QuestionsService, QuestionRepository],
+  exports: [QuestionsService, QuestionRepository, TypeOrmModule],
 })
 export class QuestionsModule {}

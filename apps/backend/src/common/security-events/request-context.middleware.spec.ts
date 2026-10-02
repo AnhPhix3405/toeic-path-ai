@@ -18,12 +18,14 @@ describe('RequestContextMiddleware', () => {
   });
 
   it('replaces an unsafe or oversized request id with a UUID', () => {
+    const unsafeId = `unsafe\n${'x'.repeat(101)}`;
     const request = {
-      get: jest.fn().mockReturnValue(`bad\n${'x'.repeat(101)}`),
+      get: jest.fn().mockReturnValue(unsafeId),
     } as unknown as SecurityRequest;
     const response = { setHeader: jest.fn() } as unknown as Response;
     middleware.use(request, response, jest.fn());
     expect(request.traceId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(request.traceId).not.toContain('bad');
+    expect(request.traceId).not.toBe(unsafeId);
+    expect(request.traceId).not.toContain('\n');
   });
 });
