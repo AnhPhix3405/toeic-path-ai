@@ -5,4 +5,5 @@ export default registerAs('storage', () => ({
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   avatarBucket: process.env.STORAGE_BUCKET_AVATARS,
+  mediaBucket: process.env.STORAGE_BUCKET_MEDIA ?? 'media',
 }));

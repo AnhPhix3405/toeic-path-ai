@@ -1,0 +1,1514 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    "name": "TOEIC Path AI - Sprint 4 Task 2 Media Presigned URL & Management",
+    "description": "Bộ kiểm thử tự động Postman cho Sprint 4 - Task 2 (UC13: Quản lý tài nguyên đa phương tiện qua Presigned URL) theo đúng đặc tả technical plan. Bao gồm: Setup & Auth, Sinh Presigned URL (đơn lẻ & batch), Direct Upload & Confirm với Storage verification, Tra cứu & Cập nhật target, Xóa mềm (Soft Delete), Phân quyền RBAC và Cleanup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{teacherToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "studentEmail",
+      "value": "sprint4.task2.student@example.com",
+      "type": "string"
+    },
+    {
+      "key": "teacherEmail",
+      "value": "sprint4.task2.teacher@example.com",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "StrongPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "draftQuestionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "revisionQuestionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "draftGroupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audioUploadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audioStorageKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "audioPublicUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "imageUploadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "imageStorageKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "imagePublicUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "confirmedAudioMediaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "confirmedImageMediaId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup & Auth",
+      "item": [
+        {
+          "name": "00.1 - Register Student Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 4 Task 2 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student registered or already exists (201/409)\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Register Teacher Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 4 Task 2 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher registered or already exists (201/409)\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "  if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set(\"teacherUserId\", json.id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"adminToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Find Teacher Candidate User ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?search={{teacherEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [{ "key": "search", "value": "{{teacherEmail}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Found candidate user (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var list = json.data || json;",
+                  "  var found = Array.isArray(list) ? list.find(function (u) { return u.email === pm.collectionVariables.get(\"teacherEmail\"); }) : null;",
+                  "  pm.expect(found).to.be.an(\"object\");",
+                  "  pm.collectionVariables.set(\"teacherUserId\", found.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Promote Candidate to Teacher Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"teacher\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{teacherUserId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{teacherUserId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Candidate promoted to teacher (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.6 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher logged in (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"teacherToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.7 - Login Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student logged in (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"studentToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.8 - Create Question [Draft]",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"[S4T2] Listening Question 1 - What is discussed in the audio?\",\n  \"questionType\": \"single_choice\",\n  \"explanation\": \"Conversation audio context explanation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Draft Question created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.expect(json.status).to.eql(\"draft\");",
+                  "  pm.collectionVariables.set(\"draftQuestionId\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.9 - Create Question [Revision Requested Target]",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"[S4T2] Listening Question 2 - Look at the graphic. Where will the speaker go?\",\n  \"questionType\": \"single_choice\",\n  \"explanation\": \"Graphic reference context explanation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Target Question created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"revisionQuestionId\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.10 - Create Question Group [Draft]",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[S4T2] Questions 32-34 Conversation Group\",\n  \"context\": \"Shared audio script and image context for TOEIC Part 3 set.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/question-groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-groups"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Question Group created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"draftGroupId\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Presigned URL Generation",
+      "item": [
+        {
+          "name": "01.1 - Generate Audio Presigned URL (Valid 10MB MP3)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"conversation_part3_audio.mp3\",\n  \"mimeType\": \"audio/mpeg\",\n  \"fileSize\": 10485760,\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Audio Presigned URL created successfully (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.uploadUrl).to.be.a(\"string\");",
+                  "  pm.expect(json.storageKey).to.be.a(\"string\");",
+                  "  pm.expect(json.publicUrl).to.be.a(\"string\");",
+                  "  pm.expect(json.expiresInSeconds).to.eql(900);",
+                  "  pm.expect(json.httpMethod).to.eql(\"PUT\");",
+                  "  pm.expect(json.storageKey).to.include(\"questions/audio/\" + pm.collectionVariables.get(\"teacherUserId\") + \"/\");",
+                  "  pm.collectionVariables.set(\"audioUploadUrl\", json.uploadUrl);",
+                  "  pm.collectionVariables.set(\"audioStorageKey\", json.storageKey);",
+                  "  pm.collectionVariables.set(\"audioPublicUrl\", json.publicUrl);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Generate Image Presigned URL (Valid 3MB PNG)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"graphic_part3_chart.png\",\n  \"mimeType\": \"image/png\",\n  \"fileSize\": 3145728,\n  \"resourceType\": \"image\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Image Presigned URL created successfully (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.uploadUrl).to.be.a(\"string\");",
+                  "  pm.expect(json.storageKey).to.include(\"questions/image/\" + pm.collectionVariables.get(\"teacherUserId\") + \"/\");",
+                  "  pm.collectionVariables.set(\"imageUploadUrl\", json.uploadUrl);",
+                  "  pm.collectionVariables.set(\"imageStorageKey\", json.storageKey);",
+                  "  pm.collectionVariables.set(\"imagePublicUrl\", json.publicUrl);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Generate Batch Presigned URLs (3 files: 1 audio + 2 images)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"files\": [\n    {\n      \"fileName\": \"batch_audio_part4.mp3\",\n      \"mimeType\": \"audio/mpeg\",\n      \"fileSize\": 5242880,\n      \"resourceType\": \"audio\"\n    },\n    {\n      \"fileName\": \"batch_image_part4_a.png\",\n      \"mimeType\": \"image/png\",\n      \"fileSize\": 1048576,\n      \"resourceType\": \"image\"\n    },\n    {\n      \"fileName\": \"batch_image_part4_b.jpeg\",\n      \"mimeType\": \"image/jpeg\",\n      \"fileSize\": 1048576,\n      \"resourceType\": \"image\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url", "batch"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Batch presigned URLs returned 3 items (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.results).to.be.an(\"array\");",
+                  "  pm.expect(json.results.length).to.eql(3);",
+                  "  pm.expect(json.results[0].storageKey).to.include(\"questions/audio/\");",
+                  "  pm.expect(json.results[1].storageKey).to.include(\"questions/image/\");",
+                  "  pm.expect(json.results[2].storageKey).to.include(\"questions/image/\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Fail: Audio Size Exceeds Quota (>15MB)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"oversized_audio.mp3\",\n  \"mimeType\": \"audio/mpeg\",\n  \"fileSize\": 16777216,\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected audio exceeding 15MB quota (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.5 - Fail: Image Size Exceeds Quota (>5MB)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"oversized_image.png\",\n  \"mimeType\": \"image/png\",\n  \"fileSize\": 6291456,\n  \"resourceType\": \"image\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected image exceeding 5MB quota (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.6 - Fail: Unsupported MIME Type (video/mp4)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"invalid_video.mp4\",\n  \"mimeType\": \"video/mp4\",\n  \"fileSize\": 1048576,\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected unsupported MIME type (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.7 - Fail: Batch Exceeds 10 Files Limit",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"files\": [\n    { \"fileName\": \"f1.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f2.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f3.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f4.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f5.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f6.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f7.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f8.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f9.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f10.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" },\n    { \"fileName\": \"f11.mp3\", \"mimeType\": \"audio/mpeg\", \"fileSize\": 1000, \"resourceType\": \"audio\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url", "batch"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected batch exceeding 10 files (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Confirm Upload & Storage Verification",
+      "item": [
+        {
+          "name": "02.1 - Fail Confirm: Unuploaded StorageKey (File not on Storage)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storageKey\": \"questions/audio/{{teacherUserId}}/unuploaded-file-123.mp3\",\n  \"fileName\": \"unuploaded.mp3\",\n  \"fileUrl\": \"https://example.com/unuploaded.mp3\",\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "confirm"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected unuploaded file via Storage verification (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Direct Upload Audio (PUT to Cloud Storage)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "audio/mpeg" }],
+            "body": {
+              "mode": "raw",
+              "raw": "ID3-MOCK-AUDIO-BINARY-STREAM-TEST-DATA-FOR-SPRINT-4-TASK-2-AUDIO-TEST"
+            },
+            "url": { "raw": "{{audioUploadUrl}}", "host": ["{{audioUploadUrl}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Direct upload audio to storage succeeded (200/204)\", function () {",
+                  "  pm.expect([200, 204]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - Success Confirm: Attach to Draft Question",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storageKey\": \"{{audioStorageKey}}\",\n  \"fileName\": \"conversation_part3_audio.mp3\",\n  \"fileUrl\": \"{{audioPublicUrl}}\",\n  \"resourceType\": \"audio\",\n  \"questionId\": \"{{draftQuestionId}}\",\n  \"questionGroupId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "confirm"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Audio media confirmed and attached to draft question (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.expect(json.resourceType).to.eql(\"audio\");",
+                  "  pm.expect(json.questionId).to.eql(pm.collectionVariables.get(\"draftQuestionId\"));",
+                  "  pm.expect(json.questionGroupId).to.be.null;",
+                  "  pm.collectionVariables.set(\"confirmedAudioMediaId\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Direct Upload Image (PUT to Cloud Storage)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "image/png" }],
+            "body": {
+              "mode": "raw",
+              "raw": "PNG-MOCK-IMAGE-BINARY-STREAM-TEST-DATA-FOR-SPRINT-4-TASK-2-IMAGE-TEST"
+            },
+            "url": { "raw": "{{imageUploadUrl}}", "host": ["{{imageUploadUrl}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Direct upload image to storage succeeded (200/204)\", function () {",
+                  "  pm.expect([200, 204]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.5 - Success Confirm: Attach to Question Group [Draft]",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storageKey\": \"{{imageStorageKey}}\",\n  \"fileName\": \"graphic_part3_chart.png\",\n  \"fileUrl\": \"{{imagePublicUrl}}\",\n  \"resourceType\": \"image\",\n  \"questionId\": null,\n  \"questionGroupId\": \"{{draftGroupId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "confirm"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Image media confirmed and attached to group (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.expect(json.resourceType).to.eql(\"image\");",
+                  "  pm.expect(json.questionGroupId).to.eql(pm.collectionVariables.get(\"draftGroupId\"));",
+                  "  pm.expect(json.questionId).to.be.null;",
+                  "  pm.collectionVariables.set(\"confirmedImageMediaId\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.6 - Fail Confirm: Both questionId and questionGroupId Provided",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storageKey\": \"{{audioStorageKey}}\",\n  \"fileName\": \"conversation_part3_audio.mp3\",\n  \"fileUrl\": \"{{audioPublicUrl}}\",\n  \"resourceType\": \"audio\",\n  \"questionId\": \"{{draftQuestionId}}\",\n  \"questionGroupId\": \"{{draftGroupId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "confirm"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected mutually exclusive target violation (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.7 - Fail Confirm: Unowned StorageKey (Different User ID)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storageKey\": \"questions/audio/00000000-0000-0000-0000-000000000000/stolen-audio.mp3\",\n  \"fileName\": \"stolen-audio.mp3\",\n  \"fileUrl\": \"https://example.com/stolen-audio.mp3\",\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "confirm"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected unowned storageKey (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Retrieval & Target Update",
+      "item": [
+        {
+          "name": "03.1 - Get Media Details by ID (GET /media/:id)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/{{confirmedAudioMediaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "{{confirmedAudioMediaId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Media details retrieved correctly (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get(\"confirmedAudioMediaId\"));",
+                  "  pm.expect(json.fileName).to.eql(\"conversation_part3_audio.mp3\");",
+                  "  pm.expect(json.resourceType).to.eql(\"audio\");",
+                  "  pm.expect(json.createdBy).to.eql(pm.collectionVariables.get(\"teacherUserId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Fail Get Media: Non-existent UUID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/00000000-0000-4000-8000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "00000000-0000-4000-8000-000000000000"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Returned 404 for non-existent media UUID\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Get Media by Question ID (GET /media/question/:questionId)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/question/{{draftQuestionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "question", "{{draftQuestionId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Found active media attached to Question (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.be.an(\"array\");",
+                  "  pm.expect(json.length).to.be.above(0);",
+                  "  pm.expect(json[0].id).to.eql(pm.collectionVariables.get(\"confirmedAudioMediaId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 - Get Media by Question Group ID (GET /media/group/:groupId)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/group/{{draftGroupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "group", "{{draftGroupId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Found active media attached to Group (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.be.an(\"array\");",
+                  "  pm.expect(json.length).to.be.above(0);",
+                  "  pm.expect(json[0].id).to.eql(pm.collectionVariables.get(\"confirmedImageMediaId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.5 - Update Target: Switch to Revision Requested Target Question",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{revisionQuestionId}}\",\n  \"questionGroupId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/{{confirmedAudioMediaId}}/target",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "{{confirmedAudioMediaId}}", "target"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Media target successfully updated (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.questionId).to.eql(pm.collectionVariables.get(\"revisionQuestionId\"));",
+                  "  pm.expect(json.questionGroupId).to.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.6 - Fail Update Target: Both questionId and questionGroupId Provided",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{revisionQuestionId}}\",\n  \"questionGroupId\": \"{{draftGroupId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/{{confirmedAudioMediaId}}/target",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "{{confirmedAudioMediaId}}", "target"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejected target update with both IDs (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Delete & Whitelist Constraint",
+      "item": [
+        {
+          "name": "04.1 - Success Delete: Media attached to Draft Question (DELETE /media/:id)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/{{confirmedAudioMediaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "{{confirmedAudioMediaId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Media resource deleted with 204 No Content\", function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Verify Soft-Deleted: GET /media/:id returns 404",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/{{confirmedAudioMediaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "{{confirmedAudioMediaId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Soft-deleted media is no longer retrievable by ID (404)\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.3 - Verify Soft-Deleted: GET /media/question/:questionId excludes deleted media",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/question/{{revisionQuestionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "question", "{{revisionQuestionId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Question media list excludes soft-deleted media\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.be.an(\"array\");",
+                  "  var found = json.find(function (m) { return m.id === pm.collectionVariables.get(\"confirmedAudioMediaId\"); });",
+                  "  pm.expect(found).to.be.undefined;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Security & RBAC",
+      "item": [
+        {
+          "name": "05.1 - Fail: Request Presigned URL Without Token (401 Unauthorized)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"unauthorized.mp3\",\n  \"mimeType\": \"audio/mpeg\",\n  \"fileSize\": 1048576,\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Unauthenticated request returns 401\", function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.2 - Fail: Request Presigned URL As Student (403 Forbidden)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"student-audio.mp3\",\n  \"mimeType\": \"audio/mpeg\",\n  \"fileSize\": 1048576,\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/presigned-url",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "presigned-url"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student role returns 403 Forbidden\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.3 - Fail: Confirm Upload As Student (403 Forbidden)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storageKey\": \"questions/audio/sample/dummy.mp3\",\n  \"fileName\": \"dummy.mp3\",\n  \"fileUrl\": \"https://example.com/dummy.mp3\",\n  \"resourceType\": \"audio\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "confirm"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student role returns 403 on confirm\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.4 - Fail: Delete Media As Student (403 Forbidden)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/{{confirmedImageMediaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "{{confirmedImageMediaId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student role returns 403 on delete\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99 - Cleanup",
+      "item": [
+        {
+          "name": "99.1 - Delete Image Media Resource",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media/{{confirmedImageMediaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["media", "{{confirmedImageMediaId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Image media deleted or already absent\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.2 - Delete Draft Question",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions/{{draftQuestionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions", "{{draftQuestionId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Draft Question deleted or already absent\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.3 - Delete Revision Requested Target Question",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/questions/{{revisionQuestionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions", "{{revisionQuestionId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Target Question deleted or already absent\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.4 - Delete Question Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/question-groups/{{draftGroupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-groups", "{{draftGroupId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Question Group deleted or already absent\", function () {",
+                  "  pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

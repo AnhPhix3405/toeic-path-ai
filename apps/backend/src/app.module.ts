@@ -22,6 +22,7 @@ import securityEventConfig from './common/security-events/security-event.config'
 import { SecurityEventModule } from './common/security-events/security-event.module';
 import { QuestionsModule } from './modules/questions/questions.module';
 import { QuestionGroupsModule } from './modules/question-groups/question-groups.module';
+import { MediaModule } from './modules/media/media.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { QuestionGroupsModule } from './modules/question-groups/question-groups.
     ProfileModule,
     QuestionsModule,
     QuestionGroupsModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
