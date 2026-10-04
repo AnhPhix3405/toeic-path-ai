@@ -16,6 +16,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { UploadThrottlerGuard } from '../../common/rate-limit/guards/upload-throttler.guard';
+import { UploadRateLimit } from '../../common/rate-limit/decorators/upload-rate-limit.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfileResponseDto } from './dto/response/profile-response.dto';
@@ -54,6 +56,8 @@ export class ProfileController {
 
   @Post('me/avatar')
   @HttpCode(200)
+  @UseGuards(UploadThrottlerGuard)
+  @UploadRateLimit('uploadAvatar')
   @ApiUploadMyAvatarDoc()
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -73,3 +77,4 @@ export class ProfileController {
     return this.profileService.deleteMyAvatar(user.id);
   }
 }
+

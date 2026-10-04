@@ -34,4 +34,25 @@ export default registerAs('rateLimit', () => ({
     ttl: integer('RATE_LIMIT_LOGOUT_TTL_SECONDS', 300),
     max: integer('RATE_LIMIT_LOGOUT_MAX', 30),
   },
+  uploadAvatar: {
+    ttl: integer('RATE_LIMIT_UPLOAD_AVATAR_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_UPLOAD_AVATAR_USER_MAX', 5),
+    ip: integer('RATE_LIMIT_UPLOAD_AVATAR_IP_MAX', 10),
+  },
+  uploadPresignedUrl: {
+    ttl: integer('RATE_LIMIT_UPLOAD_PRESIGNED_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_UPLOAD_PRESIGNED_USER_MAX', 20),
+    ip: integer('RATE_LIMIT_UPLOAD_PRESIGNED_IP_MAX', 40),
+  },
+  uploadBatchPresignedUrl: {
+    ttl: integer('RATE_LIMIT_UPLOAD_BATCH_PRESIGNED_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_UPLOAD_BATCH_PRESIGNED_USER_MAX', 5),
+    ip: integer('RATE_LIMIT_UPLOAD_BATCH_PRESIGNED_IP_MAX', 10),
+  },
+  uploadConfirm: {
+    ttl: integer('RATE_LIMIT_UPLOAD_CONFIRM_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_UPLOAD_CONFIRM_USER_MAX', 30),
+    ip: integer('RATE_LIMIT_UPLOAD_CONFIRM_IP_MAX', 60),
+  },
 }));
+

@@ -9,6 +9,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiPayloadTooLargeResponse,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
   ApiUnsupportedMediaTypeResponse,
 } from '@nestjs/swagger';
@@ -57,8 +58,12 @@ export function ApiUploadMyAvatarDoc(): MethodDecorator {
     }),
     ApiUnsupportedMediaTypeResponse({ description: 'The avatar is not JPEG, PNG, or WebP' }),
     ApiPayloadTooLargeResponse({ description: 'The avatar exceeds the configured size limit' }),
+    ApiTooManyRequestsResponse({
+      description: 'Too many avatar upload attempts. Please try again later.',
+    }),
   );
 }
+
 
 export function ApiDeleteMyAvatarDoc(): MethodDecorator {
   return applyDecorators(

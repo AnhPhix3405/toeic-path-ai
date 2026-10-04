@@ -7,6 +7,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
 import { ApiAuthDoc } from '../../../common/decorators/swagger';
 import { MediaResourceResponseDto } from '../dto/response/media-resource-response.dto';
@@ -37,6 +38,7 @@ export function ApiCreatePresignedUrlDoc() {
       type: PresignedUrlResponseDto,
     }),
     ApiBadRequestResponse({ description: 'Invalid file quota or unsupported MIME type' }),
+    ApiTooManyRequestsResponse({ description: 'Too many presigned URL requests. Please try again later.' }),
   );
 }
 
@@ -52,6 +54,9 @@ export function ApiCreateBatchPresignedUrlsDoc() {
       type: BatchPresignedUrlResponseDto,
     }),
     ApiBadRequestResponse({ description: 'Invalid file list or batch size exceeded' }),
+    ApiTooManyRequestsResponse({
+      description: 'Too many batch presigned URL requests. Please try again later.',
+    }),
   );
 }
 
@@ -69,8 +74,12 @@ export function ApiConfirmUploadDoc() {
     ApiBadRequestResponse({
       description: 'File not found on storage, quota exceeded, or invalid target',
     }),
+    ApiTooManyRequestsResponse({
+      description: 'Too many confirm upload requests. Please try again later.',
+    }),
   );
 }
+
 
 export function ApiGetMediaByIdDoc() {
   return applyDecorators(

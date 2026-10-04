@@ -16,6 +16,8 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/user-role.enum';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { UploadThrottlerGuard } from '../../../common/rate-limit/guards/upload-throttler.guard';
+import { UploadRateLimit } from '../../../common/rate-limit/decorators/upload-rate-limit.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import {
   ApiConfirmUploadDoc,
@@ -48,6 +50,8 @@ export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('presigned-url')
+  @UseGuards(UploadThrottlerGuard)
+  @UploadRateLimit('uploadPresignedUrl')
   @ApiCreatePresignedUrlDoc()
   async createPresignedUrl(
     @CurrentUser() user: { id: string },
@@ -57,6 +61,8 @@ export class MediaController {
   }
 
   @Post('presigned-url/batch')
+  @UseGuards(UploadThrottlerGuard)
+  @UploadRateLimit('uploadBatchPresignedUrl')
   @ApiCreateBatchPresignedUrlsDoc()
   async createBatchPresignedUrls(
     @CurrentUser() user: { id: string },
@@ -66,6 +72,8 @@ export class MediaController {
   }
 
   @Post('confirm')
+  @UseGuards(UploadThrottlerGuard)
+  @UploadRateLimit('uploadConfirm')
   @ApiConfirmUploadDoc()
   async confirmUpload(
     @CurrentUser() user: { id: string },
@@ -73,6 +81,7 @@ export class MediaController {
   ): Promise<MediaResourceResponseDto> {
     return this.mediaService.confirmUpload(user.id, dto);
   }
+
 
   @Get(':id')
   @ApiGetMediaByIdDoc()

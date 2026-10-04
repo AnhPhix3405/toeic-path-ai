@@ -18,4 +18,15 @@ describe('RateLimitKeyService', () => {
     expect(key).toMatch(/^test:auth:login:email:[a-f0-9]{64}$/);
     expect(key).not.toContain('student@example.com');
   });
+
+  it('generates namespaced rate limit key for user id in upload routes', () => {
+    const key = service.user('user-uuid-1234', 'upload-avatar');
+    expect(key).toBe('test:upload:upload-avatar:user:user-uuid-1234');
+  });
+
+  it('generates namespaced rate limit key for ip in upload routes', () => {
+    const key = service.uploadIp({ ip: '::ffff:192.168.1.1' } as never, 'upload-avatar');
+    expect(key).toBe('test:upload:upload-avatar:ip:192.168.1.1');
+  });
 });
+

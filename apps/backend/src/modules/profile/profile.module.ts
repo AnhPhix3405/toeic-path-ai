@@ -7,10 +7,12 @@ import { ProfileController } from './profile.controller';
 import { ProfileService } from './profile.service';
 import { StorageModule } from '../storage/storage.module';
 import { AvatarImageService } from './services/avatar-image.service';
+import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserProfile]), StorageModule],
+  imports: [TypeOrmModule.forFeature([UserProfile]), StorageModule, RateLimitModule],
   controllers: [ProfileController],
   providers: [ProfileService, AvatarImageService, JwtAuthGuard, RolesGuard],
 })
 export class ProfileModule {}
+

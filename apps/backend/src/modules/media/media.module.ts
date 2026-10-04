@@ -10,11 +10,13 @@ import { MediaResourceRepository } from './repositories/media-resource.repositor
 import { MediaService } from './services/media.service';
 import { MediaCleanupService } from './services/media-cleanup.service';
 import { MediaController } from './controllers/media.controller';
+import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([MediaResource, Question, QuestionGroup]),
     StorageModule,
+    RateLimitModule,
   ],
   controllers: [MediaController],
   providers: [
@@ -27,3 +29,4 @@ import { MediaController } from './controllers/media.controller';
   exports: [MediaService, MediaResourceRepository],
 })
 export class MediaModule {}
+
