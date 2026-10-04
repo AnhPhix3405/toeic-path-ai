@@ -11,20 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiForbiddenResponse,
-  ApiInternalServerErrorResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiConsumes,
-  ApiBody,
-  ApiPayloadTooLargeResponse,
-  ApiUnsupportedMediaTypeResponse,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
@@ -34,14 +21,16 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ProfileResponseDto } from './dto/response/profile-response.dto';
 import { UpdateMyProfileDto } from './dto/request/update-my-profile.dto';
 import { ProfileService } from './profile.service';
+import {
+  ApiDeleteMyAvatarDoc,
+  ApiGetMyProfileDoc,
+  ApiProfileControllerDoc,
+  ApiUpdateMyProfileDoc,
+  ApiUploadMyAvatarDoc,
+} from './docs/profile.doc';
 
 @ApiTags('Profile')
-@ApiBearerAuth('JWT-auth')
-@ApiUnauthorizedResponse({ description: 'Access token or session is invalid or absent' })
-@ApiForbiddenResponse({
-  description: 'Only active Students, Teachers, and Administrators may use this endpoint',
-})
-@ApiInternalServerErrorResponse({ description: 'Required profile data is unavailable' })
+@ApiProfileControllerDoc()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
 @Controller('profile')
@@ -49,16 +38,13 @@ export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
   @Get('me')
-  @ApiOperation({ summary: 'Get the authenticated user profile' })
-  @ApiOkResponse({ type: ProfileResponseDto })
+  @ApiGetMyProfileDoc()
   getMyProfile(@CurrentUser() user: AuthenticatedUser): Promise<ProfileResponseDto> {
     return this.profileService.getMyProfile(user.id);
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Partially update the authenticated user profile' })
-  @ApiOkResponse({ type: ProfileResponseDto })
-  @ApiBadRequestResponse({ description: 'The request is empty or contains invalid fields' })
+  @ApiUpdateMyProfileDoc()
   updateMyProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateMyProfileDto,
@@ -68,21 +54,7 @@ export class ProfileController {
 
   @Post('me/avatar')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Upload or replace the authenticated user avatar' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['avatar'],
-      properties: { avatar: { type: 'string', format: 'binary' } },
-    },
-  })
-  @ApiOkResponse({ type: ProfileResponseDto })
-  @ApiBadRequestResponse({
-    description: 'The avatar is absent, empty, invalid, or has invalid dimensions',
-  })
-  @ApiUnsupportedMediaTypeResponse({ description: 'The avatar is not JPEG, PNG, or WebP' })
-  @ApiPayloadTooLargeResponse({ description: 'The avatar exceeds the configured size limit' })
+  @ApiUploadMyAvatarDoc()
   @UseInterceptors(
     FileInterceptor('avatar', {
       limits: { fileSize: Number(process.env.AVATAR_MAX_SIZE_BYTES ?? 2_097_152), files: 1 },
@@ -96,8 +68,7 @@ export class ProfileController {
   }
 
   @Delete('me/avatar')
-  @ApiOperation({ summary: 'Delete the authenticated user avatar' })
-  @ApiOkResponse({ type: ProfileResponseDto })
+  @ApiDeleteMyAvatarDoc()
   deleteMyAvatar(@CurrentUser() user: AuthenticatedUser): Promise<ProfileResponseDto> {
     return this.profileService.deleteMyAvatar(user.id);
   }

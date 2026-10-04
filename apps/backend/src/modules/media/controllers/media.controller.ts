@@ -11,41 +11,36 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiForbiddenResponse,
-  ApiNoContentResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiParam,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/user-role.enum';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { CreatePresignedUrlDto } from '../dto/request/create-presigned-url.dto';
+import {
+  ApiConfirmUploadDoc,
+  ApiCreateBatchPresignedUrlsDoc,
+  ApiCreatePresignedUrlDoc,
+  ApiDeleteMediaDoc,
+  ApiGetMediaByIdDoc,
+  ApiGetMediaByQuestionGroupIdDoc,
+  ApiGetMediaByQuestionIdDoc,
+  ApiMediaControllerDoc,
+  ApiUpdateMediaTargetDoc,
+} from '../docs/media.doc';
 import { BatchPresignedUrlDto } from '../dto/request/batch-presigned-url.dto';
 import { ConfirmMediaUploadDto } from '../dto/request/confirm-media-upload.dto';
+import { CreatePresignedUrlDto } from '../dto/request/create-presigned-url.dto';
 import { UpdateMediaTargetDto } from '../dto/request/update-media-target.dto';
+import { MediaResourceResponseDto } from '../dto/response/media-resource-response.dto';
 import {
   BatchPresignedUrlResponseDto,
   PresignedUrlResponseDto,
 } from '../dto/response/presigned-url-response.dto';
-import { MediaResourceResponseDto } from '../dto/response/media-resource-response.dto';
 import { MediaService } from '../services/media.service';
 
 @ApiTags('Media Resources')
-@ApiBearerAuth('JWT-auth')
-@ApiUnauthorizedResponse({ description: 'Access token is invalid or absent' })
-@ApiForbiddenResponse({
-  description: 'Authenticated user does not have permission to manage media resources',
-})
+@ApiMediaControllerDoc()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.TEACHER, UserRole.ADMIN)
 @Controller('media')
@@ -53,15 +48,7 @@ export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('presigned-url')
-  @ApiOperation({
-    summary: 'Request a presigned upload URL for direct media upload',
-    description: 'Generates a signed upload URL to upload audio (<=15MB) or images (<=5MB) directly to Cloud Storage.',
-  })
-  @ApiCreatedResponse({
-    description: 'Presigned upload URL successfully created',
-    type: PresignedUrlResponseDto,
-  })
-  @ApiBadRequestResponse({ description: 'Invalid file quota or unsupported MIME type' })
+  @ApiCreatePresignedUrlDoc()
   async createPresignedUrl(
     @CurrentUser() user: { id: string },
     @Body() dto: CreatePresignedUrlDto,
@@ -70,15 +57,7 @@ export class MediaController {
   }
 
   @Post('presigned-url/batch')
-  @ApiOperation({
-    summary: 'Request multiple presigned upload URLs (1-10 files)',
-    description: 'Generates an array of signed upload URLs for multi-file TOEIC question assets.',
-  })
-  @ApiCreatedResponse({
-    description: 'Batch presigned upload URLs successfully created',
-    type: BatchPresignedUrlResponseDto,
-  })
-  @ApiBadRequestResponse({ description: 'Invalid file list or batch size exceeded' })
+  @ApiCreateBatchPresignedUrlsDoc()
   async createBatchPresignedUrls(
     @CurrentUser() user: { id: string },
     @Body() dto: BatchPresignedUrlDto,
@@ -87,15 +66,7 @@ export class MediaController {
   }
 
   @Post('confirm')
-  @ApiOperation({
-    summary: 'Confirm direct upload and create media resource record',
-    description: 'Verifies file existence on Cloud Storage and saves metadata to media_resources table.',
-  })
-  @ApiCreatedResponse({
-    description: 'Media resource verified and registered successfully',
-    type: MediaResourceResponseDto,
-  })
-  @ApiBadRequestResponse({ description: 'File not found on storage, quota exceeded, or invalid target' })
+  @ApiConfirmUploadDoc()
   async confirmUpload(
     @CurrentUser() user: { id: string },
     @Body() dto: ConfirmMediaUploadDto,
@@ -104,13 +75,7 @@ export class MediaController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get media resource details by ID' })
-  @ApiParam({ name: 'id', format: 'uuid', description: 'Media Resource UUID' })
-  @ApiOkResponse({
-    description: 'Media resource details returned',
-    type: MediaResourceResponseDto,
-  })
-  @ApiNotFoundResponse({ description: 'Media resource not found' })
+  @ApiGetMediaByIdDoc()
   async getMediaById(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<MediaResourceResponseDto> {
@@ -118,13 +83,7 @@ export class MediaController {
   }
 
   @Get('question/:questionId')
-  @ApiOperation({ summary: 'Get active media resources associated with a question' })
-  @ApiParam({ name: 'questionId', format: 'uuid', description: 'Question UUID' })
-  @ApiOkResponse({
-    description: 'List of media resources for the question',
-    type: [MediaResourceResponseDto],
-  })
-  @ApiNotFoundResponse({ description: 'Question not found' })
+  @ApiGetMediaByQuestionIdDoc()
   async getMediaByQuestionId(
     @Param('questionId', new ParseUUIDPipe({ version: '4' })) questionId: string,
   ): Promise<MediaResourceResponseDto[]> {
@@ -132,13 +91,7 @@ export class MediaController {
   }
 
   @Get('group/:groupId')
-  @ApiOperation({ summary: 'Get active media resources associated with a question group' })
-  @ApiParam({ name: 'groupId', format: 'uuid', description: 'Question Group UUID' })
-  @ApiOkResponse({
-    description: 'List of media resources for the question group',
-    type: [MediaResourceResponseDto],
-  })
-  @ApiNotFoundResponse({ description: 'Question group not found' })
+  @ApiGetMediaByQuestionGroupIdDoc()
   async getMediaByQuestionGroupId(
     @Param('groupId', new ParseUUIDPipe({ version: '4' })) groupId: string,
   ): Promise<MediaResourceResponseDto[]> {
@@ -146,17 +99,7 @@ export class MediaController {
   }
 
   @Patch(':id/target')
-  @ApiOperation({
-    summary: 'Update media resource target link (questionId or questionGroupId)',
-    description: 'Attaches, detaches, or switches media association with whitelist status validation.',
-  })
-  @ApiParam({ name: 'id', format: 'uuid', description: 'Media Resource UUID' })
-  @ApiOkResponse({
-    description: 'Media resource target updated successfully',
-    type: MediaResourceResponseDto,
-  })
-  @ApiBadRequestResponse({ description: 'Target is in pending_review or published state' })
-  @ApiNotFoundResponse({ description: 'Media resource or target not found' })
+  @ApiUpdateMediaTargetDoc()
   async updateTarget(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: UpdateMediaTargetDto,
@@ -166,14 +109,7 @@ export class MediaController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Soft-delete a media resource',
-    description: 'Marks media as deleted if associated question/group is in draft or revision_requested state.',
-  })
-  @ApiParam({ name: 'id', format: 'uuid', description: 'Media Resource UUID' })
-  @ApiNoContentResponse({ description: 'Media resource soft-deleted successfully' })
-  @ApiBadRequestResponse({ description: 'Cannot delete media attached to published or pending_review content' })
-  @ApiNotFoundResponse({ description: 'Media resource not found' })
+  @ApiDeleteMediaDoc()
   async deleteMedia(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<void> {

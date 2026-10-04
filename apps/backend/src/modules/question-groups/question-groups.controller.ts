@@ -11,37 +11,27 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiBody,
-  ApiConflictResponse,
-  ApiCreatedResponse,
-  ApiForbiddenResponse,
-  ApiNoContentResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiParam,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import {
+  ApiCreateQuestionGroupDoc,
+  ApiFindAllQuestionGroupsDoc,
+  ApiFindOneQuestionGroupDoc,
+  ApiQuestionGroupsControllerDoc,
+  ApiRemoveQuestionGroupDoc,
+  ApiUpdateQuestionGroupDoc,
+} from './docs/question-groups.doc';
 import { CreateQuestionGroupDto } from './dto/request/create-question-group.dto';
-import { QuestionGroupResponseDto } from './dto/response/question-group-response.dto';
 import { UpdateQuestionGroupDto } from './dto/request/update-question-group.dto';
+import { QuestionGroupResponseDto } from './dto/response/question-group-response.dto';
 import { QuestionGroupsService } from './question-groups.service';
 
 @ApiTags('Question groups')
-@ApiBearerAuth('JWT-auth')
-@ApiUnauthorizedResponse({ description: 'Access token is invalid or absent' })
-@ApiForbiddenResponse({
-  description: 'Authenticated user has an unsupported role or does not own the group',
-})
+@ApiQuestionGroupsControllerDoc()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.TEACHER, UserRole.ADMIN)
 @Controller('question-groups')
@@ -49,10 +39,7 @@ export class QuestionGroupsController {
   constructor(private readonly questionGroupsService: QuestionGroupsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a question group as a Teacher or Admin' })
-  @ApiBody({ type: CreateQuestionGroupDto })
-  @ApiCreatedResponse({ type: QuestionGroupResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid request data' })
+  @ApiCreateQuestionGroupDoc()
   create(
     @Body() dto: CreateQuestionGroupDto,
     @CurrentUser('id') creatorId: string,
@@ -61,33 +48,19 @@ export class QuestionGroupsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all question groups as a Teacher or Admin' })
-  @ApiOkResponse({ type: QuestionGroupResponseDto, isArray: true })
+  @ApiFindAllQuestionGroupsDoc()
   findAll(): Promise<QuestionGroupResponseDto[]> {
     return this.questionGroupsService.findAll();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get any question group and its ordered questions' })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiOkResponse({ type: QuestionGroupResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid question group id' })
-  @ApiNotFoundResponse({ description: 'Question group not found' })
+  @ApiFindOneQuestionGroupDoc()
   findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<QuestionGroupResponseDto> {
     return this.questionGroupsService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOperation({
-    summary: 'Update an owned question group',
-    description: 'Admin does not bypass ownership.',
-  })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiBody({ type: UpdateQuestionGroupDto })
-  @ApiOkResponse({ type: QuestionGroupResponseDto })
-  @ApiBadRequestResponse({ description: 'Invalid question group id or request data' })
-  @ApiNotFoundResponse({ description: 'Question group not found' })
-  @ApiConflictResponse({ description: 'Question group update conflicts with existing data' })
+  @ApiUpdateQuestionGroupDoc()
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateQuestionGroupDto,
@@ -98,14 +71,7 @@ export class QuestionGroupsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Delete an owned question group and detach its questions',
-    description: 'Questions are not deleted. Admin does not bypass ownership.',
-  })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiNoContentResponse({ description: 'Question group deleted and questions detached' })
-  @ApiBadRequestResponse({ description: 'Invalid question group id' })
-  @ApiNotFoundResponse({ description: 'Question group not found' })
+  @ApiRemoveQuestionGroupDoc()
   remove(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser('id') actorId: string,

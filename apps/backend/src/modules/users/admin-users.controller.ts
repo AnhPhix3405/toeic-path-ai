@@ -9,17 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiConflictResponse,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
@@ -30,11 +20,16 @@ import { UpdateUserRoleDto } from './dto/request/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/request/update-user-status.dto';
 import { UsersService, type PaginatedUsers, type SafeUser } from './users.service';
 import type { SecurityRequest } from '../../common/security-events/request-context.middleware';
+import {
+  ApiAdminUsersControllerDoc,
+  ApiFindAllUsersDoc,
+  ApiFindOneUserDoc,
+  ApiUpdateUserRoleDoc,
+  ApiUpdateUserStatusDoc,
+} from './docs/admin-users.doc';
 
 @ApiTags('Admin Users')
-@ApiBearerAuth('JWT-auth')
-@ApiUnauthorizedResponse({ description: 'Access token is invalid or absent' })
-@ApiForbiddenResponse({ description: 'Authenticated user is not an administrator' })
+@ApiAdminUsersControllerDoc()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 @Controller('admin/users')
@@ -42,27 +37,19 @@ export class AdminUsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List users' })
-  @ApiOkResponse({ description: 'Paginated user list without sensitive fields' })
-  @ApiBadRequestResponse({ description: 'Invalid query parameters' })
+  @ApiFindAllUsersDoc()
   findAll(@Query() query: QueryUsersDto): Promise<PaginatedUsers> {
     return this.usersService.findAll(query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a user' })
-  @ApiOkResponse({ description: 'User details without sensitive fields' })
-  @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiFindOneUserDoc()
   findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<SafeUser> {
     return this.usersService.findOneForAdmin(id);
   }
 
   @Patch(':id/role')
-  @ApiOperation({ summary: 'Change a user role and revoke active sessions' })
-  @ApiOkResponse({ description: 'Role changed' })
-  @ApiBadRequestResponse({ description: 'Invalid role or user id' })
-  @ApiNotFoundResponse({ description: 'User not found' })
-  @ApiConflictResponse({ description: 'Self-change or last-administrator protection' })
+  @ApiUpdateUserRoleDoc()
   updateRole(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateUserRoleDto,
@@ -73,11 +60,7 @@ export class AdminUsersController {
   }
 
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Lock or unlock a user account' })
-  @ApiOkResponse({ description: 'Account status changed' })
-  @ApiBadRequestResponse({ description: 'Invalid status or user id' })
-  @ApiNotFoundResponse({ description: 'User not found' })
-  @ApiConflictResponse({ description: 'Administrators cannot lock themselves' })
+  @ApiUpdateUserStatusDoc()
   updateStatus(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateUserStatusDto,

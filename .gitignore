@@ -1,5 +1,6 @@
 /.pnpm-store/
 task-management/
 apps/backend/AGENTS.md
-docs/
+/docs/
 node_modules/
+
