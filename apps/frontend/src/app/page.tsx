@@ -67,13 +67,79 @@ import {
   MoreHorizontal,
   Filter,
   FileCheck,
+  Activity,
+  Wifi,
+  WifiOff,
+  ShieldAlert,
+  CheckCircle2,
+  RefreshCcw,
 } from "lucide-react";
+import { useApiHealth } from "@/services/health.service";
+import { apiClient, parseApiError } from "@/services/api-client";
+import { ErrorBoundary } from "@/components/feedback/error-boundary";
+
+function BuggyCounter() {
+  const [shouldCrash, setShouldCrash] = React.useState(false);
+
+  if (shouldCrash) {
+    throw new Error("Lỗi giả lập từ BuggyCounter để kiểm tra ErrorBoundary fallback!");
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center p-6 border border-dashed border-border rounded-lg bg-card text-card-foreground">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+        <Sparkles className="h-5 w-5" />
+      </div>
+      <p className="text-sm font-semibold mb-1">Thành phần hoạt động bình thường</p>
+      <p className="text-xs text-muted-foreground mb-4 text-center max-w-xs">
+        Bấm nút bên dưới để chủ động kích hoạt lỗi Render và kích hoạt ErrorBoundary.
+      </p>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={() => setShouldCrash(true)}
+      >
+        Kích hoạt lỗi Render Runtime
+      </Button>
+    </div>
+  );
+}
 
 export default function Home() {
   const [btnLoading, setBtnLoading] = React.useState(false);
   const [showSkeleton, setShowSkeleton] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [apiTesting, setApiTesting] = React.useState(false);
+
+  const {
+    data: health,
+    isLoading: isHealthLoading,
+    isError: isHealthError,
+    refetch: refetchHealth,
+    isFetching: isHealthFetching,
+  } = useApiHealth();
+
+  const handleTestApi = async (type: "health" | "400" | "401" | "500") => {
+    setApiTesting(true);
+    try {
+      if (type === "health") {
+        const res = await apiClient.get<{ status: string }>("/health");
+        toast.success("API thành công (200 OK)", {
+          description: `Backend phản hồi: ${JSON.stringify(res.data)}`,
+        });
+      } else {
+        await apiClient.get(`/mock/error/${type}`);
+      }
+    } catch (err) {
+      const apiErr = parseApiError(err);
+      toast.error(`Bắt lỗi HTTP ${apiErr.statusCode}`, {
+        description: apiErr.message,
+      });
+    } finally {
+      setApiTesting(false);
+    }
+  };
 
   const triggerLoading = () => {
     setBtnLoading(true);
@@ -553,7 +619,179 @@ export default function Home() {
             </Card>
           </div>
         </section>
+
+        {/* 7. HTTP Client & Backend API Health Monitor */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              7. HTTP Client & Backend Health Monitor
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchHealth()}
+              disabled={isHealthFetching}
+              className="gap-1.5"
+            >
+              <RefreshCcw className={`h-3.5 w-3.5 ${isHealthFetching ? "animate-spin" : ""}`} />
+              Làm mới trạng thái
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-1">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  {isHealthLoading ? (
+                    <div className="h-3 w-3 rounded-full bg-amber-500 animate-pulse" />
+                  ) : isHealthError ? (
+                    <WifiOff className="h-4 w-4 text-destructive" />
+                  ) : (
+                    <Wifi className="h-4 w-4 text-emerald-500" />
+                  )}
+                  Trạng thái Kết nối API
+                </CardTitle>
+                <CardDescription>
+                  Kiểm tra realtime qua TanStack Query & Axios
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Server API:</span>
+                  {isHealthLoading ? (
+                    <Badge variant="secondary">Đang kết nối...</Badge>
+                  ) : isHealthError ? (
+                    <Badge variant="destructive">Không khả dụng (Offline)</Badge>
+                  ) : (
+                    <Badge variant="success">Hoạt động (Online)</Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Base URL:</span>
+                  <span className="font-mono text-xs text-foreground truncate max-w-[140px]">
+                    {process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1"}
+                  </span>
+                </div>
+
+                {health && (
+                  <div className="rounded-md bg-muted p-2 text-xs font-mono space-y-1">
+                    <p>Uptime: {Math.floor(health.uptime)}s</p>
+                    <p>Version: {health.version}</p>
+                    <p className="truncate">Time: {health.timestamp}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">Mô phỏng Kiểm tra Interceptor & Xử lý Lỗi</CardTitle>
+                <CardDescription>
+                  Gọi API qua apiClient wrapper để xác thực chuẩn hóa lỗi `ApiError` và thông báo qua Sonner Toast
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTestApi("health")}
+                    disabled={apiTesting}
+                    className="gap-1 text-xs"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    Test 200 OK
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTestApi("400")}
+                    disabled={apiTesting}
+                    className="gap-1 text-xs"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                    Test 400 Bad
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTestApi("401")}
+                    disabled={apiTesting}
+                    className="gap-1 text-xs"
+                  >
+                    <ShieldAlert className="h-3.5 w-3.5 text-orange-500" />
+                    Test 401 Auth
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTestApi("500")}
+                    disabled={apiTesting}
+                    className="gap-1 text-xs"
+                  >
+                    <WifiOff className="h-3.5 w-3.5 text-destructive" />
+                    Test 500 Crash
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Mỗi yêu cầu HTTP được tự động kèm Bearer Token từ client session, chuẩn hóa lỗi server và thông báo tức thời.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* 8. Error Boundary & Access Control */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5 text-primary" />
+            8. Error Boundary Cục bộ & Quyền Truy cập
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Component Error Boundary (Isolated)</CardTitle>
+                <CardDescription>
+                  Bắt lỗi runtime tại từng khối component mà không làm sập toàn bộ ứng dụng
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ErrorBoundary>
+                  <BuggyCounter />
+                </ErrorBoundary>
+              </CardContent>
+            </Card>
+
+            <Card className="flex flex-col justify-between">
+              <CardHeader>
+                <CardTitle className="text-base">Màn hình Phân quyền (401/403)</CardTitle>
+                <CardDescription>
+                  Giao diện chuẩn khi người dùng không đủ quyền truy cập tài nguyên bảo mật
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Trang `/unauthorized` hiển thị cảnh báo thân thiện, cung cấp đường dẫn quay về Dashboard hoặc chuyển đổi tài khoản.
+                </p>
+                <Button asChild variant="outline" className="w-full gap-2">
+                  <Link href="/unauthorized">
+                    <ShieldAlert className="h-4 w-4" />
+                    Xem Trang Unauthorized (/unauthorized)
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </div>
     </main>
   );
 }
+

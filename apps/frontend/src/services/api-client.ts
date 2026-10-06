@@ -95,6 +95,20 @@ export function parseApiError(error: unknown): ApiError {
 }
 
 /**
+ * Type guard for normalized ApiError
+ */
+export function isApiError(error: unknown): error is ApiError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "statusCode" in error &&
+    "message" in error &&
+    typeof (error as Record<string, unknown>).statusCode === "number" &&
+    typeof (error as Record<string, unknown>).message === "string"
+  );
+}
+
+/**
  * Type-safe HTTP Client Methods
  */
 export const apiClient = {
