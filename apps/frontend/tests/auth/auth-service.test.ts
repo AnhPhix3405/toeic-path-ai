@@ -44,10 +44,23 @@ describe("authService", () => {
     });
   });
 
-  it("calls register and returns auth response data", async () => {
-    const apiResponse: ApiResponse<AuthResponseData> = {
+  it("calls register and returns register response data", async () => {
+    const mockRegisterResponse = {
+      id: "user-123",
+      email: "student@toeicpath.ai",
+      role: "student" as const,
+      status: "active",
+      profile: {
+        fullName: "Nguyễn Văn A",
+        avatarUrl: null,
+        bio: null,
+      },
+      createdAt: "2026-10-06T00:00:00.000Z",
+    };
+
+    const apiResponse = {
       success: true,
-      data: mockAuthData,
+      data: mockRegisterResponse,
       statusCode: 201,
       timestamp: "2026-10-06T00:00:00.000Z",
     };
@@ -55,16 +68,20 @@ describe("authService", () => {
     vi.spyOn(apiClient, "post").mockResolvedValueOnce(apiResponse);
 
     const result = await authService.register({
-      email: "student@toeicpath.ai",
-      password: "Password123@",
       fullName: "Nguyễn Văn A",
+      email: "student@toeicpath.ai",
+      password: "Password123@!",
+      confirmPassword: "Password123@!",
+      acceptTerms: true,
     });
 
-    expect(result).toEqual(mockAuthData);
+    expect(result).toEqual(mockRegisterResponse);
     expect(apiClient.post).toHaveBeenCalledWith("/auth/register", {
-      email: "student@toeicpath.ai",
-      password: "Password123@",
       fullName: "Nguyễn Văn A",
+      email: "student@toeicpath.ai",
+      password: "Password123@!",
+      confirmPassword: "Password123@!",
+      acceptTerms: true,
     });
   });
 

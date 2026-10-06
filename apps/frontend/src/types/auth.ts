@@ -7,10 +7,24 @@ export interface LoginDto {
 }
 
 export interface RegisterDto {
+  fullName: string;
   email: string;
   password: string;
-  fullName: string;
-  targetScore?: number;
+  confirmPassword: string;
+  acceptTerms: boolean;
+}
+
+export interface RegisterResponseData {
+  id: string;
+  email: string;
+  role: UserRole;
+  status: string;
+  profile: {
+    fullName: string;
+    avatarUrl: string | null;
+    bio: string | null;
+  };
+  createdAt: string;
 }
 
 export interface AuthResponseData {

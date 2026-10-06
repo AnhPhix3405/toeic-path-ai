@@ -15,22 +15,23 @@ export const registerSchema = z
   .object({
     fullName: z
       .string()
-      .min(2, "Họ và tên phải có ít nhất 2 ký tự")
-      .max(100, "Họ và tên không được vượt quá 100 ký tự"),
+      .trim()
+      .min(1, "Vui lòng nhập họ và tên")
+      .max(150, "Họ và tên không được vượt quá 150 ký tự"),
     email: z
       .string()
+      .trim()
       .min(1, "Vui lòng nhập địa chỉ email")
-      .email("Địa chỉ email không hợp lệ"),
-    targetScore: z
-      .number()
-      .min(10, "Mục tiêu tối thiểu là 10 điểm")
-      .max(990, "Mục tiêu tối đa là 990 điểm")
-      .optional(),
+      .email("Địa chỉ email không hợp lệ")
+      .max(255, "Email không được vượt quá 255 ký tự"),
     password: z
       .string()
-      .min(8, "Mật khẩu phải chứa ít nhất 8 ký tự")
+      .min(12, "Mật khẩu phải chứa ít nhất 12 ký tự")
+      .max(72, "Mật khẩu không được vượt quá 72 ký tự")
+      .regex(/[a-z]/, "Mật khẩu cần ít nhất 1 chữ cái in thường")
       .regex(/[A-Z]/, "Mật khẩu cần ít nhất 1 chữ cái in hoa")
-      .regex(/[0-9]/, "Mật khẩu cần ít nhất 1 chữ số"),
+      .regex(/[0-9]/, "Mật khẩu cần ít nhất 1 chữ số")
+      .regex(/[^A-Za-z\d]/, "Mật khẩu cần ít nhất 1 ký tự đặc biệt (!@#$%^&*...)"),
     confirmPassword: z
       .string()
       .min(1, "Vui lòng xác nhận lại mật khẩu"),

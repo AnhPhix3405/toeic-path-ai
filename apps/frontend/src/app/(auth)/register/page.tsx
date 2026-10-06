@@ -17,21 +17,6 @@ import { SocialLogin } from "@/components/auth/social-login";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const TARGET_SCORE_OPTIONS = [
-  { value: "450", label: "450 - Khởi động (Foundation)" },
-  { value: "600", label: "600 - Trung cấp (Standard B1)" },
-  { value: "750", label: "750 - Nâng cao (Professional B2)" },
-  { value: "850", label: "850 - Thành thạo (Advanced C1)" },
-  { value: "990", label: "990 - Tối đa (Mastery)" },
-];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -49,7 +34,6 @@ export default function RegisterPage() {
     defaultValues: {
       fullName: "",
       email: "",
-      targetScore: undefined,
       password: "",
       confirmPassword: "",
       acceptTerms: false as unknown as true,
@@ -58,19 +42,18 @@ export default function RegisterPage() {
   });
 
   const acceptTerms = watch("acceptTerms");
-  const targetScore = watch("targetScore");
 
   const onSubmit = async (data: RegisterFormValues) => {
     setApiError(null);
     try {
       await authRegister({
+        fullName: data.fullName,
         email: data.email,
         password: data.password,
-        fullName: data.fullName,
-        targetScore: data.targetScore ? Number(data.targetScore) : undefined,
+        confirmPassword: data.confirmPassword,
+        acceptTerms: data.acceptTerms,
       });
 
-      toast.success("Tạo tài khoản thành công! Chào mừng bạn đến với TOEIC Path AI.");
       router.push("/dashboard");
     } catch (err) {
       const parsed = parseApiError(err);
@@ -154,37 +137,6 @@ export default function RegisterPage() {
             )}
           </div>
 
-          {/* Target Score Selection */}
-          <div className="space-y-1.5 text-left">
-            <label
-              htmlFor="targetScore"
-              className="text-sm font-medium leading-none text-foreground"
-            >
-              Mục tiêu điểm TOEIC (Tùy chọn)
-            </label>
-            <Select
-              value={targetScore ? String(targetScore) : undefined}
-              onValueChange={(val) => setValue("targetScore", Number(val), { shouldValidate: true })}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="targetScore" className="w-full">
-                <SelectValue placeholder="Chọn mục tiêu điểm mong muốn" />
-              </SelectTrigger>
-              <SelectContent>
-                {TARGET_SCORE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.targetScore && (
-              <p className="text-xs text-destructive mt-1" role="alert">
-                {errors.targetScore.message}
-              </p>
-            )}
-          </div>
-
           {/* Password */}
           <div className="space-y-1.5 text-left">
             <label
@@ -195,7 +147,7 @@ export default function RegisterPage() {
             </label>
             <PasswordInput
               id="password"
-              placeholder="Tối thiểu 8 ký tự, 1 chữ hoa, 1 số"
+              placeholder="Tối thiểu 12 ký tự, gồm chữ hoa, chữ thường, số & ký tự đặc biệt"
               autoComplete="new-password"
               disabled={isSubmitting}
               showStrengthMeter

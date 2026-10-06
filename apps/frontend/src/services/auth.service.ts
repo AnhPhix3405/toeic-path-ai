@@ -2,6 +2,7 @@ import { apiClient } from "./api-client";
 import type {
   LoginDto,
   RegisterDto,
+  RegisterResponseData,
   AuthResponseData,
   RefreshTokenResponse,
 } from "@/types/auth";
@@ -19,8 +20,8 @@ export const authService = {
   /**
    * Đăng ký tài khoản học viên mới
    */
-  async register(dto: RegisterDto): Promise<AuthResponseData> {
-    const response = await apiClient.post<AuthResponseData>("/auth/register", dto);
+  async register(dto: RegisterDto): Promise<RegisterResponseData> {
+    const response = await apiClient.post<RegisterResponseData>("/auth/register", dto);
     return response.data;
   },
 

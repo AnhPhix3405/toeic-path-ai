@@ -44,12 +44,17 @@ export function useAuth() {
     async (dto: RegisterDto): Promise<UserProfile> => {
       setLoading(true);
       try {
-        const response = await authService.register(dto);
-        setAuth(response.user, response.tokens.accessToken);
-        toast.success("Đăng ký tài khoản thành công!", {
-          description: "Tài khoản của bạn đã sẵn sàng sử dụng.",
+        await authService.register(dto);
+        // Sau khi tạo tài khoản thành công, tự động đăng nhập để thiết lập phiên làm việc
+        const loginResponse = await authService.login({
+          email: dto.email,
+          password: dto.password,
         });
-        return response.user;
+        setAuth(loginResponse.user, loginResponse.tokens.accessToken);
+        toast.success("Đăng ký tài khoản thành công!", {
+          description: `Chào mừng ${loginResponse.user.fullName} đến với TOEIC Path AI.`,
+        });
+        return loginResponse.user;
       } catch (error) {
         throw error;
       } finally {
