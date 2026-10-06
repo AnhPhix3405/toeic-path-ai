@@ -58,20 +58,41 @@ export function parseApiError(error: unknown): ApiError {
       } else if (typeof responseData.message === "string") {
         message = responseData.message;
       }
-    } else if (error.message) {
-      if (error.code === "ERR_NETWORK") {
-        message = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại đường truyền.";
-      } else if (error.code === "ECONNABORTED") {
-        message = "Yêu cầu xử lý quá thời gian quy định (Timeout).";
-      } else {
-        message = error.message;
+    } else if (error.code === "ERR_NETWORK") {
+      message = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại đường truyền.";
+    } else if (error.code === "ECONNABORTED") {
+      message = "Yêu cầu xử lý quá thời gian quy định (Timeout).";
+    } else {
+      switch (statusCode) {
+        case 400:
+          message = "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại dữ liệu.";
+          break;
+        case 401:
+          message = "Phiên đăng nhập đã hết hạn hoặc bạn chưa đăng nhập.";
+          break;
+        case 403:
+          message = "Bạn không có quyền truy cập vào tài nguyên này.";
+          break;
+        case 404:
+          message = "Không tìm thấy tài nguyên yêu cầu.";
+          break;
+        case 422:
+          message = "Dữ liệu xử lý không hợp lệ.";
+          break;
+        case 500:
+        case 502:
+        case 503:
+          message = "Lỗi hệ thống máy chủ. Vui lòng thử lại sau.";
+          break;
+        default:
+          message = error.message || "Đã xảy ra lỗi kết nối hệ thống.";
       }
     }
 
     return {
       message,
       statusCode,
-      errorCode: (responseData?.errorCode as string) || error.code || "API_ERROR",
+      errorCode: (responseData?.errorCode as string) || error.code || `HTTP_${statusCode}`,
       details: responseData?.details || responseData?.error || undefined,
       timestamp: (responseData?.timestamp as string) || new Date().toISOString(),
     };
