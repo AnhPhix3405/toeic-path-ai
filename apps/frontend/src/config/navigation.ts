@@ -12,15 +12,13 @@ import {
   Bot,
   Shield,
   Sliders,
-  Key,
   Tag,
   Activity,
   Home,
   Compass,
-  HelpCircle,
   Info,
 } from "lucide-react";
-import { NavItem, NavSection, RoleNavConfig, UserRole } from "@/types/navigation";
+import { NavItem, NavSection, UserRole } from "@/types/navigation";
 
 export const publicNavItems: NavItem[] = [
   {

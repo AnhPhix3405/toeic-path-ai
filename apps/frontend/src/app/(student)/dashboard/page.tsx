@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Target, BookOpen, Flame, ArrowRight, Clock, Award } from "lucide-react";
+import { Sparkles, BookOpen, Flame, ArrowRight, Clock, Award } from "lucide-react";
 
 export default function StudentDashboardPage() {
   return (

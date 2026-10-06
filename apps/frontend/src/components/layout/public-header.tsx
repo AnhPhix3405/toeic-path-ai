@@ -10,12 +10,13 @@ import { cn } from "@/lib/utils";
 
 export function PublicHeader() {
   const pathname = usePathname();
+  const [prevPathname, setPrevPathname] = React.useState(pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  // Close mobile menu on route change
-  React.useEffect(() => {
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setMobileMenuOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">

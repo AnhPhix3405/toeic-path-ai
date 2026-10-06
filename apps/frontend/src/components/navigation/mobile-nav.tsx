@@ -18,11 +18,6 @@ export function MobileNav({ isOpen, onClose, role }: MobileNavProps) {
   const pathname = usePathname();
   const sections = getNavSectionsForRole(role);
 
-  // Close on route change
-  React.useEffect(() => {
-    onClose();
-  }, [pathname, onClose]);
-
   // Lock body scroll and listen for Escape
   React.useEffect(() => {
     if (isOpen) {

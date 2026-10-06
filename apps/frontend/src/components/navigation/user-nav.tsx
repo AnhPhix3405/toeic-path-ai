@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { User, Settings, LogOut, Shield, ChevronDown, Check } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, Check } from "lucide-react";
 import { UserRole } from "@/types/navigation";
 import { cn } from "@/lib/utils";
 

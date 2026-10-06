@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, FileText, CheckSquare, Sparkles, Plus, ArrowRight } from "lucide-react";
+import { Users, FileText, CheckSquare, Sparkles, Plus } from "lucide-react";
 
 export default function TeacherDashboardPage() {
   return (

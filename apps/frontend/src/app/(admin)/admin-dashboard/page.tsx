@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Shield, Activity, Users, Cpu, Sliders, ArrowRight } from "lucide-react";
+import { Shield, Activity, Users, Cpu, Sliders } from "lucide-react";
 
 export default function AdminDashboardPage() {
   return (
