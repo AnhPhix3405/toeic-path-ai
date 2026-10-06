@@ -21,14 +21,11 @@ export const registerSchema = z
       .string()
       .min(1, "Vui lòng nhập địa chỉ email")
       .email("Địa chỉ email không hợp lệ"),
-    targetScore: z.preprocess(
-      (val) => (val === "" || val === undefined ? undefined : Number(val)),
-      z
-        .number({ invalid_type_error: "Vui lòng chọn hoặc nhập điểm hợp lệ" })
-        .min(10, "Mục tiêu tối thiểu là 10 điểm")
-        .max(990, "Mục tiêu tối đa là 990 điểm")
-        .optional()
-    ),
+    targetScore: z
+      .number()
+      .min(10, "Mục tiêu tối thiểu là 10 điểm")
+      .max(990, "Mục tiêu tối đa là 990 điểm")
+      .optional(),
     password: z
       .string()
       .min(8, "Mật khẩu phải chứa ít nhất 8 ký tự")

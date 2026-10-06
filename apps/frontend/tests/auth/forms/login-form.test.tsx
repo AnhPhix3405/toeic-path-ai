@@ -30,14 +30,17 @@ describe("LoginPage Integration Tests", () => {
       back: vi.fn(),
       forward: vi.fn(),
       refresh: vi.fn(),
-    } as any);
+    } as unknown as ReturnType<typeof useRouter>);
 
-    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams() as any);
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>);
 
     vi.mocked(useAuth).mockReturnValue({
       user: null,
+      token: null,
+      role: null,
       isAuthenticated: false,
       isLoading: false,
+      isInitialized: true,
       login: mockLogin,
       register: vi.fn(),
       logout: vi.fn(),
@@ -159,7 +162,9 @@ describe("LoginPage Integration Tests", () => {
 
   it("honors redirect query parameter when present", async () => {
     const user = userEvent.setup();
-    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams("redirect=/practice/exam-1") as any);
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("redirect=/practice/exam-1") as unknown as ReturnType<typeof useSearchParams>
+    );
 
     mockLogin.mockResolvedValueOnce({
       id: "u1",

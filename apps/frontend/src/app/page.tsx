@@ -77,6 +77,8 @@ import {
   LogOut,
   KeyRound,
   Lock,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 import { useApiHealth } from "@/services/health.service";
 import { apiClient, parseApiError } from "@/services/api-client";
@@ -990,6 +992,74 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground">
                   Hệ thống Route Guard kết hợp Edge Middleware (<code>src/middleware.ts</code>) chặn điều hướng cấp độ Server và <code>&lt;RoleGuard /&gt;</code> bảo vệ UI cấp độ Client Component.
                 </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* 10. Sprint 2 Task 2: Auth Pages & Validation Showcase */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              10. Màn hình Xác thực & Đăng nhập (Sprint 2 — Task 2: UC01, UC02)
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border-primary/40 flex flex-col justify-between">
+              <CardHeader className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <LogIn className="h-5 w-5" />
+                  </div>
+                  <Badge variant="default">UC02 — Login</Badge>
+                </div>
+                <CardTitle className="text-lg">Trang Đăng Nhập (/login)</CardTitle>
+                <CardDescription>
+                  Form đăng nhập với React Hook Form & Zod schema, Google OAuth, ghi nhớ phiên, xử lý redirect URL và tự động điều hướng thông minh theo vai trò (Student, Teacher, Admin).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-semibold text-foreground">✨ Đặc điểm kỹ thuật UI/UX Pro:</p>
+                  <p>• Validation tức thời khi rời trường (mode: onBlur)</p>
+                  <p>• Toggle ẩn/hiện mật khẩu tức thời với icon con mắt</p>
+                  <p>• Bắt lỗi máy chủ hiển thị Alert banner trực quan</p>
+                </div>
+                <Button asChild className="w-full mt-2">
+                  <Link href="/login">
+                    Mở Trang Đăng Nhập <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-500/40 flex flex-col justify-between">
+              <CardHeader className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <Badge variant="success">UC01 — Register</Badge>
+                </div>
+                <CardTitle className="text-lg">Trang Đăng Ký (/register)</CardTitle>
+                <CardDescription>
+                  Form đăng ký tài khoản với thanh đo độ mạnh mật khẩu 4 cấp độ (Yếu $\rightarrow$ Mạnh), bộ chọn mục tiêu điểm TOEIC (450 - 990) và xác thực điều khoản dịch vụ.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-semibold text-foreground">✨ Đặc điểm kỹ thuật UI/UX Pro:</p>
+                  <p>• Password Strength Meter 4 segments màu chuyển động</p>
+                  <p>• Kiểm tra khớp mật khẩu confirmPassword tức thời</p>
+                  <p>• Tự động đăng nhập và đưa học viên vào /dashboard</p>
+                </div>
+                <Button asChild variant="success" className="w-full mt-2">
+                  <Link href="/register">
+                    Mở Trang Đăng Ký <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           </div>

@@ -33,11 +33,13 @@ describe("OAuthCallbackPage Integration Tests", () => {
       back: vi.fn(),
       forward: vi.fn(),
       refresh: vi.fn(),
-    } as any);
+    } as unknown as ReturnType<typeof useRouter>);
   });
 
   it("handles OAuth error parameter and displays error alert", async () => {
-    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams("error=access_denied") as any);
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("error=access_denied") as unknown as ReturnType<typeof useSearchParams>
+    );
 
     render(<OAuthCallbackPage />);
 
@@ -48,7 +50,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
 
   it("handles valid access token from OAuth redirect and redirects student to /dashboard", async () => {
     vi.mocked(useSearchParams).mockReturnValue(
-      new URLSearchParams("token=oauth-access-token-123&refreshToken=oauth-refresh-token-456") as any
+      new URLSearchParams("token=oauth-access-token-123") as unknown as ReturnType<typeof useSearchParams>
     );
 
     vi.mocked(authService.getProfile).mockResolvedValueOnce({
@@ -71,7 +73,7 @@ describe("OAuthCallbackPage Integration Tests", () => {
 
   it("handles valid OAuth login and honors redirect URL parameter", async () => {
     vi.mocked(useSearchParams).mockReturnValue(
-      new URLSearchParams("token=oauth-access-token-123&redirect=/study/lesson-1") as any
+      new URLSearchParams("token=oauth-access-token-123&redirect=/study/lesson-1") as unknown as ReturnType<typeof useSearchParams>
     );
 
     vi.mocked(authService.getProfile).mockResolvedValueOnce({

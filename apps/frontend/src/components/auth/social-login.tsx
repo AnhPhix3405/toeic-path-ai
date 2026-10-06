@@ -21,6 +21,8 @@ export function SocialLogin({
     }
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    // Redirect to backend OAuth endpoint
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = `${apiUrl}/auth/google`;
   };
 

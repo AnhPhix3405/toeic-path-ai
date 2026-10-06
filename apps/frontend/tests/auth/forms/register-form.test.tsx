@@ -30,12 +30,15 @@ describe("RegisterPage Integration Tests", () => {
       back: vi.fn(),
       forward: vi.fn(),
       refresh: vi.fn(),
-    } as any);
+    } as unknown as ReturnType<typeof useRouter>);
 
     vi.mocked(useAuth).mockReturnValue({
       user: null,
+      token: null,
+      role: null,
       isAuthenticated: false,
       isLoading: false,
+      isInitialized: true,
       login: vi.fn(),
       register: mockRegister,
       logout: vi.fn(),

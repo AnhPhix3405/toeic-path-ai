@@ -23,7 +23,6 @@ export default function OAuthCallbackPage() {
     async function handleOAuthCallback() {
       const oauthError = searchParams.get("error");
       const accessToken = searchParams.get("token") || searchParams.get("accessToken");
-      const refreshToken = searchParams.get("refreshToken") || undefined;
       const redirectParam = searchParams.get("redirect");
 
       if (oauthError) {
