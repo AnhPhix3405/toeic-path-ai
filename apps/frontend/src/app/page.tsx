@@ -140,7 +140,7 @@ export default function Home() {
       if (type === "health") {
         const res = await apiClient.get<{ status: string }>("/health");
         toast.success("API thành công (200 OK)", {
-          description: `Backend phản hồi: ${JSON.stringify(res.data)}`,
+          description: `Backend phản hồi: ${JSON.stringify(res)}`,
         });
       } else {
         await apiClient.get(`/mock/error/${type}`);
