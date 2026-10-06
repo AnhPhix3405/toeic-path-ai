@@ -41,6 +41,7 @@ describe("RegisterPage Integration Tests", () => {
       isInitialized: true,
       login: vi.fn(),
       register: mockRegister,
+      loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
     });

@@ -14,7 +14,7 @@ export async function checkHealth(): Promise<HealthStatusResponse> {
     if ("data" in response && response.data && typeof response.data === "object") {
       return response.data as HealthStatusResponse;
     }
-    return response as HealthStatusResponse;
+    return response as unknown as HealthStatusResponse;
   }
 
   return {

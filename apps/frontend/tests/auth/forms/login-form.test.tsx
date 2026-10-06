@@ -43,6 +43,7 @@ describe("LoginPage Integration Tests", () => {
       isInitialized: true,
       login: mockLogin,
       register: vi.fn(),
+      loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
     });

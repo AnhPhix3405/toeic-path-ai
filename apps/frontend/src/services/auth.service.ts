@@ -25,6 +25,33 @@ export const authService = {
   },
 
   /**
+   * Đăng nhập / Đăng ký nhanh qua Google ID Token
+   */
+  async loginWithGoogle(idToken: string): Promise<AuthResponseData> {
+    const response = await apiClient.post<
+      AuthResponseData | { accessToken: string; user: UserProfile }
+    >("/auth/google", { idToken });
+
+    if (response && typeof response === "object" && "data" in response && (response as { data?: unknown }).data) {
+      return (response as { data: AuthResponseData }).data;
+    }
+
+    const raw = response as unknown as {
+      accessToken: string;
+      user: UserProfile;
+      tokens?: { accessToken: string; expiresIn: number; tokenType: string };
+    };
+    return {
+      user: raw.user,
+      tokens: raw.tokens || {
+        accessToken: raw.accessToken,
+        expiresIn: 900,
+        tokenType: "Bearer",
+      },
+    };
+  },
+
+  /**
    * Đăng xuất và xóa phiên làm việc
    */
   async logout(): Promise<void> {

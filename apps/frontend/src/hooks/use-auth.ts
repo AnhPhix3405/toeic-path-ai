@@ -59,6 +59,25 @@ export function useAuth() {
     [setAuth, setLoading]
   );
 
+  const loginWithGoogle = React.useCallback(
+    async (idToken: string): Promise<UserProfile> => {
+      setLoading(true);
+      try {
+        const response = await authService.loginWithGoogle(idToken);
+        setAuth(response.user, response.tokens.accessToken);
+        toast.success("Đăng nhập Google thành công!", {
+          description: `Chào mừng ${response.user.fullName} đến với TOEIC Path AI.`,
+        });
+        return response.user;
+      } catch (error) {
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setAuth, setLoading]
+  );
+
   const logout = React.useCallback(
     async (redirectUrl = "/login") => {
       setLoading(true);
@@ -98,6 +117,7 @@ export function useAuth() {
     isInitialized,
     login,
     register,
+    loginWithGoogle,
     logout,
     refreshProfile,
   };
