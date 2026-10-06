@@ -28,5 +28,20 @@ describe('RateLimitKeyService', () => {
     const key = service.uploadIp({ ip: '::ffff:192.168.1.1' } as never, 'upload-avatar');
     expect(key).toBe('test:upload:upload-avatar:ip:192.168.1.1');
   });
+
+  it('generates namespaced rate limit key for user id with generic policy', () => {
+    const key = service.policyUser('questionsSearch', 'user-uuid-1234');
+    expect(key).toBe('test:policy:questionsSearch:user:user-uuid-1234');
+  });
+
+  it('generates namespaced rate limit key for ip with generic policy', () => {
+    const key = service.policyIp({ ip: '::ffff:192.168.1.1' } as never, 'questionsSearch');
+    expect(key).toBe('test:policy:questionsSearch:ip:192.168.1.1');
+  });
+
+  it('generates namespaced rate limit key for global fallback ip', () => {
+    const key = service.globalIp({ ip: '::ffff:192.168.1.1' } as never);
+    expect(key).toBe('test:global:ip:192.168.1.1');
+  });
 });
 

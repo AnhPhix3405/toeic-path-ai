@@ -17,6 +17,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PolicyThrottlerGuard } from '../../common/rate-limit/guards/policy-throttler.guard';
+import { ThrottlePolicy } from '../../common/rate-limit/decorators/throttle-policy.decorator';
 import {
   ApiCreateQuestionGroupDoc,
   ApiFindAllQuestionGroupsDoc,
@@ -32,13 +34,14 @@ import { QuestionGroupsService } from './question-groups.service';
 
 @ApiTags('Question groups')
 @ApiQuestionGroupsControllerDoc()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PolicyThrottlerGuard)
 @Roles(UserRole.TEACHER, UserRole.ADMIN)
 @Controller('question-groups')
 export class QuestionGroupsController {
   constructor(private readonly questionGroupsService: QuestionGroupsService) {}
 
   @Post()
+  @ThrottlePolicy('questionGroupsMutate')
   @ApiCreateQuestionGroupDoc()
   create(
     @Body() dto: CreateQuestionGroupDto,
@@ -48,18 +51,21 @@ export class QuestionGroupsController {
   }
 
   @Get()
+  @ThrottlePolicy('questionsSearch')
   @ApiFindAllQuestionGroupsDoc()
   findAll(): Promise<QuestionGroupResponseDto[]> {
     return this.questionGroupsService.findAll();
   }
 
   @Get(':id')
+  @ThrottlePolicy('questionsSearch')
   @ApiFindOneQuestionGroupDoc()
   findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<QuestionGroupResponseDto> {
     return this.questionGroupsService.findOne(id);
   }
 
   @Patch(':id')
+  @ThrottlePolicy('questionGroupsMutate')
   @ApiUpdateQuestionGroupDoc()
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -70,6 +76,7 @@ export class QuestionGroupsController {
   }
 
   @Delete(':id')
+  @ThrottlePolicy('questionGroupsMutate')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRemoveQuestionGroupDoc()
   remove(

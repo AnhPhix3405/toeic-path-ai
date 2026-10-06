@@ -34,6 +34,45 @@ export default registerAs('rateLimit', () => ({
     ttl: integer('RATE_LIMIT_LOGOUT_TTL_SECONDS', 300),
     max: integer('RATE_LIMIT_LOGOUT_MAX', 30),
   },
+  global: {
+    ttl: integer('RATE_LIMIT_GLOBAL_TTL_SECONDS', 60),
+    ip: integer('RATE_LIMIT_GLOBAL_MAX', 120),
+  },
+  questionsSearch: {
+    ttl: integer('RATE_LIMIT_QUESTIONS_SEARCH_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_QUESTIONS_SEARCH_USER_MAX', 30),
+    ip: integer('RATE_LIMIT_QUESTIONS_SEARCH_IP_MAX', 60),
+  },
+  questionsMutate: {
+    ttl: integer('RATE_LIMIT_QUESTIONS_MUTATE_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_QUESTIONS_MUTATE_USER_MAX', 30),
+    ip: integer('RATE_LIMIT_QUESTIONS_MUTATE_IP_MAX', 60),
+  },
+  questionGroupsMutate: {
+    ttl: integer('RATE_LIMIT_QUESTION_GROUPS_MUTATE_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_QUESTION_GROUPS_MUTATE_USER_MAX', 30),
+    ip: integer('RATE_LIMIT_QUESTION_GROUPS_MUTATE_IP_MAX', 60),
+  },
+  adminUsers: {
+    ttl: integer('RATE_LIMIT_ADMIN_USERS_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_ADMIN_USERS_USER_MAX', 60),
+    ip: integer('RATE_LIMIT_ADMIN_USERS_IP_MAX', 120),
+  },
+  catalogRead: {
+    ttl: integer('RATE_LIMIT_CATALOG_READ_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_CATALOG_READ_USER_MAX', 120),
+    ip: integer('RATE_LIMIT_CATALOG_READ_IP_MAX', 240),
+  },
+  profileManage: {
+    ttl: integer('RATE_LIMIT_PROFILE_MANAGE_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_PROFILE_MANAGE_USER_MAX', 60),
+    ip: integer('RATE_LIMIT_PROFILE_MANAGE_IP_MAX', 120),
+  },
+  mediaManage: {
+    ttl: integer('RATE_LIMIT_MEDIA_MANAGE_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_MEDIA_MANAGE_USER_MAX', 60),
+    ip: integer('RATE_LIMIT_MEDIA_MANAGE_IP_MAX', 120),
+  },
   uploadAvatar: {
     ttl: integer('RATE_LIMIT_UPLOAD_AVATAR_TTL_SECONDS', 60),
     user: integer('RATE_LIMIT_UPLOAD_AVATAR_USER_MAX', 5),

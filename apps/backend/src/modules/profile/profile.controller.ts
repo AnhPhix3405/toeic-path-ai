@@ -16,7 +16,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { UploadThrottlerGuard } from '../../common/rate-limit/guards/upload-throttler.guard';
+import { PolicyThrottlerGuard } from '../../common/rate-limit/guards/policy-throttler.guard';
+import { ThrottlePolicy } from '../../common/rate-limit/decorators/throttle-policy.decorator';
 import { UploadRateLimit } from '../../common/rate-limit/decorators/upload-rate-limit.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -33,8 +34,9 @@ import {
 
 @ApiTags('Profile')
 @ApiProfileControllerDoc()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PolicyThrottlerGuard)
 @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
+@ThrottlePolicy('profileManage')
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
@@ -56,7 +58,6 @@ export class ProfileController {
 
   @Post('me/avatar')
   @HttpCode(200)
-  @UseGuards(UploadThrottlerGuard)
   @UploadRateLimit('uploadAvatar')
   @ApiUploadMyAvatarDoc()
   @UseInterceptors(

@@ -7,6 +7,7 @@ import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PolicyThrottlerGuard } from '../../common/rate-limit/guards/policy-throttler.guard';
 import { ClassificationCatalogController } from './classification-catalog.controller';
 import { ClassificationCatalogService } from './classification-catalog.service';
 
@@ -47,6 +48,10 @@ describe('ClassificationCatalogController', () => {
           };
           return true;
         },
+      })
+      .overrideGuard(PolicyThrottlerGuard)
+      .useValue({
+        canActivate: () => true,
       })
       .compile();
     app = module.createNestApplication();

@@ -19,6 +19,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PolicyThrottlerGuard } from '../../common/rate-limit/guards/policy-throttler.guard';
+import { ThrottlePolicy } from '../../common/rate-limit/decorators/throttle-policy.decorator';
 import { AssignQuestionGroupDto } from './dto/request/assign-question-group.dto';
 import { CreateQuestionOptionDto } from './dto/request/create-question-option.dto';
 import { CreateQuestionDto } from './dto/request/create-question.dto';
@@ -49,13 +51,14 @@ import { QuestionsService } from './questions.service';
 
 @ApiTags('Questions')
 @ApiQuestionsControllerDoc()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PolicyThrottlerGuard)
 @Roles(UserRole.TEACHER, UserRole.ADMIN)
 @Controller('questions')
 export class QuestionsController {
   constructor(private readonly questionsService: QuestionsService) {}
 
   @Post()
+  @ThrottlePolicy('questionsMutate')
   @ApiCreateQuestionDoc()
   create(
     @Body() dto: CreateQuestionDto,
@@ -65,18 +68,21 @@ export class QuestionsController {
   }
 
   @Get()
+  @ThrottlePolicy('questionsSearch')
   @ApiFindQuestionsDoc()
   findPaginated(@Query() dto: QueryQuestionsDto): Promise<PaginatedQuestionsResponseDto> {
     return this.questionsService.findPaginated(dto);
   }
 
   @Get(':id')
+  @ThrottlePolicy('questionsSearch')
   @ApiFindQuestionDoc()
   findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<QuestionResponseDto> {
     return this.questionsService.findOne(id);
   }
 
   @Patch(':id')
+  @ThrottlePolicy('questionsMutate')
   @ApiUpdateQuestionDoc()
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -87,6 +93,7 @@ export class QuestionsController {
   }
 
   @Put(':id/classification')
+  @ThrottlePolicy('questionsMutate')
   @ApiUpdateQuestionClassificationDoc()
   updateClassification(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -97,6 +104,7 @@ export class QuestionsController {
   }
 
   @Patch(':id/group')
+  @ThrottlePolicy('questionsMutate')
   @ApiAssignQuestionGroupDoc()
   assignGroup(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -107,6 +115,7 @@ export class QuestionsController {
   }
 
   @Delete(':id/group')
+  @ThrottlePolicy('questionsMutate')
   @ApiDetachQuestionGroupDoc()
   detachGroup(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -116,6 +125,7 @@ export class QuestionsController {
   }
 
   @Post(':id/options')
+  @ThrottlePolicy('questionsMutate')
   @ApiCreateQuestionOptionDoc()
   createOption(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -126,6 +136,7 @@ export class QuestionsController {
   }
 
   @Patch(':id/options/:optionId')
+  @ThrottlePolicy('questionsMutate')
   @ApiUpdateQuestionOptionDoc()
   updateOption(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -137,6 +148,7 @@ export class QuestionsController {
   }
 
   @Delete(':id/options/:optionId')
+  @ThrottlePolicy('questionsMutate')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRemoveQuestionOptionDoc()
   removeOption(
@@ -148,6 +160,7 @@ export class QuestionsController {
   }
 
   @Patch(':id/correct-answer')
+  @ThrottlePolicy('questionsMutate')
   @ApiSetCorrectAnswerDoc()
   setCorrectAnswer(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -158,6 +171,7 @@ export class QuestionsController {
   }
 
   @Delete(':id')
+  @ThrottlePolicy('questionsMutate')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiRemoveQuestionDoc()
   remove(

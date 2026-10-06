@@ -9,6 +9,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
 import { ApiAuthDoc } from '../../../common/decorators/swagger';
 import { CreateQuestionGroupDto } from '../dto/request/create-question-group.dto';
@@ -21,6 +22,7 @@ export function ApiQuestionGroupsControllerDoc() {
       unauthorizedDescription: 'Access token is invalid or absent',
       forbiddenDescription: 'Authenticated user has an unsupported role or does not own the group',
     }),
+    ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' }),
   );
 }
 

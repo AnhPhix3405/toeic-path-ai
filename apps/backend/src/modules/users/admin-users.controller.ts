@@ -15,6 +15,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PolicyThrottlerGuard } from '../../common/rate-limit/guards/policy-throttler.guard';
+import { ThrottlePolicy } from '../../common/rate-limit/decorators/throttle-policy.decorator';
 import { QueryUsersDto } from './dto/request/query-users.dto';
 import { UpdateUserRoleDto } from './dto/request/update-user-role.dto';
 import { UpdateUserStatusDto } from './dto/request/update-user-status.dto';
@@ -30,8 +32,9 @@ import {
 
 @ApiTags('Admin Users')
 @ApiAdminUsersControllerDoc()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PolicyThrottlerGuard)
 @Roles(UserRole.ADMIN)
+@ThrottlePolicy('adminUsers')
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(private readonly usersService: UsersService) {}

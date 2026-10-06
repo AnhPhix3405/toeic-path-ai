@@ -20,6 +20,7 @@ import storageConfig from './config/storage.config';
 import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
 import securityEventConfig from './common/security-events/security-event.config';
 import { SecurityEventModule } from './common/security-events/security-event.module';
+import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { QuestionsModule } from './modules/questions/questions.module';
 import { QuestionGroupsModule } from './modules/question-groups/question-groups.module';
 import { MediaModule } from './modules/media/media.module';
@@ -44,6 +45,7 @@ import { MediaModule } from './modules/media/media.module';
     }),
     ScheduleModule.forRoot(),
     SecurityEventModule,
+    RateLimitModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

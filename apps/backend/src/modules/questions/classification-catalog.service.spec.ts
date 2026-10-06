@@ -48,4 +48,23 @@ describe('ClassificationCatalogService', () => {
     expect(topicsRepository.find).toHaveBeenCalledWith({ order: { name: 'ASC' } });
     expect(skillsRepository.find).toHaveBeenCalledWith({ order: { name: 'ASC' } });
   });
+
+  it('caches query results and reduces database calls on consecutive requests', async () => {
+    toeicPartsRepository.find.mockResolvedValue([
+      { id: 'part-id', partNumber: 1, name: 'Photographs', description: null },
+    ]);
+
+    // First call: hits DB repository
+    await service.findToeicParts();
+    expect(toeicPartsRepository.find).toHaveBeenCalledTimes(1);
+
+    // Second call: served from in-memory cache
+    await service.findToeicParts();
+    expect(toeicPartsRepository.find).toHaveBeenCalledTimes(1);
+
+    // After invalidation: hits DB repository again
+    service.invalidateCache();
+    await service.findToeicParts();
+    expect(toeicPartsRepository.find).toHaveBeenCalledTimes(2);
+  });
 });

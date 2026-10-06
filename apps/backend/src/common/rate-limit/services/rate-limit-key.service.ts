@@ -21,6 +21,21 @@ export class RateLimitKeyService {
     return `${environment}:upload:${endpoint}:ip:${this.normalizeIp(request.ip)}`;
   }
 
+  policyUser(policy: string, userId: string): string {
+    const environment = this.configService.get<string>('rateLimit.environment', 'development');
+    return `${environment}:policy:${policy}:user:${userId}`;
+  }
+
+  policyIp(request: Request, policy: string): string {
+    const environment = this.configService.get<string>('rateLimit.environment', 'development');
+    return `${environment}:policy:${policy}:ip:${this.normalizeIp(request.ip)}`;
+  }
+
+  globalIp(request: Request): string {
+    const environment = this.configService.get<string>('rateLimit.environment', 'development');
+    return `${environment}:global:ip:${this.normalizeIp(request.ip)}`;
+  }
+
   sensitive(endpoint: string, dimension: string, value: string): string {
     return this.key(endpoint, dimension, createHash('sha256').update(value).digest('hex'));
   }

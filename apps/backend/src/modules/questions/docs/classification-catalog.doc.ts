@@ -1,5 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTooManyRequestsResponse } from '@nestjs/swagger';
 import { ApiAuthDoc } from '../../../common/decorators/swagger';
 import {
   TaxonomyItemResponseDto,
@@ -12,6 +12,7 @@ export function ApiClassificationCatalogControllerDoc() {
       unauthorizedDescription: 'Access token is invalid or absent',
       forbiddenDescription: 'Only Teachers and Admins may read classification catalogs',
     }),
+    ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' }),
   );
 }
 

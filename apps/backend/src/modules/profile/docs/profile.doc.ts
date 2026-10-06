@@ -23,6 +23,7 @@ export function ApiProfileControllerDoc(): ClassDecorator {
       description: 'Only active Students, Teachers, and Administrators may use this endpoint',
     }),
     ApiInternalServerErrorResponse({ description: 'Required profile data is unavailable' }),
+    ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' }),
   );
 }
 

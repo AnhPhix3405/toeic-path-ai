@@ -23,6 +23,7 @@ export function ApiMediaControllerDoc() {
       forbiddenDescription:
         'Authenticated user does not have permission to manage media resources',
     }),
+    ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' }),
   );
 }
 

@@ -4,6 +4,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PolicyThrottlerGuard } from '../../common/rate-limit/guards/policy-throttler.guard';
+import { ThrottlePolicy } from '../../common/rate-limit/decorators/throttle-policy.decorator';
 import { ClassificationCatalogService } from './classification-catalog.service';
 import {
   ApiClassificationCatalogControllerDoc,
@@ -15,8 +17,9 @@ import { TaxonomyItemResponseDto, ToeicPartResponseDto } from './dto/response/cl
 
 @ApiTags('Question Classification')
 @ApiClassificationCatalogControllerDoc()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PolicyThrottlerGuard)
 @Roles(UserRole.TEACHER, UserRole.ADMIN)
+@ThrottlePolicy('catalogRead')
 @Controller()
 export class ClassificationCatalogController {
   constructor(private readonly catalogService: ClassificationCatalogService) {}

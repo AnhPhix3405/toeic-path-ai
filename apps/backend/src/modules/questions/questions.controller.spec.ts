@@ -12,6 +12,7 @@ import { UserStatus } from '../../common/enums/user-status.enum';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PolicyThrottlerGuard } from '../../common/rate-limit/guards/policy-throttler.guard';
 import { QuestionStatus } from './enums/question-status.enum';
 import { QuestionType } from './enums/question-type.enum';
 import { QuestionsController } from './questions.controller';
@@ -72,6 +73,10 @@ describe('QuestionsController', () => {
           };
           return true;
         },
+      })
+      .overrideGuard(PolicyThrottlerGuard)
+      .useValue({
+        canActivate: () => true,
       })
       .compile();
     app = module.createNestApplication();

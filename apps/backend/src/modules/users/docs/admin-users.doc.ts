@@ -5,6 +5,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
 import { ApiAuthDoc } from '../../../common/decorators/swagger';
 
@@ -13,6 +14,7 @@ export function ApiAdminUsersControllerDoc(): ClassDecorator {
     ApiAuthDoc({
       forbiddenDescription: 'Authenticated user is not an administrator',
     }),
+    ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' }),
   );
 }
 
