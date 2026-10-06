@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { AuthProvider } from "@/components/providers/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -32,8 +33,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
-            {children}
-            <Toaster />
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>
