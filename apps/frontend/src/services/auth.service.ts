@@ -8,48 +8,84 @@ import type {
 } from "@/types/auth";
 import type { UserProfile } from "@/types/api";
 
+/**
+ * Chuẩn hóa auth payload từ backend (hỗ trợ cả response phẳng, response bọc data và token dạng phẳng/lồng nhau)
+ */
+export function normalizeAuthResponse(raw: unknown): AuthResponseData {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Phản hồi xác thực không hợp lệ từ máy chủ.");
+  }
+
+  const payload =
+    "data" in raw && (raw as { data?: unknown }).data && typeof (raw as { data?: unknown }).data === "object"
+      ? ((raw as { data: Record<string, unknown> }).data as Record<string, unknown>)
+      : (raw as Record<string, unknown>);
+
+  const rawUser = ((payload.user as Record<string, unknown>) || payload) as Record<string, unknown>;
+  const rawProfile = (rawUser.profile as Record<string, unknown>) || (payload.profile as Record<string, unknown>) || {};
+
+  const user: UserProfile = {
+    id: (rawUser.id as string) || "",
+    email: (rawUser.email as string) || "",
+    fullName:
+      (rawUser.fullName as string) ||
+      (rawProfile.fullName as string) ||
+      (rawUser.email ? String(rawUser.email).split("@")[0] : "Người dùng"),
+    role: ((rawUser.role as string)?.toLowerCase() as UserProfile["role"]) || "student",
+    avatarUrl: (rawUser.avatarUrl as string) || (rawProfile.avatarUrl as string) || undefined,
+    createdAt: (rawUser.createdAt as string) || new Date().toISOString(),
+  };
+
+  const token =
+    (payload.tokens as { accessToken?: string })?.accessToken ||
+    (payload.accessToken as string) ||
+    "";
+
+  const expiresIn =
+    (payload.tokens as { expiresIn?: number })?.expiresIn ||
+    (payload.accessTokenExpiresIn as number) ||
+    900;
+
+  const tokenType =
+    (payload.tokens as { tokenType?: string })?.tokenType ||
+    "Bearer";
+
+  return {
+    user,
+    tokens: {
+      accessToken: token,
+      expiresIn,
+      tokenType,
+    },
+  };
+}
+
 export const authService = {
   /**
    * Đăng nhập với email và password
    */
   async login(dto: LoginDto): Promise<AuthResponseData> {
-    const response = await apiClient.post<AuthResponseData>("/auth/login", dto);
-    return response.data;
+    const raw = await apiClient.post<unknown>("/auth/login", dto);
+    return normalizeAuthResponse(raw);
   },
 
   /**
    * Đăng ký tài khoản học viên mới
    */
   async register(dto: RegisterDto): Promise<RegisterResponseData> {
-    const response = await apiClient.post<RegisterResponseData>("/auth/register", dto);
-    return response.data;
+    const raw = (await apiClient.post<unknown>("/auth/register", dto)) as unknown;
+    if (raw && typeof raw === "object" && "data" in raw && (raw as { data?: unknown }).data) {
+      return (raw as { data: RegisterResponseData }).data;
+    }
+    return raw as RegisterResponseData;
   },
 
   /**
    * Đăng nhập / Đăng ký nhanh qua Google ID Token
    */
   async loginWithGoogle(idToken: string): Promise<AuthResponseData> {
-    const response = await apiClient.post<
-      AuthResponseData | { accessToken: string; user: UserProfile }
-    >("/auth/google", { idToken });
-
-    if (response && typeof response === "object" && "data" in response && (response as { data?: unknown }).data) {
-      return (response as { data: AuthResponseData }).data;
-    }
-
-    const raw = response as unknown as {
-      accessToken: string;
-      user: UserProfile;
-      tokens?: { accessToken: string; expiresIn: number; tokenType: string };
-    };
-    return {
-      user: raw.user,
-      tokens: raw.tokens || {
-        accessToken: raw.accessToken,
-        expiresIn: 900,
-        tokenType: "Bearer",
-      },
-    };
+    const raw = (await apiClient.post<unknown>("/auth/google", { idToken })) as unknown;
+    return normalizeAuthResponse(raw);
   },
 
   /**
@@ -67,16 +103,30 @@ export const authService = {
    * Lấy thông tin hồ sơ người dùng hiện tại
    */
   async getProfile(): Promise<UserProfile> {
-    const response = await apiClient.get<UserProfile>("/auth/me");
-    return response.data;
+    const raw = (await apiClient.get<unknown>("/auth/me")) as unknown;
+    if (raw && typeof raw === "object" && "data" in raw && (raw as { data?: unknown }).data) {
+      const unwrapped = (raw as { data: UserProfile }).data;
+      return unwrapped;
+    }
+    return raw as UserProfile;
   },
 
   /**
    * Làm mới Access Token thông qua Refresh Token
    */
   async refreshToken(): Promise<RefreshTokenResponse> {
-    const response = await apiClient.post<RefreshTokenResponse>("/auth/refresh");
-    return response.data;
+    const raw = (await apiClient.post<unknown>("/auth/refresh")) as unknown;
+
+    const payload =
+      raw && typeof raw === "object" && "data" in raw && (raw as { data?: unknown }).data
+        ? ((raw as { data: Record<string, unknown> }).data as Record<string, unknown>)
+        : (raw as Record<string, unknown>);
+
+    return {
+      accessToken: (payload?.accessToken as string) || "",
+      expiresIn: (payload?.expiresIn as number) || (payload?.accessTokenExpiresIn as number) || 900,
+      tokenType: (payload?.tokenType as string) || "Bearer",
+    };
   },
 };
 
