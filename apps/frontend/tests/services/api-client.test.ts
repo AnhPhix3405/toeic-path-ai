@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import { describe, it, expect, vi } from "vitest";
+import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { apiClient, parseApiError, isApiError } from "@/services/api-client";
 
 describe("api-client & parseApiError", () => {

@@ -16,9 +16,12 @@ function createWrapper() {
     },
   });
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  function TestQueryWrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  }
+  TestQueryWrapper.displayName = "TestQueryWrapper";
+
+  return TestQueryWrapper;
 }
 
 describe("Health Service & useApiHealth Hook", () => {
