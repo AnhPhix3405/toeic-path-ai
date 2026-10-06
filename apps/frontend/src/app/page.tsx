@@ -1,20 +1,93 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  CheckCircle2,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Sparkles,
-  ShieldCheck,
   LayoutDashboard,
   Users,
   Shield,
   ArrowRight,
   Layers,
+  AlertTriangle,
+  MoreHorizontal,
+  Filter,
+  FileCheck,
 } from "lucide-react";
 
 export default function Home() {
+  const [btnLoading, setBtnLoading] = React.useState(false);
+  const [showSkeleton, setShowSkeleton] = React.useState(false);
+  const [hasError, setHasError] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+
+  const triggerLoading = () => {
+    setBtnLoading(true);
+    setTimeout(() => {
+      setBtnLoading(false);
+      toast.success("Xử lý dữ liệu thành công!", {
+        description: "Hệ thống đã lưu trạng thái làm bài của bạn.",
+      });
+    }, 1500);
+  };
+
   return (
-    <main className="min-h-screen bg-background text-foreground transition-colors duration-200 pb-16">
-      {/* Navigation Header */}
+    <main className="min-h-screen bg-background text-foreground transition-colors duration-200 pb-20">
+      {/* Header */}
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -24,7 +97,7 @@ export default function Home() {
             <div>
               <span className="text-lg font-bold tracking-tight">TOEIC Path AI</span>
               <span className="ml-2 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                Design System & Core Layouts v1.0
+                Design System & Primitives v1.0
               </span>
             </div>
           </div>
@@ -34,212 +107,450 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Container */}
       <div className="mx-auto max-w-6xl space-y-12 px-4 py-10 sm:px-6">
-        {/* Intro Hero Section */}
+        {/* Intro */}
         <section className="space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Layers className="h-3.5 w-3.5" /> Sprint 1 Frontend Complete
+            <Layers className="h-3.5 w-3.5" /> Sprint 1 Frontend — Shared UI Component Primitives
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Hệ thống Core Layouts & Điều hướng Thông minh
+            Thư viện Thành phần Giao diện & Layouts
           </h1>
           <p className="max-w-3xl text-base text-muted-foreground sm:text-lg">
-            Hệ thống giao diện của <strong>TOEIC Path AI</strong> được thiết kế theo tiêu chuẩn
-            UI/UX Pro, phân chia rõ ràng giữa giao diện <strong>Public</strong> và các không gian làm việc
-            chuyên biệt cho <strong>Học viên (Student)</strong>, <strong>Giảng viên (Teacher)</strong>, và <strong>Quản trị viên (Admin)</strong>.
+            Hệ thống UI Primitives hoàn chỉnh xây dựng trên <strong>Radix UI</strong>, <strong>Tailwind CSS 4</strong>, <strong>CVA</strong> và <strong>Sonner Toasts</strong> đạt chuẩn WCAG 2.1 AA.
           </p>
         </section>
 
-        {/* Live Layout Navigation Previews */}
+        {/* 1. Workspaces Preview */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight">1. Trải nghiệm Trực tiếp các Không gian Layout</h2>
-            <span className="text-xs text-muted-foreground">Chọn vai trò để xem giao diện Shell tương ứng</span>
-          </div>
-
+          <h2 className="text-xl font-bold tracking-tight">1. Không gian Làm việc (Core Layouts)</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Student Workspace */}
-            <div className="rounded-xl border border-primary/30 bg-card p-6 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between">
-              <div className="space-y-3">
+            <Card className="border-primary/30 flex flex-col justify-between">
+              <CardHeader className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <LayoutDashboard className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                    Student Role
-                  </span>
+                  <Badge variant="default">Student</Badge>
                 </div>
-                <h3 className="text-lg font-bold">Không gian Học viên</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Sidebar điều hướng học tập: Luyện thi TOEIC, Luyện tập thích ứng, Lộ trình cá nhân, Trợ giảng AI và Báo cáo điểm số.
-                </p>
+                <CardTitle>Không gian Học viên</CardTitle>
+                <CardDescription>
+                  Dashboard học tập, Đề thi TOEIC, Luyện tập thích ứng, Lộ trình cá nhân và Trợ giảng AI.
+                </CardDescription>
+              </CardHeader>
+              <div className="p-6 pt-0">
+                <Button asChild className="w-full">
+                  <Link href="/dashboard">
+                    Mở Student Dashboard <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
               </div>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center justify-between rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
-              >
-                <span>Mở Student Dashboard</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+            </Card>
 
-            {/* Teacher Workspace */}
-            <div className="rounded-xl border border-emerald-500/30 bg-card p-6 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between">
-              <div className="space-y-3">
+            <Card className="border-emerald-500/30 flex flex-col justify-between">
+              <CardHeader className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <Users className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    Teacher Role
-                  </span>
+                  <Badge variant="success">Teacher</Badge>
                 </div>
-                <h3 className="text-lg font-bold">Không gian Giảng viên</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Sidebar quản lý đào tạo: Ngân hàng câu hỏi, Nhóm câu hỏi (Passage), Quản lý đề thi, Kiểm duyệt Maker-Checker và AI Studio.
-                </p>
+                <CardTitle>Không gian Giảng viên</CardTitle>
+                <CardDescription>
+                  Ngân hàng câu hỏi, Nhóm passage, Quản lý đề thi, Kiểm duyệt Maker-Checker và AI Studio.
+                </CardDescription>
+              </CardHeader>
+              <div className="p-6 pt-0">
+                <Button asChild variant="success" className="w-full">
+                  <Link href="/teacher-dashboard">
+                    Mở Teacher Dashboard <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
               </div>
-              <Link
-                href="/teacher-dashboard"
-                className="inline-flex items-center justify-between rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
-              >
-                <span>Mở Teacher Dashboard</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+            </Card>
 
-            {/* Admin Workspace */}
-            <div className="rounded-xl border border-amber-500/30 bg-card p-6 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between">
-              <div className="space-y-3">
+            <Card className="border-amber-500/30 flex flex-col justify-between">
+              <CardHeader className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
                     <Shield className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                    Admin Role
-                  </span>
+                  <Badge variant="warning">Admin</Badge>
                 </div>
-                <h3 className="text-lg font-bold">Không gian Quản trị viên</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Sidebar quản trị toàn diện: Quản lý người dùng, Phân quyền vai trò, Cấu hình AI Token Gateway và Nhật ký hệ thống Audit Logs.
-                </p>
+                <CardTitle>Không gian Quản trị</CardTitle>
+                <CardDescription>
+                  Quản lý tài khoản, Phân quyền RBAC, Cấu hình AI Token và Nhật ký hệ thống Audit Logs.
+                </CardDescription>
+              </CardHeader>
+              <div className="p-6 pt-0">
+                <Button asChild variant="secondary" className="w-full">
+                  <Link href="/admin-dashboard">
+                    Mở Admin Dashboard <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
               </div>
-              <Link
-                href="/admin-dashboard"
-                className="inline-flex items-center justify-between rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 transition-colors"
-              >
-                <span>Mở Admin Dashboard</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+            </Card>
           </div>
         </section>
 
-        {/* Color Palette Tokens Grid */}
+        {/* 2. Interactive Buttons & Toast Triggers */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold tracking-tight">2. Semantic Color Tokens & WCAG AA Contrast</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-              <div className="h-10 w-full rounded-md bg-primary mb-3 shadow-inner flex items-center justify-center text-primary-foreground text-xs font-semibold">
-                Primary
+          <h2 className="text-xl font-bold tracking-tight">2. Button Variants & Feedback Toasts</h2>
+          <Card>
+            <CardHeader>
+              <CardTitle>Các Biến thể Nút bấm & Thông báo Toast</CardTitle>
+              <CardDescription>
+                Thử nghiệm tương tác với các trạng thái nút và gọi Sonner Toast Notifications.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => toast.success("Lưu bài thi thành công!")}>
+                  Primary (Success Toast)
+                </Button>
+                <Button variant="secondary" onClick={() => toast.info("Đã đánh dấu câu 45 để xem lại")}>
+                  Secondary (Info Toast)
+                </Button>
+                <Button variant="outline" onClick={() => toast.warning("Thời gian làm bài còn dưới 5 phút!")}>
+                  Outline (Warning Toast)
+                </Button>
+                <Button variant="destructive" onClick={() => toast.error("Không thể kết nối máy chủ!")}>
+                  Destructive (Error Toast)
+                </Button>
+                <Button variant="ghost">Ghost Button</Button>
+                <Button variant="link">Link Style</Button>
+                <Button isLoading={btnLoading} onClick={triggerLoading}>
+                  {btnLoading ? "Đang xử lý..." : "Bấm để Loading"}
+                </Button>
               </div>
-              <div className="text-sm font-semibold">Brand Primary</div>
-              <div className="text-xs text-muted-foreground">#2563EB / Blue</div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-              <div className="h-10 w-full rounded-md bg-secondary mb-3 shadow-inner flex items-center justify-center text-secondary-foreground text-xs font-semibold">
-                Secondary
-              </div>
-              <div className="text-sm font-semibold">Secondary</div>
-              <div className="text-xs text-muted-foreground">Slate / Neutral</div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-              <div className="h-10 w-full rounded-md bg-success mb-3 shadow-inner flex items-center justify-center text-success-foreground text-xs font-semibold">
-                Success
-              </div>
-              <div className="text-sm font-semibold">Correct Answer</div>
-              <div className="text-xs text-muted-foreground">#10B981 / Emerald</div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-              <div className="h-10 w-full rounded-md bg-warning mb-3 shadow-inner flex items-center justify-center text-warning-foreground text-xs font-semibold">
-                Warning
-              </div>
-              <div className="text-sm font-semibold">Flagged / Alert</div>
-              <div className="text-xs text-muted-foreground">#F59E0B / Amber</div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-              <div className="h-10 w-full rounded-md bg-destructive mb-3 shadow-inner flex items-center justify-center text-destructive-foreground text-xs font-semibold">
-                Destructive
-              </div>
-              <div className="text-sm font-semibold">Incorrect / Error</div>
-              <div className="text-xs text-muted-foreground">#EF4444 / Rose</div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
-              <div className="h-10 w-full rounded-md bg-muted mb-3 shadow-inner flex items-center justify-center text-muted-foreground text-xs font-semibold">
-                Muted
-              </div>
-              <div className="text-sm font-semibold">Muted Surface</div>
-              <div className="text-xs text-muted-foreground">Subtle Border & BG</div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </section>
 
-        {/* Real-World Context: Sample TOEIC Question Card */}
+        {/* 3. Form Controls & Validation */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold tracking-tight">3. Component Mẫu: TOEIC Question Card</h2>
-          <div className="rounded-lg border border-border bg-card p-6 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div className="flex items-center gap-2">
-                <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                  Question 101
-                </span>
-                <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                  Part 5 — Incomplete Sentences
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 text-success" />
-                <span>Verified Quality</span>
-              </div>
-            </div>
+          <h2 className="text-xl font-bold tracking-tight">3. Form Controls (Input, Select, Checkbox, Radio)</h2>
+          <Card>
+            <CardContent className="pt-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Input & Error toggle */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Họ và tên thí sinh</label>
+                  <Input
+                    placeholder="Nhập họ và tên..."
+                    defaultValue="Nguyễn Văn A"
+                    error={hasError}
+                  />
+                  {hasError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Vui lòng nhập họ tên hợp lệ.
+                    </p>
+                  )}
+                  <button
+                    onClick={() => setHasError(!hasError)}
+                    className="text-xs text-primary underline cursor-pointer"
+                    type="button"
+                  >
+                    {hasError ? "Tắt lỗi input" : "Bật thử trạng thái lỗi (Validation Error)"}
+                  </button>
+                </div>
 
-            <div className="text-base font-medium leading-relaxed">
-              Customer satisfaction surveys indicate that the new online ordering system is ______ more efficient than the previous version.
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-3 rounded-md border border-input p-3.5 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
-                <input type="radio" name="sample-q" className="h-4 w-4 text-primary focus:ring-primary" />
-                <span className="text-sm font-medium">(A) consider</span>
-              </label>
-              <label className="flex items-center gap-3 rounded-md border border-primary bg-primary/5 p-3.5 transition-colors cursor-pointer">
-                <input type="radio" name="sample-q" defaultChecked className="h-4 w-4 text-primary focus:ring-primary" />
-                <span className="text-sm font-medium text-primary font-semibold">(B) considerably</span>
-              </label>
-              <label className="flex items-center gap-3 rounded-md border border-input p-3.5 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
-                <input type="radio" name="sample-q" className="h-4 w-4 text-primary focus:ring-primary" />
-                <span className="text-sm font-medium">(C) consideration</span>
-              </label>
-              <label className="flex items-center gap-3 rounded-md border border-input p-3.5 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
-                <input type="radio" name="sample-q" className="h-4 w-4 text-primary focus:ring-primary" />
-                <span className="text-sm font-medium">(D) considerate</span>
-              </label>
-            </div>
-
-            <div className="rounded-md bg-muted/50 p-4 border border-border/50 text-sm space-y-1">
-              <div className="flex items-center gap-2 font-semibold text-success">
-                <CheckCircle2 className="h-4 w-4" /> Đáp án chính xác: (B) considerably
+                {/* Select Dropdown */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Chọn Phần thi TOEIC</label>
+                  <Select defaultValue="part5">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn Part..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="part1">Part 1 — Photographs (Mô tả hình ảnh)</SelectItem>
+                      <SelectItem value="part2">Part 2 — Question-Response (Hỏi đáp)</SelectItem>
+                      <SelectItem value="part3">Part 3 — Conversations (Hội thoại ngắn)</SelectItem>
+                      <SelectItem value="part4">Part 4 — Short Talks (Bài nói ngắn)</SelectItem>
+                      <SelectItem value="part5">Part 5 — Incomplete Sentences (Điền câu)</SelectItem>
+                      <SelectItem value="part6">Part 6 — Text Completion (Điền đoạn văn)</SelectItem>
+                      <SelectItem value="part7">Part 7 — Reading Comprehension (Đọc hiểu)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Giải thích: Cần một trạng từ (adverb) bổ nghĩa cho tính từ so sánh hơn &quot;more efficient&quot;. &quot;Considerably&quot; mang nghĩa &quot;đáng kể&quot;.
-              </p>
-            </div>
+
+              {/* Textarea */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Lời giải thích chi tiết câu hỏi</label>
+                <Textarea placeholder="Nhập hướng dẫn giải hoặc dịch nghĩa đoạn văn..." defaultValue="Cần một trạng từ (adverb) bổ nghĩa cho cụm 'more efficient'." />
+              </div>
+
+              {/* Radio Group & Checkbox */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold">Lựa chọn đáp án đúng (RadioGroup)</label>
+                  <RadioGroup defaultValue="B">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="A" id="r1" />
+                      <label htmlFor="r1" className="text-sm cursor-pointer">(A) consider</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="B" id="r2" />
+                      <label htmlFor="r2" className="text-sm font-semibold text-primary cursor-pointer">(B) considerably (Đúng)</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="C" id="r3" />
+                      <label htmlFor="r3" className="text-sm cursor-pointer">(C) consideration</label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold">Tùy chọn cấu hình (Checkbox)</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="c1" defaultChecked />
+                      <label htmlFor="c1" className="text-sm cursor-pointer">Xáo trộn thứ tự câu hỏi</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="c2" defaultChecked />
+                      <label htmlFor="c2" className="text-sm cursor-pointer">Tự động nộp bài khi hết 120 phút</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="c3" />
+                      <label htmlFor="c3" className="text-sm cursor-pointer">Cho phép xem lời giải ngay sau khi nộp</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* 4. Overlays: Dialog, Popover, Dropdown */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight">4. Overlays & Modals (Dialog, Popover, Dropdown)</h2>
+          <Card>
+            <CardContent className="pt-6 flex flex-wrap gap-4 items-center">
+              {/* Dialog Trigger */}
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default">
+                    <FileCheck className="h-4 w-4 mr-1.5" /> Mở Modal Xác nhận Nộp bài
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Xác nhận nộp bài thi TOEIC?</DialogTitle>
+                    <DialogDescription>
+                      Bạn đã hoàn thành <strong>194 / 200 câu hỏi</strong>. Còn <strong>6 câu</strong> chưa chọn đáp án và <strong>2 câu</strong> được đánh dấu xem lại.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="rounded-lg bg-muted/60 p-3 text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Listening (Part 1–4):</span>
+                      <span className="font-semibold text-success">100 / 100 câu</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Reading (Part 5–7):</span>
+                      <span className="font-semibold text-warning">94 / 100 câu</span>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                      Tiếp tục làm bài
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        setDialogOpen(false);
+                        toast.success("Nộp bài thành công! Đang chuyển sang bảng điểm...");
+                      }}
+                    >
+                      Xác nhận Nộp bài
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Popover Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline">
+                    <Filter className="h-4 w-4 mr-1.5" /> Bộ lọc nhanh (Popover)
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 space-y-3">
+                  <h4 className="font-semibold text-sm">Lọc danh sách đề thi</h4>
+                  <div className="space-y-2 text-xs">
+                    <label className="font-medium">Mức độ khó</label>
+                    <Select defaultValue="all">
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Độ khó..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả độ khó</SelectItem>
+                        <SelectItem value="easy">Dễ (450–600)</SelectItem>
+                        <SelectItem value="medium">Trung bình (600–750)</SelectItem>
+                        <SelectItem value="hard">Khó (750–990)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button size="sm" className="w-full" onClick={() => toast.info("Đã áp dụng bộ lọc!")}>
+                    Áp dụng
+                  </Button>
+                </PopoverContent>
+              </Popover>
+
+              {/* Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary">
+                    Hành động (DropdownMenu) <MoreHorizontal className="h-4 w-4 ml-1.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>Tùy chọn đề thi</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => toast.success("Đã sao chép liên kết đề thi!")}>
+                    Sao chép liên kết đề thi
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Đã xuất bản đề thi công khai!")}>
+                    Xuất bản đề thi
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={() => toast.error("Đã chuyển vào thùng rác!")}>
+                    Xóa đề thi
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* 5. Data Table & Skeleton */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight">5. Data Table & Skeleton Loading</h2>
+            <Button size="sm" variant="outline" onClick={() => setShowSkeleton(!showSkeleton)}>
+              {showSkeleton ? "Hiển thị Dữ liệu Thật" : "Bật Shimmer Skeleton"}
+            </Button>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mã Đề thi</TableHead>
+                <TableHead>Tên Đề thi</TableHead>
+                <TableHead>Loại đề</TableHead>
+                <TableHead>Số câu</TableHead>
+                <TableHead>Thời gian</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {showSkeleton ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <>
+                  <TableRow>
+                    <TableCell className="font-mono text-xs font-semibold">ETS-2026-01</TableCell>
+                    <TableCell className="font-medium">TOEIC Full Test Format 2026 — Đề số 01</TableCell>
+                    <TableCell><Badge variant="default">Full Test</Badge></TableCell>
+                    <TableCell>200 câu</TableCell>
+                    <TableCell>120 phút</TableCell>
+                    <TableCell><Badge variant="success">Đang mở</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href="/dashboard">Vào thi</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+
+                  <TableRow>
+                    <TableCell className="font-mono text-xs font-semibold">MINI-RC-04</TableCell>
+                    <TableCell className="font-medium">Luyện tập nhanh Reading Part 5 & 6</TableCell>
+                    <TableCell><Badge variant="secondary">Mini Test</Badge></TableCell>
+                    <TableCell>46 câu</TableCell>
+                    <TableCell>35 phút</TableCell>
+                    <TableCell><Badge variant="success">Đang mở</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href="/practice">Luyện tập</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+
+                  <TableRow>
+                    <TableCell className="font-mono text-xs font-semibold">PLACE-01</TableCell>
+                    <TableCell className="font-medium">Bài đánh giá trình độ đầu vào thích ứng</TableCell>
+                    <TableCell><Badge variant="warning">Placement</Badge></TableCell>
+                    <TableCell>50 câu</TableCell>
+                    <TableCell>45 phút</TableCell>
+                    <TableCell><Badge variant="outline">Miễn phí</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href="/dashboard">Kiểm tra</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                </>
+              )}
+            </TableBody>
+          </Table>
+        </section>
+
+        {/* 6. Badges & Avatars */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight">6. Badges & Avatar Primitives</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Badges Thẻ Phân loại</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                <Badge variant="default">Primary / Full Test</Badge>
+                <Badge variant="secondary">Secondary / Draft</Badge>
+                <Badge variant="success">Success / Verified</Badge>
+                <Badge variant="warning">Warning / Revision</Badge>
+                <Badge variant="destructive">Destructive / Rejected</Badge>
+                <Badge variant="outline">Outline / Part 5</Badge>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Avatar Người dùng & Vai trò</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Avatar>
+                    <AvatarFallback>ST</AvatarFallback>
+                  </Avatar>
+                  <div className="text-xs">
+                    <p className="font-semibold">Học viên</p>
+                    <p className="text-muted-foreground">student@toeicpath.ai</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Avatar className="border-2 border-emerald-500/30">
+                    <AvatarFallback className="bg-emerald-500/10 text-emerald-600 font-bold">TC</AvatarFallback>
+                  </Avatar>
+                  <div className="text-xs">
+                    <p className="font-semibold">Giảng viên</p>
+                    <p className="text-muted-foreground">teacher@toeicpath.ai</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
       </div>
