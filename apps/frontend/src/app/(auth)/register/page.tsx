@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 import { registerSchema, type RegisterFormValues } from "@/lib/validations/auth.schema";
 import { useAuth } from "@/hooks/use-auth";
-import { parseApiError } from "@/lib/api-client";
+import { parseApiError } from "@/services/api-client";
 import { AuthCard } from "@/components/auth/auth-card";
 import { PasswordInput } from "@/components/auth/password-input";
 import { SocialLogin } from "@/components/auth/social-login";

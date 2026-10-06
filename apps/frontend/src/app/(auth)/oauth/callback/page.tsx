@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/stores/auth.store";
 import { authService } from "@/services/auth.service";
-import { parseApiError } from "@/lib/api-client";
+import { parseApiError } from "@/services/api-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -40,9 +40,9 @@ export default function OAuthCallbackPage() {
 
       try {
         if (accessToken) {
-          useAuthStore.getState().setTokens(accessToken, refreshToken);
+          useAuthStore.getState().setToken(accessToken);
           const user = await authService.getProfile();
-          useAuthStore.getState().setUser(user);
+          useAuthStore.getState().setAuth(user, accessToken);
 
           if (!isMounted) return;
           toast.success("Đăng nhập bằng Google thành công!");

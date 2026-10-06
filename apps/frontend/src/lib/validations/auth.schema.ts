@@ -37,11 +37,11 @@ export const registerSchema = z
     confirmPassword: z
       .string()
       .min(1, "Vui lòng xác nhận lại mật khẩu"),
-    acceptTerms: z.literal(true, {
-      errorMap: () => ({
+    acceptTerms: z
+      .boolean()
+      .refine((val) => val === true, {
         message: "Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
       }),
-    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Mật khẩu xác nhận không trùng khớp",
