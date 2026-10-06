@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { ApiError, ApiResponse } from "@/types/api";
+import { useAuthStore } from "@/stores/auth.store";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
@@ -17,11 +18,31 @@ const axiosInstance: AxiosInstance = axios.create({
   },
 });
 
-// Request Interceptor: Attach bearer token if stored
+interface FailedRequestQueueItem {
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}
+
+let isRefreshing = false;
+let failedQueue: FailedRequestQueueItem[] = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Request Interceptor: Attach bearer token from Zustand store or localStorage
 axiosInstance.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("accessToken");
+      const storeToken = useAuthStore.getState().token;
+      const token = storeToken || localStorage.getItem("accessToken");
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -31,12 +52,80 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Standardize API responses & errors
+// Response Interceptor: Standardize responses and handle Silent Token Refresh
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const originalRequest = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined;
+
+    const url = originalRequest?.url || "";
+    const isAuthEndpoint =
+      url.includes("/auth/login") ||
+      url.includes("/auth/register") ||
+      url.includes("/auth/refresh") ||
+      url.includes("/auth/logout");
+
+    // Handle 401 Unauthorized with Silent Refresh Mutex Queue
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        return new Promise<AxiosResponse>((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token: string) => {
+              if (originalRequest.headers) {
+                originalRequest.headers["Authorization"] = `Bearer ${token}`;
+              }
+              resolve(axiosInstance(originalRequest));
+            },
+            reject: (err: unknown) => {
+              reject(parseApiError(err));
+            },
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refreshResponse = await axios.post<{ data: { accessToken: string } } | { accessToken: string }>(
+          `${BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+
+        const responseData = refreshResponse.data as Record<string, unknown>;
+        const innerData = responseData.data as Record<string, unknown> | undefined;
+        const newAccessToken =
+          (innerData?.accessToken as string) ||
+          (responseData?.accessToken as string);
+
+        if (newAccessToken) {
+          useAuthStore.getState().setToken(newAccessToken);
+          if (typeof document !== "undefined") {
+            document.cookie = `auth_token=${encodeURIComponent(newAccessToken)}; path=/; max-age=604800; SameSite=Lax`;
+          }
+
+          processQueue(null, newAccessToken);
+
+          if (originalRequest.headers) {
+            originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+          }
+          return axiosInstance(originalRequest);
+        } else {
+          throw new Error("Không thể trích xuất token mới từ phản hồi.");
+        }
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        useAuthStore.getState().clearAuth();
+        const apiError = parseApiError(refreshErr);
+        return Promise.reject(apiError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     const apiError = parseApiError(error);
     return Promise.reject(apiError);
   }
