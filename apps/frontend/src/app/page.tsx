@@ -73,10 +73,16 @@ import {
   ShieldAlert,
   CheckCircle2,
   RefreshCcw,
+  UserCheck,
+  LogOut,
+  KeyRound,
+  Lock,
 } from "lucide-react";
 import { useApiHealth } from "@/services/health.service";
 import { apiClient, parseApiError } from "@/services/api-client";
 import { ErrorBoundary } from "@/components/feedback/error-boundary";
+import { useAuthStore } from "@/stores/auth.store";
+import { RoleGuard } from "@/components/auth/role-guard";
 
 function BuggyCounter() {
   const [shouldCrash, setShouldCrash] = React.useState(false);
@@ -111,6 +117,12 @@ export default function Home() {
   const [hasError, setHasError] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [apiTesting, setApiTesting] = React.useState(false);
+
+  const authUser = useAuthStore((state) => state.user);
+  const authRole = useAuthStore((state) => state.role);
+  const isAuth = useAuthStore((state) => state.isAuthenticated);
+  const setAuthStore = useAuthStore((state) => state.setAuth);
+  const clearAuthStore = useAuthStore((state) => state.clearAuth);
 
   const {
     data: health,
@@ -790,8 +802,201 @@ export default function Home() {
             </Card>
           </div>
         </section>
+
+        {/* 9. Authentication State & Role-Based Guard Simulator */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+              9. Auth State Store & Role-Based Guard Simulator
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-1">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-primary" />
+                  Trạng thái Phiên Hiện tại
+                </CardTitle>
+                <CardDescription>
+                  Đồng bộ Realtime qua Zustand Store & Cookie
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Xác thực:</span>
+                  {isAuth ? (
+                    <Badge variant="success">Đã Đăng Nhập</Badge>
+                  ) : (
+                    <Badge variant="secondary">Khách Vãng Lai</Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Vai trò (Role):</span>
+                  <Badge variant={authRole ? "default" : "outline"}>
+                    {authRole || "none"}
+                  </Badge>
+                </div>
+
+                {authUser && (
+                  <div className="rounded-md bg-muted p-2.5 text-xs space-y-1">
+                    <p className="font-semibold text-foreground">
+                      {authUser.fullName}
+                    </p>
+                    <p className="text-muted-foreground truncate">
+                      {authUser.email}
+                    </p>
+                    {authUser.targetScore && (
+                      <p className="text-primary font-medium">
+                        Mục tiêu: {authUser.targetScore} TOEIC
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <p className="text-xs text-muted-foreground font-medium">Chuyển đổi Giả lập Vai trò:</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => {
+                        setAuthStore(
+                          {
+                            id: "stu-mock-1",
+                            email: "student@toeicpath.ai",
+                            fullName: "Học Viên TOEIC",
+                            role: "student",
+                            targetScore: 750,
+                            createdAt: new Date().toISOString(),
+                          },
+                          "mock-jwt-student-token"
+                        );
+                        toast.success("Đã kích hoạt phiên: Học viên (student)");
+                      }}
+                    >
+                      Học viên
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => {
+                        setAuthStore(
+                          {
+                            id: "tch-mock-1",
+                            email: "teacher@toeicpath.ai",
+                            fullName: "ThS. Trần Giảng Viên",
+                            role: "teacher",
+                            createdAt: new Date().toISOString(),
+                          },
+                          "mock-jwt-teacher-token"
+                        );
+                        toast.success("Đã kích hoạt phiên: Giảng viên (teacher)");
+                      }}
+                    >
+                      Giảng viên
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => {
+                        setAuthStore(
+                          {
+                            id: "adm-mock-1",
+                            email: "admin@toeicpath.ai",
+                            fullName: "Quản Trị Hệ Thống",
+                            role: "admin",
+                            createdAt: new Date().toISOString(),
+                          },
+                          "mock-jwt-admin-token"
+                        );
+                        toast.success("Đã kích hoạt phiên: Quản trị viên (admin)");
+                      }}
+                    >
+                      Admin
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="text-xs gap-1"
+                      onClick={() => {
+                        clearAuthStore();
+                        toast.info("Đã xóa phiên đăng nhập");
+                      }}
+                    >
+                      <LogOut className="h-3 w-3" />
+                      Đăng xuất
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2 flex flex-col justify-between">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-amber-500" />
+                  Khu vực Bảo vệ Phân quyền (&lt;RoleGuard /&gt;)
+                </CardTitle>
+                <CardDescription>
+                  Thành phần Client UI tự động mở khóa theo trạng thái role hiện tại
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <RoleGuard
+                  allowedRoles={["teacher", "admin"]}
+                  showUnauthorizedScreen={false}
+                  fallback={
+                    <div className="rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 p-6 text-center">
+                      <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-full bg-amber-500/10 text-amber-600 mb-2">
+                        <Lock className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-sm font-semibold text-foreground">
+                        Khu vực dành riêng cho Giảng viên & Quản trị viên
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                        Tài khoản hiện tại của bạn không đủ quyền hạn. Hãy bấm nút &ldquo;Giảng viên&rdquo; hoặc &ldquo;Admin&rdquo; ở cột bên trái để mở khóa khu vực này.
+                      </p>
+                    </div>
+                  }
+                >
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Quyền truy cập hợp lệ — Bảng điều khiển Đề thi & Ngân hàng câu hỏi
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Bạn đang thao tác với tư cách Giảng viên / Quản trị viên. Có thể chỉnh sửa câu hỏi, duyệt nội dung và xuất bản đề thi.
+                    </p>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" asChild variant="outline">
+                        <Link href="/teacher-dashboard">Vào Teacher Dashboard</Link>
+                      </Button>
+                      <Button size="sm" asChild>
+                        <Link href="/admin-dashboard">Vào Admin Dashboard</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </RoleGuard>
+
+                <p className="text-xs text-muted-foreground">
+                  Hệ thống Route Guard kết hợp Edge Middleware (<code>src/middleware.ts</code>) chặn điều hướng cấp độ Server và <code>&lt;RoleGuard /&gt;</code> bảo vệ UI cấp độ Client Component.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </div>
     </main>
   );
 }
+
 
