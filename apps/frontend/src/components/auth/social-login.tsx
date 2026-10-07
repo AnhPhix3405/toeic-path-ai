@@ -45,10 +45,10 @@ export function SocialLogin({
   const router = useRouter();
   const { loginWithGoogle } = useAuth();
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
+  const googleBtnContainerRef = React.useRef<HTMLDivElement>(null);
 
   const googleClientId =
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-    "your-google-client-id.apps.googleusercontent.com";
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   const handleCredentialResponse = React.useCallback(
     async (response: { credential: string }) => {
@@ -91,6 +91,19 @@ export function SocialLogin({
           auto_select: false,
           cancel_on_tap_outside: true,
         });
+
+        if (googleBtnContainerRef.current) {
+          googleBtnContainerRef.current.innerHTML = "";
+          window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
+            type: "standard",
+            theme: "outline",
+            size: "large",
+            text: "signin_with",
+            shape: "rectangular",
+            logo_alignment: "left",
+            width: "384",
+          });
+        }
       } catch {
         // Ignore initialization issues in offline / test environments
       }
@@ -116,8 +129,37 @@ export function SocialLogin({
     }
 
     if (typeof window !== "undefined" && window.google?.accounts?.id) {
+      // 1. Thử kích hoạt qua rendered button bên trong container
+      const renderedBtn = googleBtnContainerRef.current?.querySelector<HTMLElement>(
+        "div[role=button], button"
+      );
+      if (renderedBtn) {
+        renderedBtn.click();
+        return;
+      }
+
+      // 2. Kích hoạt prompt kèm debug logger nếu button chưa render
       try {
-        window.google.accounts.id.prompt();
+        window.google.accounts.id.prompt((notification: unknown) => {
+          const notif = notification as {
+            isNotDisplayed?: () => boolean;
+            getNotDisplayedReason?: () => string;
+            isSkippedMoment?: () => boolean;
+            getSkippedReason?: () => string;
+            isDismissedMoment?: () => boolean;
+            getDismissedReason?: () => string;
+          };
+
+          if (notif?.isNotDisplayed?.()) {
+            const reason = notif.getNotDisplayedReason?.();
+            console.warn("[Google Sign-In] Prompt not displayed reason:", reason);
+            if (reason === "suppressed_by_user" || reason === "cool_down") {
+              toast.info(
+                "Google One Tap đang trong thời gian chờ (cooldown). Vui lòng click trực tiếp nút Google hoặc thử lại trên tab ẩn danh."
+              );
+            }
+          }
+        });
       } catch (err) {
         toast.error("Không thể mở cửa sổ đăng nhập Google: " + (err as Error)?.message);
       }
@@ -134,6 +176,13 @@ export function SocialLogin({
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
         onLoad={initGoogleAuth}
+      />
+
+      {/* Hidden container where official Google Sign-In button is rendered */}
+      <div
+        ref={googleBtnContainerRef}
+        className="hidden"
+        aria-hidden="true"
       />
 
       <div className="w-full space-y-4">
