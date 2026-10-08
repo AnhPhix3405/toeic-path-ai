@@ -13,6 +13,7 @@ export type AuthRateLimitPolicyName =
   | 'login'
   | 'forgotPassword'
   | 'resetPassword'
+  | 'changePassword'
   | 'refresh'
   | 'logout';
 

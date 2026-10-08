@@ -14,6 +14,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { compare, hash } from 'bcrypt';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { DataSource, EntityManager, Repository } from 'typeorm';
+import { AuthProvider } from '../../common/enums/auth-provider.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
 import type { AccessTokenPayload } from '../../common/interfaces/access-token-payload.interface';
@@ -28,6 +29,7 @@ import type { RegisterResponseDto } from './dto/response/register-response.dto';
 import { AuthSession } from './entities/auth-session.entity';
 import type { ForgotPasswordDto } from './dto/request/forgot-password.dto';
 import type { ResetPasswordDto } from './dto/request/reset-password.dto';
+import type { ChangePasswordDto } from './dto/request/change-password.dto';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MAIL_SERVICE, type MailService } from '../mail/mail.service';
 import { SecurityEventService } from '../../common/security-events/security-event.service';
@@ -59,6 +61,8 @@ export interface MessageResponse {
 
 const FORGOT_PASSWORD_MESSAGE = 'If the email is registered, reset instructions will be sent.';
 const RESET_PASSWORD_MESSAGE = 'Password has been reset successfully. Please sign in again.';
+const CHANGE_PASSWORD_MESSAGE =
+  'Password has been changed successfully. All active sessions have been terminated. Please log in again with your new password.';
 const INVALID_RESET_TOKEN_MESSAGE = 'The password reset link is invalid or has expired.';
 
 @Injectable()
@@ -261,6 +265,115 @@ export class AuthService {
       throw error;
     }
     return { message: RESET_PASSWORD_MESSAGE };
+  }
+
+  async changePassword(
+    user: AuthenticatedUser,
+    dto: ChangePasswordDto,
+    metadata: SessionMetadata = {},
+  ): Promise<MessageResponse> {
+    let existingUser: User | null;
+    try {
+      existingUser = await this.usersService.findById(user.id, true);
+    } catch (error) {
+      this.securityEvents?.error({
+        event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'DATABASE_ERROR',
+      });
+      throw error;
+    }
+
+    if (!existingUser || existingUser.status !== UserStatus.ACTIVE) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'USER_INACTIVE',
+      });
+      throw new BadRequestException('User account is invalid or inactive');
+    }
+
+    if (existingUser.authProvider !== AuthProvider.LOCAL || !existingUser.passwordHash) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'OAUTH_USER_NO_PASSWORD',
+      });
+      throw new BadRequestException('Account registered with Google cannot change password directly');
+    }
+
+    const isCurrentValid = await compare(dto.currentPassword, existingUser.passwordHash);
+    if (!isCurrentValid) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'INVALID_CURRENT_PASSWORD',
+      });
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const isSamePassword = await compare(dto.newPassword, existingUser.passwordHash);
+    if (isSamePassword) {
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'SAME_AS_OLD_PASSWORD',
+      });
+      throw new BadRequestException('New password cannot be the same as your current password');
+    }
+
+    const passwordHash = await hash(dto.newPassword, this.saltRounds);
+
+    try {
+      const outcome = await this.dataSource.transaction(async (manager) => {
+        await manager.getRepository(User).update(existingUser.id, { passwordHash });
+        const revoked = await manager
+          .getRepository(AuthSession)
+          .createQueryBuilder()
+          .update(AuthSession)
+          .set({ revokedAt: new Date() })
+          .where('user_id = :userId', { userId: existingUser.id })
+          .andWhere('revoked_at IS NULL')
+          .execute();
+        return { revokedSessionCount: revoked.affected ?? 0 };
+      });
+
+      this.securityEvents?.info({
+        event: SecurityEventType.AUTH_PASSWORD_CHANGED,
+        result: 'success',
+        module: 'auth',
+        ...metadata,
+        userId: existingUser.id,
+        metadata: { revokedSessionCount: outcome.revokedSessionCount },
+      });
+    } catch (error) {
+      this.securityEvents?.error({
+        event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'DATABASE_ERROR',
+      });
+      throw error;
+    }
+
+    return { message: CHANGE_PASSWORD_MESSAGE };
   }
 
   async register(dto: RegisterDto, metadata: SessionMetadata = {}): Promise<RegisterResponseDto> {

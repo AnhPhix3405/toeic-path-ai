@@ -19,6 +19,11 @@ describe('RateLimitKeyService', () => {
     expect(key).not.toContain('student@example.com');
   });
 
+  it('generates namespaced rate limit key for user id in auth routes', () => {
+    const key = service.authUser('user-uuid-1234', 'change-password');
+    expect(key).toBe('test:auth:change-password:user:user-uuid-1234');
+  });
+
   it('generates namespaced rate limit key for user id in upload routes', () => {
     const key = service.user('user-uuid-1234', 'upload-avatar');
     expect(key).toBe('test:upload:upload-avatar:user:user-uuid-1234');

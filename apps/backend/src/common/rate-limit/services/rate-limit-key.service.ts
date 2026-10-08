@@ -11,6 +11,10 @@ export class RateLimitKeyService {
     return this.key(endpoint, 'ip', this.normalizeIp(request.ip));
   }
 
+  authUser(userId: string, endpoint: string): string {
+    return this.key(endpoint, 'user', userId);
+  }
+
   user(userId: string, endpoint: string): string {
     const environment = this.configService.get<string>('rateLimit.environment', 'development');
     return `${environment}:upload:${endpoint}:user:${userId}`;

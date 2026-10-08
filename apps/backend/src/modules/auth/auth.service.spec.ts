@@ -1,8 +1,13 @@
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, generateKeyPairSync } from 'node:crypto';
 import type { DataSource, Repository } from 'typeorm';
+import { AuthProvider } from '../../common/enums/auth-provider.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 import type { AccessTokenPayload } from '../../common/interfaces/access-token-payload.interface';
@@ -24,6 +29,8 @@ describe('AuthService', () => {
     id: '8d164f76-6d3d-48b8-9de8-aa1e718d45ca',
     email: 'student@example.com',
     passwordHash: '',
+    authProvider: AuthProvider.LOCAL,
+    providerId: null,
     role: UserRole.STUDENT,
     status: UserStatus.ACTIVE,
     emailVerifiedAt: null,
@@ -35,7 +42,9 @@ describe('AuthService', () => {
     updatedAt: new Date(),
   };
   const jwtService = new JwtService();
-  let usersService: jest.Mocked<Pick<UsersService, 'findByEmail' | 'updateLastLogin' | 'create'>>;
+  let usersService: jest.Mocked<
+    Pick<UsersService, 'findByEmail' | 'findById' | 'updateLastLogin' | 'create'>
+  >;
   let sessionsRepository: jest.Mocked<Pick<Repository<AuthSession>, 'create' | 'save'>>;
   let dataSource: Pick<DataSource, 'transaction'>;
   let service: AuthService;
@@ -46,6 +55,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     usersService = {
       findByEmail: jest.fn(),
+      findById: jest.fn(),
       updateLastLogin: jest.fn().mockResolvedValue(undefined),
       create: jest.fn(),
     };
@@ -301,5 +311,184 @@ describe('AuthService', () => {
       service.login({ email: user.email, password: 'StrongPassword123!' }, {}),
     ).rejects.toBeInstanceOf(ForbiddenException);
     user.status = UserStatus.ACTIVE;
+  });
+
+  describe('changePassword', () => {
+    it('changes password successfully, revokes 100% auth_sessions and logs AUTH_PASSWORD_CHANGED', async () => {
+      const currentPassword = 'CurrentPassword123!';
+      const newPassword = 'NewSecurePassword456!@';
+      const initialHash = await hash(currentPassword, 10);
+      const testUser: User = {
+        ...user,
+        passwordHash: initialHash,
+        authProvider: AuthProvider.LOCAL,
+      };
+      usersService.findById.mockResolvedValue(testUser);
+
+      const usersRepo = {
+        update: jest.fn().mockResolvedValue({ affected: 1 }),
+      };
+      const sessionBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 3 }),
+      };
+      (dataSource.transaction as jest.Mock).mockImplementation(
+        (work: (manager: { getRepository: (entity: unknown) => unknown }) => unknown) =>
+          Promise.resolve(
+            work({
+              getRepository: (entity: unknown) =>
+                entity === User ? usersRepo : { createQueryBuilder: () => sessionBuilder },
+            }),
+          ),
+      );
+
+      const result = await service.changePassword(
+        { id: user.id, email: user.email, role: user.role, sessionId: 's-1' },
+        { currentPassword, newPassword, confirmNewPassword: newPassword },
+        { traceId: 'trace-cp-1', ipAddress: '127.0.0.1' },
+      );
+
+      expect(usersService.findById).toHaveBeenCalledWith(user.id, true);
+      expect(usersRepo.update).toHaveBeenCalledWith(user.id, {
+        passwordHash: expect.any(String),
+      });
+      const updatedHash = usersRepo.update.mock.calls[0][1].passwordHash;
+      await expect(compare(newPassword, updatedHash)).resolves.toBe(true);
+
+      expect(sessionBuilder.where).toHaveBeenCalledWith('user_id = :userId', { userId: user.id });
+      expect(sessionBuilder.andWhere).toHaveBeenCalledWith('revoked_at IS NULL');
+      expect(result.message).toContain('Password has been changed successfully');
+
+      expect(securityEvents.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: SecurityEventType.AUTH_PASSWORD_CHANGED,
+          result: 'success',
+          userId: user.id,
+          traceId: 'trace-cp-1',
+          metadata: { revokedSessionCount: 3 },
+        }),
+      );
+    });
+
+    it('rejects when current password is incorrect and logs AUTH_PASSWORD_CHANGE_FAILED', async () => {
+      const initialHash = await hash('CorrectPassword123!', 10);
+      const testUser: User = {
+        ...user,
+        passwordHash: initialHash,
+        authProvider: AuthProvider.LOCAL,
+      };
+      usersService.findById.mockResolvedValue(testUser);
+
+      await expect(
+        service.changePassword(
+          { id: user.id, email: user.email, role: user.role, sessionId: 's-1' },
+          {
+            currentPassword: 'WrongPassword123!',
+            newPassword: 'NewSecurePassword456!@',
+            confirmNewPassword: 'NewSecurePassword456!@',
+          },
+          { traceId: 'trace-cp-2' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(securityEvents.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+          result: 'failure',
+          reasonCode: 'INVALID_CURRENT_PASSWORD',
+          traceId: 'trace-cp-2',
+        }),
+      );
+    });
+
+    it('rejects when new password is same as current password (verified via bcrypt) and logs event', async () => {
+      const currentPassword = 'CurrentPassword123!';
+      const initialHash = await hash(currentPassword, 10);
+      const testUser: User = {
+        ...user,
+        passwordHash: initialHash,
+        authProvider: AuthProvider.LOCAL,
+      };
+      usersService.findById.mockResolvedValue(testUser);
+
+      await expect(
+        service.changePassword(
+          { id: user.id, email: user.email, role: user.role, sessionId: 's-1' },
+          {
+            currentPassword,
+            newPassword: currentPassword,
+            confirmNewPassword: currentPassword,
+          },
+          { traceId: 'trace-cp-3' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(securityEvents.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+          result: 'failure',
+          reasonCode: 'SAME_AS_OLD_PASSWORD',
+          traceId: 'trace-cp-3',
+        }),
+      );
+    });
+
+    it('rejects OAuth account without password and logs event', async () => {
+      const testUser: User = {
+        ...user,
+        passwordHash: null,
+        authProvider: AuthProvider.GOOGLE,
+      };
+      usersService.findById.mockResolvedValue(testUser);
+
+      await expect(
+        service.changePassword(
+          { id: user.id, email: user.email, role: user.role, sessionId: 's-1' },
+          {
+            currentPassword: 'SomePassword123!',
+            newPassword: 'NewSecurePassword456!@',
+            confirmNewPassword: 'NewSecurePassword456!@',
+          },
+          { traceId: 'trace-cp-4' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(securityEvents.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+          result: 'failure',
+          reasonCode: 'OAUTH_USER_NO_PASSWORD',
+          traceId: 'trace-cp-4',
+        }),
+      );
+    });
+
+    it('rejects inactive or not found user and logs event', async () => {
+      usersService.findById.mockResolvedValue(null);
+
+      await expect(
+        service.changePassword(
+          { id: user.id, email: user.email, role: user.role, sessionId: 's-1' },
+          {
+            currentPassword: 'SomePassword123!',
+            newPassword: 'NewSecurePassword456!@',
+            confirmNewPassword: 'NewSecurePassword456!@',
+          },
+          { traceId: 'trace-cp-5' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(securityEvents.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: SecurityEventType.AUTH_PASSWORD_CHANGE_FAILED,
+          result: 'failure',
+          reasonCode: 'USER_INACTIVE',
+          traceId: 'trace-cp-5',
+        }),
+      );
+    });
   });
 });

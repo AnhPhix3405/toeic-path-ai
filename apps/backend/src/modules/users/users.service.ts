@@ -60,8 +60,15 @@ export class UsersService {
     });
   }
 
-  findById(id: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ id });
+  findById(id: string, includePassword = false): Promise<User | null> {
+    if (!includePassword) {
+      return this.usersRepository.findOneBy({ id });
+    }
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.id = :id', { id })
+      .addSelect('user.passwordHash')
+      .getOne();
   }
 
   create(email: string, passwordHash: string): Promise<User> {

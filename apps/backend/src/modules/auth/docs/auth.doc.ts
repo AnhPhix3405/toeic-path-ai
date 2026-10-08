@@ -62,6 +62,32 @@ export function ApiResetPasswordDoc(): MethodDecorator {
   );
 }
 
+export function ApiChangePasswordDoc(): MethodDecorator {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Change password for currently authenticated user',
+      description:
+        'Changes account password, verifies current password, checks complexity and old password mismatch, and revokes all active sessions.',
+    }),
+    ApiBearerAuth('JWT-auth'),
+    ApiOkResponse({
+      description: 'Password changed successfully and all sessions revoked',
+      schema: {
+        example: {
+          message:
+            'Password has been changed successfully. All active sessions have been terminated. Please log in again with your new password.',
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Invalid current password, new password same as current password, or account registered with Google',
+    }),
+    ApiUnauthorizedResponse({ description: 'Access token is invalid or absent' }),
+    ApiTooManyRequestsResponse({ description: 'Rate limit exceeded for password change attempts' }),
+  );
+}
+
 export function ApiLoginDoc(): MethodDecorator {
   return applyDecorators(
     ApiOkResponse({

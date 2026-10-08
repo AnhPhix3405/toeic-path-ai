@@ -24,6 +24,7 @@ import { RegisterDto } from './dto/request/register.dto';
 import { RegisterResponseDto } from './dto/response/register-response.dto';
 import { ForgotPasswordDto } from './dto/request/forgot-password.dto';
 import { ResetPasswordDto } from './dto/request/reset-password.dto';
+import { ChangePasswordDto } from './dto/request/change-password.dto';
 import { GoogleAuthDto } from './dto/request/google-auth.dto';
 import { GoogleAuthService } from './services/google-auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -34,6 +35,7 @@ import { AuthOriginGuard } from '../../common/rate-limit/guards/auth-origin.guar
 import type { SecurityRequest } from '../../common/security-events/request-context.middleware';
 import {
   ApiAuthControllerDoc,
+  ApiChangePasswordDoc,
   ApiForgotPasswordDoc,
   ApiGoogleAuthDoc,
   ApiLoginDoc,
@@ -96,6 +98,25 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<MessageResponse> {
     const result = await this.authService.resetPassword(dto, this.getSessionMetadata(request));
+    this.clearRefreshCookie(response);
+    return result;
+  }
+
+  @Post('change-password')
+  @AuthRateLimit('changePassword')
+  @UseGuards(JwtAuthGuard, AuthOriginGuard, AuthThrottlerGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiChangePasswordDoc()
+  async changePassword(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<MessageResponse> {
+    const result = await this.authService.changePassword(
+      request.user,
+      dto,
+      this.getSessionMetadata(request as unknown as SecurityRequest),
+    );
     this.clearRefreshCookie(response);
     return result;
   }

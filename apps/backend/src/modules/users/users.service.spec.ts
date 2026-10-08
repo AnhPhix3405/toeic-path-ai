@@ -86,4 +86,40 @@ describe('UsersService security events', () => {
       expect.objectContaining({ result: 'success' }),
     );
   });
+
+  describe('findById', () => {
+    it('finds user by id without passwordHash by default', async () => {
+      const mockRepo = {
+        findOneBy: jest.fn().mockResolvedValue(user),
+      };
+      const service = new UsersService(
+        mockRepo as unknown as Repository<User>,
+        {} as DataSource,
+      );
+      const result = await service.findById(user.id);
+      expect(mockRepo.findOneBy).toHaveBeenCalledWith({ id: user.id });
+      expect(result).toEqual(user);
+    });
+
+    it('finds user by id with passwordHash using query builder when includePassword is true', async () => {
+      const userWithPassword = { ...user, passwordHash: 'hashed-password' };
+      const qb = {
+        where: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(userWithPassword),
+      };
+      const mockRepo = {
+        createQueryBuilder: jest.fn().mockReturnValue(qb),
+      };
+      const service = new UsersService(
+        mockRepo as unknown as Repository<User>,
+        {} as DataSource,
+      );
+      const result = await service.findById(user.id, true);
+      expect(mockRepo.createQueryBuilder).toHaveBeenCalledWith('user');
+      expect(qb.where).toHaveBeenCalledWith('user.id = :id', { id: user.id });
+      expect(qb.addSelect).toHaveBeenCalledWith('user.passwordHash');
+      expect(result).toEqual(userWithPassword);
+    });
+  });
 });

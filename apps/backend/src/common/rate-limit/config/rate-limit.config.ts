@@ -25,6 +25,11 @@ export default registerAs('rateLimit', () => ({
     ip: integer('RATE_LIMIT_RESET_PASSWORD_IP_MAX', 5),
     token: integer('RATE_LIMIT_RESET_PASSWORD_TOKEN_MAX', 5),
   },
+  changePassword: {
+    ttl: integer('RATE_LIMIT_CHANGE_PASSWORD_TTL_SECONDS', 900),
+    ip: integer('RATE_LIMIT_CHANGE_PASSWORD_IP_MAX', 5),
+    user: integer('RATE_LIMIT_CHANGE_PASSWORD_USER_MAX', 5),
+  },
   refresh: {
     ttl: integer('RATE_LIMIT_REFRESH_TTL_SECONDS', 300),
     ip: integer('RATE_LIMIT_REFRESH_IP_MAX', 60),

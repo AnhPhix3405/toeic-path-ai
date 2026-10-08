@@ -28,6 +28,7 @@ type Policy = {
   emailFailure?: number;
   token?: number;
   session?: number;
+  user?: number;
   max?: number;
 };
 
@@ -103,6 +104,18 @@ export class AuthThrottlerGuard implements CanActivate {
           endpoint,
           request,
         );
+    } else if (name === 'changePassword') {
+      const userId = (request as unknown as { user?: { id?: string } }).user?.id;
+      if (userId && policy.user) {
+        await this.consume(
+          this.keys.authUser(userId, endpoint),
+          policy.user,
+          policy.ttl,
+          response,
+          endpoint,
+          request,
+        );
+      }
     }
     return true;
   }

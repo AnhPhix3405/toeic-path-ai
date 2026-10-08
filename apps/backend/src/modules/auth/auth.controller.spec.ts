@@ -27,7 +27,9 @@ describe('AuthController refresh cookie transport', () => {
     path: '/api/v1/auth',
     maxAge: 604800000,
   } as const;
-  let authService: jest.Mocked<Pick<AuthService, 'login' | 'refresh' | 'revoke'>>;
+  let authService: jest.Mocked<
+    Pick<AuthService, 'login' | 'refresh' | 'revoke' | 'changePassword'>
+  >;
   let googleAuthService: jest.Mocked<Pick<GoogleAuthService, 'authenticateGoogle'>>;
   let response: jest.Mocked<Pick<Response, 'cookie' | 'clearCookie'>>;
   let controller: AuthController;
@@ -37,6 +39,10 @@ describe('AuthController refresh cookie transport', () => {
       login: jest.fn().mockResolvedValue(tokenResponse),
       refresh: jest.fn().mockResolvedValue(tokenResponse),
       revoke: jest.fn().mockResolvedValue(undefined),
+      changePassword: jest.fn().mockResolvedValue({
+        message:
+          'Password has been changed successfully. All active sessions have been terminated. Please log in again with your new password.',
+      }),
     };
     googleAuthService = {
       authenticateGoogle: jest.fn().mockResolvedValue(tokenResponse),
@@ -163,6 +169,39 @@ describe('AuthController refresh cookie transport', () => {
       userAgent: 'jest',
     });
     expect(response.clearCookie).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates change password to authService and clears refresh cookie', async () => {
+    const user: AuthenticatedUser = {
+      id: 'user-id',
+      sessionId: 'session-id',
+      email: 'student@example.com',
+      role: UserRole.STUDENT,
+      status: UserStatus.ACTIVE,
+    };
+    const dto = {
+      currentPassword: 'CurrentPassword123!',
+      newPassword: 'NewSecurePassword456!@',
+      confirmNewPassword: 'NewSecurePassword456!@',
+    };
+    const result = await controller.changePassword(
+      { ...createRequest(), user } as Request & { user: AuthenticatedUser },
+      dto,
+      response as unknown as Response,
+    );
+
+    expect(authService.changePassword).toHaveBeenCalledWith(
+      user,
+      dto,
+      expect.objectContaining({ ipAddress: '127.0.0.1' }),
+    );
+    expect(response.clearCookie).toHaveBeenCalledWith('toeic_refresh_token', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/api/v1/auth',
+    });
+    expect(result.message).toContain('Password has been changed successfully');
   });
 
   function createRequest(cookies: Record<string, string> = {}): Request {
