@@ -19,6 +19,7 @@ import avatarConfig from './config/avatar.config';
 import storageConfig from './config/storage.config';
 import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
 import securityEventConfig from './common/security-events/security-event.config';
+import mailConfig from './config/mail.config';
 import { SecurityEventModule } from './common/security-events/security-event.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { QuestionsModule } from './modules/questions/questions.module';
@@ -40,6 +41,7 @@ import { MediaModule } from './modules/media/media.module';
         storageConfig,
         rateLimitConfig,
         securityEventConfig,
+        mailConfig,
       ],
       validate: validateEnvironment,
     }),

@@ -135,6 +135,10 @@ axiosInstance.interceptors.response.use(
  * Normalizes any unknown error or Axios error into a standardized ApiError object
  */
 export function parseApiError(error: unknown): ApiError {
+  if (isApiError(error)) {
+    return error;
+  }
+
   if (axios.isAxiosError(error)) {
     const responseData = error.response?.data as Record<string, unknown> | undefined;
     const statusCode = error.response?.status || (error.code === "ECONNABORTED" ? 408 : 500);

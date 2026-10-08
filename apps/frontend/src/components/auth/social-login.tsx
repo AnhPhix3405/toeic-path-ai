@@ -86,7 +86,7 @@ export function SocialLogin({
     if (typeof window !== "undefined" && window.google?.accounts?.id) {
       try {
         window.google.accounts.id.initialize({
-          client_id: googleClientId,
+          client_id: googleClientId || "",
           callback: handleCredentialResponse,
           auto_select: false,
           cancel_on_tap_outside: true,

@@ -1,10 +1,23 @@
+import { AuthCard } from "@/components/auth/auth-card";
+import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-form";
+
+export const metadata = {
+  title: "Quên mật khẩu | TOEIC Path AI",
+  description: "Yêu cầu liên kết đặt lại mật khẩu tài khoản học viên TOEIC Path AI",
+};
+
 export default function ForgotPasswordPage() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm text-center">
-        <h1 className="text-2xl font-bold">Quên mật khẩu</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Tính năng sẽ được triển khai trong Sprint 2.</p>
-      </div>
+    <div className="flex min-h-[calc(100vh-12rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <AuthCard
+        title="Quên mật khẩu?"
+        description="Nhập email đã đăng ký để nhận liên kết khôi phục mật khẩu tài khoản"
+        switchText="Nhớ lại mật khẩu?"
+        switchActionText="Đăng nhập ngay"
+        switchHref="/login"
+      >
+        <ForgotPasswordForm />
+      </AuthCard>
     </div>
   );
 }

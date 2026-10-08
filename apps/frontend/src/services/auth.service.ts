@@ -5,6 +5,9 @@ import type {
   RegisterResponseData,
   AuthResponseData,
   RefreshTokenResponse,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  MessageResponseDto,
 } from "@/types/auth";
 import type { UserProfile } from "@/types/api";
 
@@ -127,6 +130,28 @@ export const authService = {
       expiresIn: (payload?.expiresIn as number) || (payload?.accessTokenExpiresIn as number) || 900,
       tokenType: (payload?.tokenType as string) || "Bearer",
     };
+  },
+
+  /**
+   * Yêu cầu gửi email đặt lại mật khẩu
+   */
+  async forgotPassword(dto: ForgotPasswordDto): Promise<MessageResponseDto> {
+    const raw = (await apiClient.post<unknown>("/auth/forgot-password", dto)) as unknown;
+    if (raw && typeof raw === "object" && "data" in raw && (raw as { data?: unknown }).data) {
+      return (raw as { data: MessageResponseDto }).data;
+    }
+    return (raw as MessageResponseDto) || { message: "Instructions have been sent." };
+  },
+
+  /**
+   * Đặt lại mật khẩu mới với token từ URL
+   */
+  async resetPassword(dto: ResetPasswordDto): Promise<MessageResponseDto> {
+    const raw = (await apiClient.post<unknown>("/auth/reset-password", dto)) as unknown;
+    if (raw && typeof raw === "object" && "data" in raw && (raw as { data?: unknown }).data) {
+      return (raw as { data: MessageResponseDto }).data;
+    }
+    return (raw as MessageResponseDto) || { message: "Password has been reset successfully." };
   },
 };
 

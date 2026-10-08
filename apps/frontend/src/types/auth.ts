@@ -14,6 +14,20 @@ export interface RegisterDto {
   acceptTerms: boolean;
 }
 
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface MessageResponseDto {
+  message: string;
+}
+
 export interface RegisterResponseData {
   id: string;
   email: string;

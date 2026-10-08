@@ -112,9 +112,23 @@ export function validateEnvironment(environment: Record<string, unknown>): Recor
     throw new Error('PASSWORD_RESET_URL must be a valid URL');
   }
 
-  const mailFrom = environment.MAIL_FROM;
+  const mailProvider = environment.MAIL_PROVIDER ?? 'console';
+  if (typeof mailProvider !== 'string' || !['console', 'brevo'].includes(mailProvider)) {
+    throw new Error('MAIL_PROVIDER must be either "console" or "brevo"');
+  }
+
+  const mailFrom = environment.MAIL_FROM_EMAIL ?? environment.MAIL_FROM;
   if (typeof mailFrom !== 'string' || mailFrom.trim() === '') {
-    throw new Error('Missing required environment variable: MAIL_FROM');
+    throw new Error('Missing required environment variable: MAIL_FROM_EMAIL or MAIL_FROM');
+  }
+
+  if (mailProvider === 'brevo') {
+    const brevoApiKey = environment.BREVO_API_KEY;
+    if (typeof brevoApiKey !== 'string' || brevoApiKey.trim() === '') {
+      throw new Error(
+        'Missing required environment variable: BREVO_API_KEY when MAIL_PROVIDER is "brevo"',
+      );
+    }
   }
 
   if ((environment.STORAGE_PROVIDER ?? 'supabase') !== 'supabase') {
