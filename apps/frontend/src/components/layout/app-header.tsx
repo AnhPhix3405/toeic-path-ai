@@ -5,6 +5,7 @@ import { Menu, Search, Bell } from "lucide-react";
 import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
 import { UserNav } from "@/components/navigation/user-nav";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useAuthStore } from "@/stores/auth.store";
 import { UserRole } from "@/types/navigation";
 
 interface AppHeaderProps {
@@ -13,6 +14,18 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ role, onOpenMobileNav }: AppHeaderProps) {
+  const authUser = useAuthStore((state) => state.user);
+
+  const fallbackName =
+    role === "student" ? "Học viên" : role === "teacher" ? "Giảng viên" : "Quản trị viên";
+
+  const userData = {
+    name: authUser?.fullName || fallbackName,
+    email: authUser?.email || `${role}@toeicpath.ai`,
+    role: (authUser?.role || role) as UserRole,
+    avatarUrl: authUser?.avatarUrl,
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-background/95 px-4 sm:px-6 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
       {/* Left: Mobile Toggle & Breadcrumbs */}
@@ -58,13 +71,7 @@ export function AppHeader({ role, onOpenMobileNav }: AppHeaderProps) {
         <ThemeToggle />
 
         {/* User Navigation Dropdown */}
-        <UserNav
-          user={{
-            name: role === "student" ? "Nguyễn Văn A" : role === "teacher" ? "Thầy Trần B" : "Admin Hệ Thống",
-            email: `${role}@toeicpath.ai`,
-            role,
-          }}
-        />
+        <UserNav user={userData} />
       </div>
     </header>
   );

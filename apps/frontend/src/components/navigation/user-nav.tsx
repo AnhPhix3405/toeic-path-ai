@@ -4,6 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { User, Settings, LogOut, ChevronDown, Check } from "lucide-react";
 import { UserRole } from "@/types/navigation";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 interface UserNavProps {
@@ -24,6 +26,7 @@ export function UserNav({
 }: UserNavProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const { logout } = useAuth();
 
   // Close when clicking outside
   React.useEffect(() => {
@@ -62,11 +65,14 @@ export function UserNav({
   }[user.role];
 
   const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+    ? user.name
+        .trim()
+        .split(/\s+/)
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "U";
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -77,9 +83,12 @@ export function UserNav({
         aria-expanded={isOpen}
         type="button"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow-sm">
-          {initials}
-        </div>
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={user.avatarUrl} alt={user.name} className="object-cover" />
+          <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground shadow-xs">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
         <div className="hidden text-left sm:block pr-1">
           <p className="text-xs font-semibold leading-tight text-foreground">{user.name}</p>
           <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
@@ -168,9 +177,9 @@ export function UserNav({
           {/* Logout Button */}
           <div className="border-t border-border/60 pt-1">
             <button
-              onClick={() => {
+              onClick={async () => {
                 setIsOpen(false);
-                // Handle logout in Sprint 2
+                await logout();
               }}
               className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
               role="menuitem"

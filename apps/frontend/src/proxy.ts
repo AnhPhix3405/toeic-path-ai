@@ -12,6 +12,11 @@ const authRoutes = [
   "/auth/reset-password",
 ];
 
+const commonProtectedRoutes = [
+  "/profile",
+  "/settings",
+];
+
 const studentRoutes = [
   "/dashboard",
   "/practice",
@@ -21,7 +26,6 @@ const studentRoutes = [
   "/results",
   "/competency",
   "/review-schedule",
-  "/profile",
 ];
 
 const teacherRoutes = [
@@ -54,10 +58,11 @@ export function proxy(request: NextRequest) {
 
   const isAuthenticated = Boolean(authToken);
   const isAuthRoute = isPathMatch(pathname, authRoutes);
+  const isCommonRoute = isPathMatch(pathname, commonProtectedRoutes);
   const isStudentRoute = isPathMatch(pathname, studentRoutes);
   const isTeacherRoute = isPathMatch(pathname, teacherRoutes);
   const isAdminRoute = isPathMatch(pathname, adminRoutes);
-  const isProtectedRoute = isStudentRoute || isTeacherRoute || isAdminRoute;
+  const isProtectedRoute = isCommonRoute || isStudentRoute || isTeacherRoute || isAdminRoute;
 
   // 1. If user is authenticated and visits login/register, redirect to dashboard
   if (isAuthenticated && isAuthRoute) {

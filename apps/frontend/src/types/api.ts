@@ -58,3 +58,28 @@ export interface HealthStatusResponse {
     redis?: "connected" | "disconnected";
   };
 }
+
+export type Gender = "male" | "female" | "other";
+
+export interface PersonalProfile {
+  fullName: string;
+  avatarUrl: string | null;
+  birthday: string | null;
+  gender: Gender | null;
+  bio: string | null;
+}
+
+export interface ProfileResponse {
+  userId: string;
+  email: string;
+  role: UserRole;
+  profile: PersonalProfile;
+  updatedAt: string;
+}
+
+export interface UpdateMyProfileDto {
+  fullName?: string;
+  birthday?: string | null;
+  gender?: Gender | null;
+  bio?: string | null;
+}
