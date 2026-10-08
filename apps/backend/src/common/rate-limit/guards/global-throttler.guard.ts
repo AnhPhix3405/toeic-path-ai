@@ -107,10 +107,7 @@ export class GlobalThrottlerGuard implements CanActivate {
 
   private getMetadata<T>(key: symbol, context: ExecutionContext): T | undefined {
     if (typeof this.reflector.getAllAndOverride === 'function') {
-      return this.reflector.getAllAndOverride<T>(key, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      return this.reflector.getAllAndOverride<T>(key, [context.getHandler(), context.getClass()]);
     }
     return this.reflector.get<T>(key, context.getHandler());
   }

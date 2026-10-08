@@ -115,7 +115,7 @@ export class AuthController {
     const result = await this.authService.changePassword(
       request.user,
       dto,
-      this.getSessionMetadata(request as unknown as SecurityRequest),
+      this.getSessionMetadata(request),
     );
     this.clearRefreshCookie(response);
     return result;

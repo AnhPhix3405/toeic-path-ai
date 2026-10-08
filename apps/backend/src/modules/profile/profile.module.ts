@@ -15,4 +15,3 @@ import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
   providers: [ProfileService, AvatarImageService, JwtAuthGuard, RolesGuard],
 })
 export class ProfileModule {}
-

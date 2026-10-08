@@ -37,7 +37,8 @@ export class ChangePasswordDto {
 
   @ApiProperty({
     example: 'NewSecurePassword456!@',
-    description: 'New password meeting complexity criteria (12-72 chars, upper, lower, digit, special)',
+    description:
+      'New password meeting complexity criteria (12-72 chars, upper, lower, digit, special)',
   })
   @IsString()
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,72}$/, {

@@ -27,7 +27,8 @@ export function ApiQuestionsControllerDoc() {
   return applyDecorators(
     ApiAuthDoc({
       unauthorizedDescription: 'Access token is invalid or absent',
-      forbiddenDescription: 'Authenticated user has an unsupported role or does not own the question',
+      forbiddenDescription:
+        'Authenticated user has an unsupported role or does not own the question',
     }),
     ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' }),
   );

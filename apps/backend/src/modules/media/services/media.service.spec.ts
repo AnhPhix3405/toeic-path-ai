@@ -224,7 +224,7 @@ describe('MediaService', () => {
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.PENDING_REVIEW,
-      } as Question);
+      });
 
       await expect(
         service.confirmUpload(userId, {
@@ -245,7 +245,7 @@ describe('MediaService', () => {
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.PUBLISHED,
-      } as Question);
+      });
 
       await expect(
         service.confirmUpload(userId, {
@@ -266,7 +266,7 @@ describe('MediaService', () => {
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.DRAFT,
-      } as Question);
+      });
 
       const result = await service.confirmUpload(userId, {
         fileName: 'audio.mp3',
@@ -290,7 +290,7 @@ describe('MediaService', () => {
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.REVISION_REQUESTED,
-      } as Question);
+      });
 
       const result = await service.confirmUpload(userId, {
         fileName: 'audio.mp3',
@@ -318,7 +318,7 @@ describe('MediaService', () => {
         createdBy: userId,
         createdAt: new Date('2026-10-02T10:00:00Z'),
         updatedAt: new Date('2026-10-02T10:00:00Z'),
-      } as MediaResource);
+      });
 
       const result = await service.getMediaById(mediaId);
       expect(result.id).toBe(mediaId);
@@ -337,12 +337,12 @@ describe('MediaService', () => {
         id: mediaId,
         questionId: null,
         questionGroupId: null,
-      } as MediaResource);
+      });
 
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.PUBLISHED,
-      } as Question);
+      });
 
       await expect(service.updateTarget(mediaId, { questionId })).rejects.toThrow(
         BadRequestException,
@@ -362,12 +362,12 @@ describe('MediaService', () => {
         createdBy: userId,
         createdAt: new Date('2026-10-02T10:00:00Z'),
         updatedAt: new Date('2026-10-02T10:00:00Z'),
-      } as MediaResource);
+      });
 
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.DRAFT,
-      } as Question);
+      });
 
       const result = await service.updateTarget(mediaId, { questionId });
       expect(result.questionId).toBe(questionId);
@@ -386,12 +386,12 @@ describe('MediaService', () => {
         id: mediaId,
         questionId,
         questionGroupId: null,
-      } as MediaResource);
+      });
 
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.PENDING_REVIEW,
-      } as Question);
+      });
 
       await expect(service.deleteMedia(mediaId)).rejects.toThrow(BadRequestException);
     });
@@ -401,12 +401,12 @@ describe('MediaService', () => {
         id: mediaId,
         questionId,
         questionGroupId: null,
-      } as MediaResource);
+      });
 
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.PUBLISHED,
-      } as Question);
+      });
 
       await expect(service.deleteMedia(mediaId)).rejects.toThrow(BadRequestException);
     });
@@ -416,12 +416,12 @@ describe('MediaService', () => {
         id: mediaId,
         questionId,
         questionGroupId: null,
-      } as MediaResource);
+      });
 
       questionRepo.findOneBy!.mockResolvedValue({
         id: questionId,
         status: QuestionStatus.DRAFT,
-      } as Question);
+      });
 
       await service.deleteMedia(mediaId);
       expect(mediaRepo.markAsDeleted).toHaveBeenCalledWith(mediaId);

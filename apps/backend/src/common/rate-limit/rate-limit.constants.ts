@@ -18,10 +18,7 @@ export type AuthRateLimitPolicyName =
   | 'logout';
 
 export type UploadRateLimitPolicyName =
-  | 'uploadAvatar'
-  | 'uploadPresignedUrl'
-  | 'uploadBatchPresignedUrl'
-  | 'uploadConfirm';
+  'uploadAvatar' | 'uploadPresignedUrl' | 'uploadBatchPresignedUrl' | 'uploadConfirm';
 
 export type ThrottlePolicyName =
   | 'questionsSearch'
@@ -32,5 +29,3 @@ export type ThrottlePolicyName =
   | 'profileManage'
   | 'mediaManage'
   | UploadRateLimitPolicyName;
-
-

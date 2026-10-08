@@ -5,10 +5,18 @@ export class AddSprint4QuestionBankAdvancedSchema1788000014000 implements Migrat
 
   async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Extend questions_status_enum with new workflow statuses
-    await queryRunner.query(`ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'pending_review'`);
-    await queryRunner.query(`ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'published'`);
-    await queryRunner.query(`ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'revision_requested'`);
-    await queryRunner.query(`ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'rejected'`);
+    await queryRunner.query(
+      `ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'pending_review'`,
+    );
+    await queryRunner.query(
+      `ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'published'`,
+    );
+    await queryRunner.query(
+      `ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'revision_requested'`,
+    );
+    await queryRunner.query(
+      `ALTER TYPE "questions_status_enum" ADD VALUE IF NOT EXISTS 'rejected'`,
+    );
 
     // 2. Add version column for optimistic locking on questions
     await queryRunner.query(`
@@ -213,6 +221,8 @@ export class AddSprint4QuestionBankAdvancedSchema1788000014000 implements Migrat
       ALTER COLUMN "status" SET DEFAULT 'draft'
     `);
     await queryRunner.query(`DROP TYPE "questions_status_enum"`);
-    await queryRunner.query(`ALTER TYPE "questions_status_enum_old" RENAME TO "questions_status_enum"`);
+    await queryRunner.query(
+      `ALTER TYPE "questions_status_enum_old" RENAME TO "questions_status_enum"`,
+    );
   }
 }

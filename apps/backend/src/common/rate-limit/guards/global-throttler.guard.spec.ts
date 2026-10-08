@@ -6,7 +6,12 @@ import { RateLimitKeyService } from '../services/rate-limit-key.service';
 import { AuthRateLimitStore } from '../interfaces/rate-limit-store.interface';
 import { SecurityEventService } from '../../security-events/security-event.service';
 import { SecurityEventType } from '../../security-events/enums/security-event.enum';
-import { SKIP_THROTTLE, THROTTLE_POLICY, UPLOAD_RATE_LIMIT_POLICY, AUTH_RATE_LIMIT_POLICY } from '../rate-limit.constants';
+import {
+  SKIP_THROTTLE,
+  THROTTLE_POLICY,
+  UPLOAD_RATE_LIMIT_POLICY,
+  AUTH_RATE_LIMIT_POLICY,
+} from '../rate-limit.constants';
 
 describe('GlobalThrottlerGuard', () => {
   let guard: GlobalThrottlerGuard;
@@ -17,10 +22,12 @@ describe('GlobalThrottlerGuard', () => {
   let securityEvents: jest.Mocked<SecurityEventService>;
   let responseHeaders: Record<string, string | number>;
 
-  const createMockContext = (options: {
-    ip?: string;
-    traceId?: string;
-  } = {}): ExecutionContext => {
+  const createMockContext = (
+    options: {
+      ip?: string;
+      traceId?: string;
+    } = {},
+  ): ExecutionContext => {
     responseHeaders = {};
     const req = {
       ip: options.ip ?? '127.0.0.1',

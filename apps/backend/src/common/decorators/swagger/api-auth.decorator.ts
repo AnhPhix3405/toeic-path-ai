@@ -1,9 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiForbiddenResponse,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiForbiddenResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
 export interface ApiAuthDocOptions {
   summaryRoles?: string;
@@ -15,11 +11,8 @@ export interface ApiAuthDocOptions {
  * Standard Swagger decorator for JWT-authenticated endpoints.
  * Applies @ApiBearerAuth('JWT-auth'), @ApiUnauthorizedResponse, and @ApiForbiddenResponse.
  */
-export function ApiAuthDoc(
-  options?: ApiAuthDocOptions,
-): MethodDecorator & ClassDecorator {
-  const unauthorizedDesc =
-    options?.unauthorizedDescription ?? 'Access token is invalid or absent';
+export function ApiAuthDoc(options?: ApiAuthDocOptions): MethodDecorator & ClassDecorator {
+  const unauthorizedDesc = options?.unauthorizedDescription ?? 'Access token is invalid or absent';
   const forbiddenDesc =
     options?.forbiddenDescription ??
     (options?.summaryRoles

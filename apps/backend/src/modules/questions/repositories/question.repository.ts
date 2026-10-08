@@ -11,9 +11,7 @@ export class QuestionRepository extends Repository<Question> {
 
   async findPaginated(dto: QueryQuestionsDto): Promise<{ questions: Question[]; total: number }> {
     // PASS 1: Filter, search, and paginate IDs only (no relation selects to avoid oversized query)
-    const qb = this.createQueryBuilder('q')
-      .select('q.id')
-      .orderBy('q.createdAt', 'DESC');
+    const qb = this.createQueryBuilder('q').select('q.id').orderBy('q.createdAt', 'DESC');
 
     if (dto.search) {
       const sanitized = dto.search.replace(/[%_\\]/g, '\\$&');

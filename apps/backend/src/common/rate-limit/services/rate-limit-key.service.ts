@@ -58,4 +58,3 @@ export class RateLimitKeyService {
     return `${environment}:auth:${endpoint}:${dimension}:${identifier}`;
   }
 }
-

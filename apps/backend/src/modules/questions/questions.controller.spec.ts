@@ -104,7 +104,10 @@ describe('QuestionsController', () => {
       { content: response.content, questionType: QuestionType.SINGLE_CHOICE },
       teacherId,
     );
-    const getRes = await request(app.getHttpServer()).get('/api/v1/questions').set(auth).expect(200);
+    const getRes = await request(app.getHttpServer())
+      .get('/api/v1/questions')
+      .set(auth)
+      .expect(200);
     expect(getRes.body).toMatchObject({
       data: [{ id, content: response.content }],
       total: 1,

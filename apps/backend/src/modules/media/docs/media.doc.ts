@@ -20,8 +20,7 @@ export function ApiMediaControllerDoc() {
   return applyDecorators(
     ApiAuthDoc({
       unauthorizedDescription: 'Access token is invalid or absent',
-      forbiddenDescription:
-        'Authenticated user does not have permission to manage media resources',
+      forbiddenDescription: 'Authenticated user does not have permission to manage media resources',
     }),
     ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' }),
   );
@@ -39,7 +38,9 @@ export function ApiCreatePresignedUrlDoc() {
       type: PresignedUrlResponseDto,
     }),
     ApiBadRequestResponse({ description: 'Invalid file quota or unsupported MIME type' }),
-    ApiTooManyRequestsResponse({ description: 'Too many presigned URL requests. Please try again later.' }),
+    ApiTooManyRequestsResponse({
+      description: 'Too many presigned URL requests. Please try again later.',
+    }),
   );
 }
 
@@ -47,8 +48,7 @@ export function ApiCreateBatchPresignedUrlsDoc() {
   return applyDecorators(
     ApiOperation({
       summary: 'Request multiple presigned upload URLs (1-10 files)',
-      description:
-        'Generates an array of signed upload URLs for multi-file TOEIC question assets.',
+      description: 'Generates an array of signed upload URLs for multi-file TOEIC question assets.',
     }),
     ApiCreatedResponse({
       description: 'Batch presigned upload URLs successfully created',
@@ -80,7 +80,6 @@ export function ApiConfirmUploadDoc() {
     }),
   );
 }
-
 
 export function ApiGetMediaByIdDoc() {
   return applyDecorators(

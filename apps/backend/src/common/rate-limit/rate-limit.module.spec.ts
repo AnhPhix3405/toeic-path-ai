@@ -28,4 +28,3 @@ describe('RateLimitModule', () => {
     await module.close();
   });
 });
-

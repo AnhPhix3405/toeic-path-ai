@@ -1,7 +1,4 @@
-import {
-  renderPasswordResetHtml,
-  renderPasswordResetText,
-} from './password-reset.template';
+import { renderPasswordResetHtml, renderPasswordResetText } from './password-reset.template';
 
 describe('Password Reset Email Templates', () => {
   const resetUrl = 'http://localhost:3000/auth/reset-password?token=test-token-123';

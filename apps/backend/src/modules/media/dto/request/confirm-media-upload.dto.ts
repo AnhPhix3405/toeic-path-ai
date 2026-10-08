@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 import { MediaResourceType } from '../../../questions/enums/media-resource-type.enum';
 
 export class ConfirmMediaUploadDto {
@@ -9,7 +17,9 @@ export class ConfirmMediaUploadDto {
   @MaxLength(255)
   fileName!: string;
 
-  @ApiProperty({ example: 'https://storage.example.com/public/media/questions/audio/user/file.mp3' })
+  @ApiProperty({
+    example: 'https://storage.example.com/public/media/questions/audio/user/file.mp3',
+  })
   @IsUrl()
   @IsNotEmpty()
   fileUrl!: string;

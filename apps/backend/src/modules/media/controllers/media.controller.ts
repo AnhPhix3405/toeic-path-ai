@@ -81,7 +81,6 @@ export class MediaController {
     return this.mediaService.confirmUpload(user.id, dto);
   }
 
-
   @Get(':id')
   @ApiGetMediaByIdDoc()
   async getMediaById(
@@ -118,9 +117,7 @@ export class MediaController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiDeleteMediaDoc()
-  async deleteMedia(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-  ): Promise<void> {
+  async deleteMedia(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string): Promise<void> {
     await this.mediaService.deleteMedia(id);
   }
 }

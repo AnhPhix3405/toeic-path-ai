@@ -64,8 +64,7 @@ export function ApiErrorResponsesDoc(
   if (statuses.includes(500)) {
     decorators.push(
       ApiInternalServerErrorResponse({
-        description:
-          descriptions?.internalServerError ?? 'An unexpected server error occurred',
+        description: descriptions?.internalServerError ?? 'An unexpected server error occurred',
       }),
     );
   }

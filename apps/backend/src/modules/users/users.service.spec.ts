@@ -92,10 +92,7 @@ describe('UsersService security events', () => {
       const mockRepo = {
         findOneBy: jest.fn().mockResolvedValue(user),
       };
-      const service = new UsersService(
-        mockRepo as unknown as Repository<User>,
-        {} as DataSource,
-      );
+      const service = new UsersService(mockRepo as unknown as Repository<User>, {} as DataSource);
       const result = await service.findById(user.id);
       expect(mockRepo.findOneBy).toHaveBeenCalledWith({ id: user.id });
       expect(result).toEqual(user);
@@ -111,10 +108,7 @@ describe('UsersService security events', () => {
       const mockRepo = {
         createQueryBuilder: jest.fn().mockReturnValue(qb),
       };
-      const service = new UsersService(
-        mockRepo as unknown as Repository<User>,
-        {} as DataSource,
-      );
+      const service = new UsersService(mockRepo as unknown as Repository<User>, {} as DataSource);
       const result = await service.findById(user.id, true);
       expect(mockRepo.createQueryBuilder).toHaveBeenCalledWith('user');
       expect(qb.where).toHaveBeenCalledWith('user.id = :id', { id: user.id });

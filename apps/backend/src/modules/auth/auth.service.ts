@@ -135,6 +135,33 @@ export class AuthService {
       return { message: FORGOT_PASSWORD_MESSAGE };
     }
 
+    if (user.authProvider !== AuthProvider.LOCAL || !user.passwordHash) {
+      try {
+        await this.mailService.sendOAuthAccountNoticeEmail({
+          recipientEmail: user.email,
+          provider: user.authProvider === AuthProvider.GOOGLE ? 'Google' : user.authProvider,
+        });
+      } catch {
+        this.securityEvents?.warn({
+          event: SecurityEventType.AUTH_PASSWORD_RESET_FAILED,
+          result: 'failure',
+          module: 'auth',
+          ...metadata,
+          userId: user.id,
+          reasonCode: 'MAIL_DELIVERY_FAILED',
+        });
+      }
+      this.securityEvents?.warn({
+        event: SecurityEventType.AUTH_PASSWORD_RESET_FAILED,
+        result: 'failure',
+        module: 'auth',
+        ...metadata,
+        userId: user.id,
+        reasonCode: 'OAUTH_ACCOUNT_RESET_REJECTED',
+      });
+      return { message: FORGOT_PASSWORD_MESSAGE };
+    }
+
     const rawToken = randomBytes(32).toString('base64url');
     const tokenHash = this.hashResetToken(rawToken);
     const now = new Date();
@@ -219,7 +246,8 @@ export class AuthService {
           resetToken.usedAt ||
           resetToken.revokedAt ||
           resetToken.expiresAt <= now ||
-          resetToken.user.status !== UserStatus.ACTIVE
+          resetToken.user.status !== UserStatus.ACTIVE ||
+          resetToken.user.authProvider !== AuthProvider.LOCAL
         ) {
           throw new BadRequestException(INVALID_RESET_TOKEN_MESSAGE);
         }
@@ -308,7 +336,9 @@ export class AuthService {
         userId: user.id,
         reasonCode: 'OAUTH_USER_NO_PASSWORD',
       });
-      throw new BadRequestException('Account registered with Google cannot change password directly');
+      throw new BadRequestException(
+        'Account registered with Google cannot change password directly',
+      );
     }
 
     const isCurrentValid = await compare(dto.currentPassword, existingUser.passwordHash);

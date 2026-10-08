@@ -6,6 +6,12 @@ export interface PasswordResetMailInput {
   expiresAt: Date;
 }
 
+export interface OAuthAccountNoticeMailInput {
+  recipientEmail: string;
+  provider: string;
+}
+
 export interface MailService {
   sendPasswordResetEmail(input: PasswordResetMailInput): Promise<void>;
+  sendOAuthAccountNoticeEmail(input: OAuthAccountNoticeMailInput): Promise<void>;
 }

@@ -119,7 +119,10 @@ describe('QuestionRepository', () => {
   it('applies EXISTS subqueries for topicIds and skillIds (OR logic)', async () => {
     qb.getManyAndCount.mockResolvedValue([[], 0]);
 
-    const topicIds = ['50000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000002'];
+    const topicIds = [
+      '50000000-0000-4000-8000-000000000001',
+      '50000000-0000-4000-8000-000000000002',
+    ];
     const skillIds = ['60000000-0000-4000-8000-000000000001'];
 
     await repository.findPaginated({

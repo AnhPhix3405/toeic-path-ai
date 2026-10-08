@@ -19,14 +19,7 @@ import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
     RateLimitModule,
   ],
   controllers: [MediaController],
-  providers: [
-    MediaService,
-    MediaCleanupService,
-    MediaResourceRepository,
-    JwtAuthGuard,
-    RolesGuard,
-  ],
+  providers: [MediaService, MediaCleanupService, MediaResourceRepository, JwtAuthGuard, RolesGuard],
   exports: [MediaService, MediaResourceRepository],
 })
 export class MediaModule {}
-

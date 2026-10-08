@@ -65,7 +65,6 @@ export function ApiUploadMyAvatarDoc(): MethodDecorator {
   );
 }
 
-
 export function ApiDeleteMyAvatarDoc(): MethodDecorator {
   return applyDecorators(
     ApiOperation({ summary: 'Delete the authenticated user avatar' }),

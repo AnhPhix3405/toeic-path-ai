@@ -15,11 +15,13 @@ describe('UploadThrottlerGuard', () => {
   let store: jest.Mocked<AuthRateLimitStore>;
   let securityEvents: jest.Mocked<SecurityEventService>;
 
-  const createMockContext = (options: {
-    user?: { id: string };
-    ip?: string;
-    traceId?: string;
-  } = {}): ExecutionContext => {
+  const createMockContext = (
+    options: {
+      user?: { id: string };
+      ip?: string;
+      traceId?: string;
+    } = {},
+  ): ExecutionContext => {
     const headers: Record<string, string | number> = {};
     const req = {
       user: options.user,
@@ -105,7 +107,12 @@ describe('UploadThrottlerGuard', () => {
     config.get.mockReturnValue(true);
     config.getOrThrow.mockReturnValue({ ttl: 60, user: 5, ip: 10 });
     keys.policyIp.mockReturnValue('test:policy:uploadAvatar:ip:127.0.0.1');
-    store.consume.mockResolvedValueOnce({ allowed: true, limit: 10, remaining: 9, retryAfterSeconds: 60 });
+    store.consume.mockResolvedValueOnce({
+      allowed: true,
+      limit: 10,
+      remaining: 9,
+      retryAfterSeconds: 60,
+    });
 
     const context = createMockContext({ ip: '127.0.0.1' }); // No user
     expect(await guard.canActivate(context)).toBe(true);
@@ -124,7 +131,7 @@ describe('UploadThrottlerGuard', () => {
       .mockResolvedValueOnce({ allowed: false, limit: 5, remaining: 0, retryAfterSeconds: 45 }); // User blocked
 
     const context = createMockContext({ user: { id: 'user-1' }, ip: '127.0.0.1' });
-    
+
     let caughtError: HttpException | undefined;
     try {
       await guard.canActivate(context);
@@ -148,14 +155,18 @@ describe('UploadThrottlerGuard', () => {
     );
   });
 
-
   it('should throw 429 and emit security event when IP limit is exceeded', async () => {
     reflector.get.mockReturnValue('uploadAvatar');
     config.get.mockReturnValue(true);
     config.getOrThrow.mockReturnValue({ ttl: 60, user: 5, ip: 10 });
     keys.policyIp.mockReturnValue('test:policy:uploadAvatar:ip:127.0.0.1');
     keys.policyUser.mockReturnValue('test:policy:uploadAvatar:user:user-1');
-    store.consume.mockResolvedValueOnce({ allowed: false, limit: 10, remaining: 0, retryAfterSeconds: 50 }); // IP blocked
+    store.consume.mockResolvedValueOnce({
+      allowed: false,
+      limit: 10,
+      remaining: 0,
+      retryAfterSeconds: 50,
+    }); // IP blocked
 
     const context = createMockContext({ user: { id: 'user-1' }, ip: '127.0.0.1' });
     await expect(guard.canActivate(context)).rejects.toThrow(HttpException);

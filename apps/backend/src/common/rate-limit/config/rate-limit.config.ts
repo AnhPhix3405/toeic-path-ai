@@ -99,4 +99,3 @@ export default registerAs('rateLimit', () => ({
     ip: integer('RATE_LIMIT_UPLOAD_CONFIRM_IP_MAX', 60),
   },
 }));
-

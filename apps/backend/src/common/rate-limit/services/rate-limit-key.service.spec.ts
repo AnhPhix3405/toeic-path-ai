@@ -49,4 +49,3 @@ describe('RateLimitKeyService', () => {
     expect(key).toBe('test:global:ip:192.168.1.1');
   });
 });
-

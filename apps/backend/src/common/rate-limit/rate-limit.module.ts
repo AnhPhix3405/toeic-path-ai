@@ -41,4 +41,3 @@ import { AuthOriginGuard } from './guards/auth-origin.guard';
   ],
 })
 export class RateLimitModule {}
-

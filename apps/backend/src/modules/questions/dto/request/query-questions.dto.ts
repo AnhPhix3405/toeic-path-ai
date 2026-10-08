@@ -92,4 +92,3 @@ export class QueryQuestionsDto {
   @Max(50)
   limit: number = 20;
 }
-

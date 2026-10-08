@@ -72,7 +72,7 @@ describe('MediaController', () => {
       storageKey: `questions/audio/${userId}/1.mp3`,
       resourceType: MediaResourceType.AUDIO,
     };
-    service.confirmUpload!.mockResolvedValue({ id: mediaId } as never);
+    service.confirmUpload!.mockResolvedValue({ id: mediaId });
 
     const result = await controller.confirmUpload({ id: userId }, dto);
 
@@ -81,7 +81,7 @@ describe('MediaController', () => {
   });
 
   it('getMediaById delegates to service', async () => {
-    service.getMediaById!.mockResolvedValue({ id: mediaId } as never);
+    service.getMediaById!.mockResolvedValue({ id: mediaId });
 
     const result = await controller.getMediaById(mediaId);
 
@@ -109,7 +109,7 @@ describe('MediaController', () => {
 
   it('updateTarget delegates to service', async () => {
     const dto = { questionId };
-    service.updateTarget!.mockResolvedValue({ id: mediaId, questionId } as never);
+    service.updateTarget!.mockResolvedValue({ id: mediaId, questionId });
 
     const result = await controller.updateTarget(mediaId, dto);
 

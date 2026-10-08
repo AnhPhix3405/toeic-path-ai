@@ -60,7 +60,6 @@ export class PolicyThrottlerGuard implements CanActivate {
     const response = context.switchToHttp().getResponse<Response>();
     const policy = this.config.getOrThrow<PolicyConfig>(`rateLimit.${name}`);
 
-
     // Dimension 1: IP-level rate limiting
     await this.consume(
       this.keys.policyIp(request, name),
@@ -152,12 +151,8 @@ export class PolicyThrottlerGuard implements CanActivate {
 
   private getMetadata<T>(key: symbol, context: ExecutionContext): T | undefined {
     if (typeof this.reflector.getAllAndOverride === 'function') {
-      return this.reflector.getAllAndOverride<T>(key, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      return this.reflector.getAllAndOverride<T>(key, [context.getHandler(), context.getClass()]);
     }
     return this.reflector.get<T>(key, context.getHandler());
   }
 }
-

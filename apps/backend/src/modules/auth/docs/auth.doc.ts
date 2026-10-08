@@ -56,7 +56,9 @@ export function ApiResetPasswordDoc(): MethodDecorator {
     ApiOperation({ summary: 'Reset a password with a single-use, expiring token' }),
     ApiOkResponse({
       description: 'Password reset and all login sessions revoked',
-      schema: { example: { message: 'Password has been reset successfully. Please sign in again.' } },
+      schema: {
+        example: { message: 'Password has been reset successfully. Please sign in again.' },
+      },
     }),
     ApiBadRequestResponse({ description: 'The reset token is invalid, expired, revoked, or used' }),
   );

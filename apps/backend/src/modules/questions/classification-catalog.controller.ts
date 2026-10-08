@@ -13,7 +13,10 @@ import {
   ApiFindToeicPartsDoc,
   ApiFindTopicsDoc,
 } from './docs/classification-catalog.doc';
-import { TaxonomyItemResponseDto, ToeicPartResponseDto } from './dto/response/classification-response.dto';
+import {
+  TaxonomyItemResponseDto,
+  ToeicPartResponseDto,
+} from './dto/response/classification-response.dto';
 
 @ApiTags('Question Classification')
 @ApiClassificationCatalogControllerDoc()

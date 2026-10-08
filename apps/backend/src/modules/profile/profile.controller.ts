@@ -78,4 +78,3 @@ export class ProfileController {
     return this.profileService.deleteMyAvatar(user.id);
   }
 }
-

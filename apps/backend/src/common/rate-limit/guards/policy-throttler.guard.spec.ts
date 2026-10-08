@@ -16,11 +16,13 @@ describe('PolicyThrottlerGuard', () => {
   let securityEvents: jest.Mocked<SecurityEventService>;
   let responseHeaders: Record<string, string | number>;
 
-  const createMockContext = (options: {
-    user?: { id: string };
-    ip?: string;
-    traceId?: string;
-  } = {}): ExecutionContext => {
+  const createMockContext = (
+    options: {
+      user?: { id: string };
+      ip?: string;
+      traceId?: string;
+    } = {},
+  ): ExecutionContext => {
     responseHeaders = {};
     const req = {
       user: options.user,
@@ -93,7 +95,8 @@ describe('PolicyThrottlerGuard', () => {
 
   it('should pass through if rate limiting is disabled in config', async () => {
     reflector.getAllAndOverride.mockImplementation((key) => {
-      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY') return 'questionsSearch';
+      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY')
+        return 'questionsSearch';
       return undefined;
     });
     config.get.mockReturnValue(false); // rateLimit.enabled = false
@@ -104,7 +107,8 @@ describe('PolicyThrottlerGuard', () => {
 
   it('should consume both user and ip limits and set standard rate limit headers on success', async () => {
     reflector.getAllAndOverride.mockImplementation((key) => {
-      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY') return 'questionsSearch';
+      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY')
+        return 'questionsSearch';
       return undefined;
     });
     config.get.mockReturnValue(true);
@@ -126,13 +130,19 @@ describe('PolicyThrottlerGuard', () => {
 
   it('should fallback gracefully to IP protection if request.user is missing', async () => {
     reflector.getAllAndOverride.mockImplementation((key) => {
-      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY') return 'questionsSearch';
+      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY')
+        return 'questionsSearch';
       return undefined;
     });
     config.get.mockReturnValue(true);
     config.getOrThrow.mockReturnValue({ ttl: 60, user: 30, ip: 60 });
     keys.policyIp.mockReturnValue('test:policy:questionsSearch:ip:127.0.0.1');
-    store.consume.mockResolvedValueOnce({ allowed: true, limit: 60, remaining: 59, retryAfterSeconds: 60 });
+    store.consume.mockResolvedValueOnce({
+      allowed: true,
+      limit: 60,
+      remaining: 59,
+      retryAfterSeconds: 60,
+    });
 
     const context = createMockContext({ ip: '127.0.0.1' });
     expect(await guard.canActivate(context)).toBe(true);
@@ -142,7 +152,8 @@ describe('PolicyThrottlerGuard', () => {
 
   it('should throw 429, set Retry-After header, and emit RATE_LIMIT_EXCEEDED when user limit is exceeded for questions search', async () => {
     reflector.getAllAndOverride.mockImplementation((key) => {
-      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY') return 'questionsSearch';
+      if (typeof key === 'symbol' && key.description === 'THROTTLE_POLICY')
+        return 'questionsSearch';
       return undefined;
     });
     config.get.mockReturnValue(true);
