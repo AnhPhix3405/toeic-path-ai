@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
+const authRoutes = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+];
 
 const studentRoutes = [
   "/dashboard",
