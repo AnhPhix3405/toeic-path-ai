@@ -7,6 +7,7 @@ import type {
   RefreshTokenResponse,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ChangePasswordDto,
   MessageResponseDto,
 } from "@/types/auth";
 import type { UserProfile } from "@/types/api";
@@ -152,6 +153,17 @@ export const authService = {
       return (raw as { data: MessageResponseDto }).data;
     }
     return (raw as MessageResponseDto) || { message: "Password has been reset successfully." };
+  },
+
+  /**
+   * Đổi mật khẩu tài khoản người dùng đã xác thực
+   */
+  async changePassword(dto: ChangePasswordDto): Promise<MessageResponseDto> {
+    const raw = (await apiClient.post<unknown>("/auth/change-password", dto)) as unknown;
+    if (raw && typeof raw === "object" && "data" in raw && (raw as { data?: unknown }).data) {
+      return (raw as { data: MessageResponseDto }).data;
+    }
+    return (raw as MessageResponseDto) || { message: "Password has been changed successfully." };
   },
 };
 

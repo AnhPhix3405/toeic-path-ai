@@ -74,7 +74,35 @@ export const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Vui lòng nhập mật khẩu hiện tại")
+      .max(72, "Mật khẩu hiện tại không được vượt quá 72 ký tự"),
+    newPassword: z
+      .string()
+      .min(12, "Mật khẩu mới phải chứa ít nhất 12 ký tự")
+      .max(72, "Mật khẩu mới không được vượt quá 72 ký tự")
+      .regex(/[a-z]/, "Mật khẩu mới cần ít nhất 1 chữ cái in thường")
+      .regex(/[A-Z]/, "Mật khẩu mới cần ít nhất 1 chữ cái in hoa")
+      .regex(/[0-9]/, "Mật khẩu mới cần ít nhất 1 chữ số")
+      .regex(/[^A-Za-z\d]/, "Mật khẩu mới cần ít nhất 1 ký tự đặc biệt (!@#$%^&*...)"),
+    confirmNewPassword: z
+      .string()
+      .min(1, "Vui lòng xác nhận lại mật khẩu mới"),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Mật khẩu xác nhận không trùng khớp",
+    path: ["confirmNewPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "Mật khẩu mới không được trùng với mật khẩu hiện tại",
+    path: ["newPassword"],
+  });
+
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;

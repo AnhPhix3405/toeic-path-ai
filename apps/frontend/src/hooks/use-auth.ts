@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth.store";
 import { authService } from "@/services/auth.service";
-import type { LoginDto, RegisterDto } from "@/types/auth";
+import type { LoginDto, RegisterDto, ChangePasswordDto, MessageResponseDto } from "@/types/auth";
 import type { UserProfile } from "@/types/api";
 
 export function useAuth() {
@@ -113,6 +113,24 @@ export function useAuth() {
     }
   }, [setUser]);
 
+  const changePassword = React.useCallback(
+    async (dto: ChangePasswordDto): Promise<MessageResponseDto> => {
+      setLoading(true);
+      try {
+        const response = await authService.changePassword(dto);
+        toast.success("Đổi mật khẩu thành công!", {
+          description: "Mật khẩu của bạn đã được cập nhật an toàn.",
+        });
+        return response;
+      } catch (error) {
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading]
+  );
+
   return {
     user,
     token,
@@ -125,5 +143,6 @@ export function useAuth() {
     loginWithGoogle,
     logout,
     refreshProfile,
+    changePassword,
   };
 }

@@ -45,4 +45,27 @@ describe("authService Password Reset Methods", () => {
       confirmPassword: "StrongPassword123!",
     });
   });
+
+  it("calls changePassword and returns success message", async () => {
+    const mockResponse = {
+      message: "Password has been changed successfully.",
+    };
+
+    vi.spyOn(apiClient, "post").mockResolvedValueOnce(
+      mockResponse as unknown as ApiResponse<unknown>
+    );
+
+    const result = await authService.changePassword({
+      currentPassword: "OldPassword123!",
+      newPassword: "NewSecurePassword456!@",
+      confirmNewPassword: "NewSecurePassword456!@",
+    });
+
+    expect(result).toEqual(mockResponse);
+    expect(apiClient.post).toHaveBeenCalledWith("/auth/change-password", {
+      currentPassword: "OldPassword123!",
+      newPassword: "NewSecurePassword456!@",
+      confirmNewPassword: "NewSecurePassword456!@",
+    });
+  });
 });

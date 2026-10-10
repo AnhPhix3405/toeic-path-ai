@@ -44,6 +44,7 @@ describe("RegisterPage Integration Tests", () => {
       loginWithGoogle: vi.fn(),
       logout: vi.fn(),
       refreshProfile: vi.fn(),
+      changePassword: vi.fn(),
     });
   });
 
