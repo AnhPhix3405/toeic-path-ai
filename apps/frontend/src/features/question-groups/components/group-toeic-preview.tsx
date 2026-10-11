@@ -4,11 +4,17 @@ import React from "react";
 import { CheckCircle2, Eye, Sparkles } from "lucide-react";
 import { PassageViewer } from "./passage-viewer";
 import { Question } from "@/types/question";
+import { useQuestionGroupMedia } from "@/hooks/use-media";
+import { AudioPlayer } from "@/features/media/components/audio-player";
+import { ImageLightbox } from "@/features/media/components/image-lightbox";
+import type { MediaResource } from "@/types/media";
 
 interface GroupToeicPreviewProps {
   title?: string | null;
   context: string;
   questions: Question[];
+  groupId?: string;
+  mediaItems?: MediaResource[];
 }
 
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
@@ -17,7 +23,15 @@ export function GroupToeicPreview({
   title,
   context,
   questions,
+  groupId,
+  mediaItems: propMediaItems,
 }: GroupToeicPreviewProps) {
+  const { data: fetchedMedia } = useQuestionGroupMedia(groupId);
+  const mediaItems = propMediaItems || fetchedMedia || [];
+
+  const audioItems = mediaItems.filter((m) => m.resourceType === "audio");
+  const imageItems = mediaItems.filter((m) => m.resourceType === "image");
+
   const sortedQuestions = [...questions].sort(
     (a, b) => (a.groupOrder || 0) - (b.groupOrder || 0)
   );
@@ -38,14 +52,44 @@ export function GroupToeicPreview({
         </div>
       </div>
 
+      {/* Embedded Group Audio Player (Part 3, 4 Conversation / Talks) */}
+      {audioItems.length > 0 && (
+        <div className="space-y-2">
+          {audioItems.map((audio) => (
+            <AudioPlayer
+              key={audio.id}
+              src={audio.fileUrl}
+              title={title || "Group Audio Track"}
+              fileName={audio.fileName}
+              variant="standard"
+            />
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Passage Viewer with Independent Scroll */}
-        <div className="lg:col-span-6 sticky top-6">
+        {/* Left Column: Passage Viewer with Independent Scroll & Embedded Images */}
+        <div className="lg:col-span-6 sticky top-6 space-y-4">
           <PassageViewer
             title={title || "Reading Passage"}
             context={context}
             maxHeight="max-h-[640px]"
           />
+
+          {/* Embedded Group Images (Part 7 Articles / Tables / Graphs) */}
+          {imageItems.length > 0 && (
+            <div className="space-y-3">
+              {imageItems.map((img) => (
+                <ImageLightbox
+                  key={img.id}
+                  src={img.fileUrl}
+                  fileName={img.fileName}
+                  fileSize={img.fileSize}
+                  showMetadataBadge
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Column: Questions Stack */}
@@ -103,25 +147,19 @@ export function GroupToeicPreview({
                           >
                             {label}
                           </span>
-                          <span className="flex-1">{opt.content}</span>
+                          <span className="flex-1 text-slate-800 dark:text-slate-200">
+                            {opt.content}
+                          </span>
                           {isCorrect && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span className="inline-flex items-center text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                              Đáp án đúng
+                            </span>
                           )}
                         </div>
                       );
                     })}
                   </div>
-
-                  {/* Explanation */}
-                  {q.explanation && (
-                    <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/80 dark:border-amber-900/30 text-xs text-slate-600 dark:text-slate-300">
-                      <span className="font-semibold text-amber-800 dark:text-amber-400 flex items-center gap-1 mb-1">
-                        <Sparkles className="w-3 h-3" />
-                        Lời giải:
-                      </span>
-                      {q.explanation}
-                    </div>
-                  )}
                 </div>
               );
             })

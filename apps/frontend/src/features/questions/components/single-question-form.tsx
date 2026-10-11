@@ -4,7 +4,16 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Lock, Save } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Film,
+  Loader2,
+  Lock,
+  Plus,
+  Save,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -18,6 +27,9 @@ import { QuestionStatusBadge } from "./question-status-badge";
 import { questionsService } from "@/services/questions.service";
 import { Question } from "@/types/question";
 import { toast } from "sonner";
+import { MediaAttachmentList } from "@/features/media/components/media-attachment-list";
+import { MediaManagerModal } from "@/features/media/components/media-manager-modal";
+import { useQuestionMedia, useDeleteMedia } from "@/hooks/use-media";
 
 interface SingleQuestionFormProps {
   initialQuestion?: Question | null;
@@ -38,12 +50,18 @@ export function SingleQuestionForm({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
   // PM Point 2: Read-only guard for published/pending_review questions in edit mode
   const isReadOnly =
     mode === "edit" &&
     (initialQuestion?.status === "published" ||
       initialQuestion?.status === "pending_review");
+
+  // Media Query & Mutation
+  const questionId = initialQuestion?.id;
+  const { data: mediaItems = [], isLoading: isMediaLoading } = useQuestionMedia(questionId);
+  const deleteMediaMutation = useDeleteMedia();
 
   const form = useForm<SingleQuestionFormValues>({
     resolver: zodResolver(singleQuestionSchema),
@@ -122,10 +140,12 @@ export function SingleQuestionForm({
         router.push(`/questions/${initialQuestion.id}`);
       }
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Đã xảy ra lỗi khi lưu câu hỏi";
-      setServerError(message);
-      toast.error(message);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Đã xảy ra lỗi khi lưu câu hỏi. Vui lòng kiểm tra lại thông tin.";
+      setServerError(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -133,14 +153,14 @@ export function SingleQuestionForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Top Advisory Banner for Read-Only Mode (PM Point 2) */}
+      {/* Read-Only Status Guard Notice */}
       {isReadOnly && (
         <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300">
           <Lock className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="text-sm">
             <div className="font-semibold flex items-center">
               Câu hỏi này đang ở trạng thái
-              <QuestionStatusBadge status={initialQuestion!.status} className="ml-1.5" />
+              <QuestionStatusBadge status={initialQuestion.status} className="ml-1.5" />
             </div>
             <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
               Câu hỏi đã xuất bản hoặc đang chờ duyệt không thể chỉnh sửa trực tiếp để đảm bảo tính toàn vẹn của ngân hàng đề thi.
@@ -149,22 +169,21 @@ export function SingleQuestionForm({
         </div>
       )}
 
-      {/* Server Error Alert */}
+      {/* Global Server Error Alert */}
       {serverError && (
-        <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300">
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-semibold">Không thể lưu câu hỏi</p>
-            <p className="text-xs mt-0.5">{serverError}</p>
+          <div className="flex-1">
+            <p className="font-semibold">Lỗi lưu câu hỏi</p>
+            <p className="mt-0.5 text-xs">{serverError}</p>
           </div>
         </div>
       )}
 
-      {/* Main Grid: Form Left, Sticky Preview Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Form Fields */}
+        {/* Left Column: Form Editor Fields */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Question Content Box */}
+          {/* Question Content */}
           <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               Nội dung câu hỏi (Question Content) <span className="text-rose-500">*</span>
@@ -174,14 +193,10 @@ export function SingleQuestionForm({
               value={currentValues.content}
               onChange={(e) => setValue("content", e.target.value, { shouldValidate: true })}
               placeholder="Nhập nội dung câu hỏi TOEIC (ví dụ: Mr. Henderson requested that all team members ______ the meeting...)"
-              className={`min-h-[120px] rounded-xl text-base ${
-                errors.content ? "border-rose-500 focus-visible:ring-rose-500" : ""
-              }`}
+              className="min-h-[120px] rounded-xl text-base"
             />
             {errors.content && (
-              <p className="text-xs text-rose-500 font-medium">
-                {errors.content.message}
-              </p>
+              <p className="text-xs text-rose-500 font-medium">{errors.content.message}</p>
             )}
           </div>
 
@@ -196,6 +211,50 @@ export function SingleQuestionForm({
               <p className="text-xs text-rose-500 font-medium mt-2">
                 {errors.options.message}
               </p>
+            )}
+          </div>
+
+          {/* Media Resources Section (UC13) */}
+          <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Film className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  Tài nguyên đa phương tiện (Audio & Hình ảnh)
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Đính kèm hình ảnh minh họa (Part 1 Photograph) hoặc tệp âm thanh câu hỏi (Part 1, 2).
+                </p>
+              </div>
+
+              {questionId && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsMediaModalOpen(true)}
+                  disabled={isReadOnly || isSubmitting}
+                  className="rounded-xl text-xs gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Quản lý tài nguyên
+                </Button>
+              )}
+            </div>
+
+            {questionId ? (
+              <MediaAttachmentList
+                mediaItems={mediaItems}
+                parentStatus={initialQuestion?.status}
+                isLoading={isMediaLoading}
+                onDelete={async (id) => {
+                  await deleteMediaMutation.mutateAsync(id);
+                }}
+              />
+            ) : (
+              <div className="p-4 rounded-xl border border-dashed text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-800/30">
+                Lưu bản nháp câu hỏi trước để đính kèm tệp âm thanh hoặc hình ảnh dung lượng lớn trực tiếp.
+              </div>
             )}
           </div>
 
@@ -276,9 +335,23 @@ export function SingleQuestionForm({
 
         {/* Right Column: Live Real-Time TOEIC Preview Card */}
         <div className="lg:col-span-5">
-          <QuestionPreviewCard formValues={currentValues} />
+          <QuestionPreviewCard
+            formValues={currentValues}
+            questionId={questionId}
+            mediaItems={mediaItems}
+          />
         </div>
       </div>
+
+      {/* Media Manager Modal */}
+      {questionId && (
+        <MediaManagerModal
+          open={isMediaModalOpen}
+          onOpenChange={setIsMediaModalOpen}
+          target={{ questionId }}
+          parentStatus={initialQuestion?.status}
+        />
+      )}
     </form>
   );
 }

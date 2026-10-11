@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Film, Loader2, Plus, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ import {
 } from "@/hooks/use-question-groups";
 import { QuestionGroup } from "@/types/question";
 import { toast } from "sonner";
+import { MediaAttachmentList } from "@/features/media/components/media-attachment-list";
+import { MediaManagerModal } from "@/features/media/components/media-manager-modal";
+import { useQuestionGroupMedia, useDeleteMedia } from "@/hooks/use-media";
 
 interface QuestionGroupFormProps {
   initialGroup?: QuestionGroup | null;
@@ -31,11 +34,16 @@ export function QuestionGroupForm({
 }: QuestionGroupFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
 
   const createMutation = useCreateQuestionGroup();
   const updateMutation = useUpdateQuestionGroup();
+  const deleteMediaMutation = useDeleteMedia();
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
+  const groupId = initialGroup?.id;
+  const { data: mediaItems = [], isLoading: isMediaLoading } = useQuestionGroupMedia(groupId);
 
   const form = useForm<QuestionGroupFormValues>({
     resolver: zodResolver(questionGroupSchema),
@@ -140,6 +148,49 @@ export function QuestionGroupForm({
             </div>
           </div>
 
+          {/* Media Resources Section (UC13) */}
+          <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Film className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  Tài nguyên Audio & Hình ảnh cho nhóm
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Đính kèm bài nghe hội thoại chung (Part 3, 4 Audio) hoặc tài liệu bài đọc (Part 7 Images).
+                </p>
+              </div>
+
+              {groupId && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsMediaModalOpen(true)}
+                  disabled={isSubmitting}
+                  className="rounded-xl text-xs gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Quản lý tài nguyên
+                </Button>
+              )}
+            </div>
+
+            {groupId ? (
+              <MediaAttachmentList
+                mediaItems={mediaItems}
+                isLoading={isMediaLoading}
+                onDelete={async (id) => {
+                  await deleteMediaMutation.mutateAsync(id);
+                }}
+              />
+            ) : (
+              <div className="p-4 rounded-xl border border-dashed text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-800/30">
+                Lưu nhóm câu hỏi trước để đính kèm tệp âm thanh nghe chung hoặc hình ảnh tài liệu.
+              </div>
+            )}
+          </div>
+
           {/* Form Actions */}
           <div className="flex items-center justify-between pt-2">
             <Button
@@ -184,6 +235,16 @@ export function QuestionGroupForm({
           />
         </div>
       </div>
+
+      {/* Media Manager Modal */}
+      {groupId && (
+        <MediaManagerModal
+          open={isMediaModalOpen}
+          onOpenChange={setIsMediaModalOpen}
+          target={{ questionGroupId: groupId }}
+          title="Quản lý tài nguyên nhóm câu hỏi"
+        />
+      )}
     </form>
   );
 }
