@@ -8,6 +8,7 @@ import type {
   StorageService,
   StoredFile,
   UploadAvatarInput,
+  UploadFileInput,
 } from '../interfaces/storage-service.interface';
 
 @Injectable()
@@ -143,6 +144,38 @@ export class SupabaseStorageAdapter implements StorageService {
       if (error instanceof BadGatewayException) throw error;
       throw new BadGatewayException('Storage service is unavailable');
     }
+  }
+
+  async uploadFile(input: UploadFileInput): Promise<StoredFile> {
+    const bucket = input.bucket ?? this.mediaBucket;
+    const response = await fetch(this.objectUrl(input.storageKey, bucket), {
+      method: 'POST',
+      headers: {
+        ...this.authHeaders(),
+        'Content-Type': input.mimeType,
+        'x-upsert': 'true',
+      },
+      body: new Uint8Array(input.buffer),
+    });
+    if (!response.ok) throw new BadGatewayException('Storage service is unavailable');
+
+    return {
+      url: `${this.baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${this.encodeKey(input.storageKey)}`,
+      storageKey: input.storageKey,
+      mimeType: input.mimeType,
+      sizeBytes: input.buffer.length,
+    };
+  }
+
+  async downloadFile(storageKey: string, bucket?: string): Promise<Buffer> {
+    const targetBucket = bucket ?? this.mediaBucket;
+    const response = await fetch(this.objectUrl(storageKey, targetBucket), {
+      method: 'GET',
+      headers: this.authHeaders(),
+    });
+    if (!response.ok) throw new BadGatewayException('Storage service is unavailable');
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
   }
 
   async deleteFile(storageKey: string, bucket?: string): Promise<void> {

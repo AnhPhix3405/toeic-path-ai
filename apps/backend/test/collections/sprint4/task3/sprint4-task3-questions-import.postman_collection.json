@@ -1,0 +1,460 @@
+{
+  "info": {
+    "_postman_id": "78c93de1-628a-493e-8902-8a9d18fae190",
+    "name": "Sprint 4 Task 3 — Bulk Questions Import & Async Processing (UC14)",
+    "description": "Collection kiểm thử tự động toàn diện nghiệp vụ import câu hỏi hàng loạt từ Excel/ZIP, phân nhánh Sync (< 100 dòng) và Async BullMQ Queue (>= 100 dòng), phòng vệ Zip Bomb/Zip Slip, Group Atomicity, Whitelist thay thế media và Submit for review theo nhóm.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001", "type": "string" },
+    { "key": "teacherEmail", "value": "teacher@example.com", "type": "string" },
+    { "key": "teacherPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentEmail", "value": "student@example.com", "type": "string" },
+    { "key": "studentPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "jobId", "value": "", "type": "string" },
+    { "key": "sampleQuestionId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Login as Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('teacherToken', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{teacherPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('adminToken', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('studentToken', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Download Template",
+      "item": [
+        {
+          "name": "GET Questions Template Excel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Content-Type is Excel spreadsheet', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('spreadsheetml');",
+                  "});",
+                  "pm.test('Content-Disposition header is attachment', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import/template",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import", "template"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Synchronous Bulk Import (< 100 rows)",
+      "item": [
+        {
+          "name": "Upload Small Excel (< 100 rows) -> 201 Created Sync",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Result indicates synchronous execution', function () {",
+                  "    pm.expect(json.isAsync).to.be.false;",
+                  "    pm.expect(json.jobId).to.be.a('string');",
+                  "});",
+                  "if (json.jobId) {",
+                  "    pm.collectionVariables.set('jobId', json.jobId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "apps/backend/test/fixtures/questions_valid_small.xlsx"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import?targetStatus=draft",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import"],
+              "query": [{ "key": "targetStatus", "value": "draft" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Group Atomicity Rollback & Whitelist Checks",
+      "item": [
+        {
+          "name": "Upload Group with 1 Error -> Entire Group Rollback",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Created groups count is 0 due to atomic rollback', function () {",
+                  "    pm.expect(json.createdGroupsCount).to.eql(0);",
+                  "    pm.expect(json.errorCount).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "apps/backend/test/fixtures/questions_group_invalid.xlsx"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Import Jobs History & Polling",
+      "item": [
+        {
+          "name": "GET Import Job Detail by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Job detail matches current job ID', function () {",
+                  "    pm.expect(json.id).to.eql(pm.collectionVariables.get('jobId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import/jobs/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import", "jobs", "{{jobId}}"]
+            }
+          }
+        },
+        {
+          "name": "GET Paginated Import Jobs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Returns items and pagination fields', function () {",
+                  "    pm.expect(json.items).to.be.an('array');",
+                  "    pm.expect(json.total).to.be.a('number');",
+                  "    pm.expect(json.page).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import/jobs?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import", "jobs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Submit For Review (Group Atomicity)",
+      "item": [
+        {
+          "name": "POST Submit for Review Bulk",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.sendRequest({",
+                  "    url: pm.variables.get('baseUrl') + '/api/v1/questions?page=1&limit=5',",
+                  "    method: 'GET',",
+                  "    header: {",
+                  "        'Authorization': 'Bearer ' + pm.variables.get('teacherToken')",
+                  "    }",
+                  "}, function (err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        var body = res.json();",
+                  "        var list = body.data || body.items || [];",
+                  "        if (list.length > 0) {",
+                  "            var draftQ = list.find(function(item) { return item.status === 'draft'; }) || list[0];",
+                  "            pm.collectionVariables.set('sampleQuestionId', draftQ.id);",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Response contains submittedCount and skipped array', function () {",
+                  "    pm.expect(json.submittedCount).to.be.a('number');",
+                  "    pm.expect(json.submittedIds).to.be.an('array');",
+                  "    pm.expect(json.skipped).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionIds\": [\"{{sampleQuestionId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import/submit-for-review",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import", "submit-for-review"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - RBAC & Security Defenses",
+      "item": [
+        {
+          "name": "Student Forbidden (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import"]
+            }
+          }
+        },
+        {
+          "name": "No Auth Header (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions", "import"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

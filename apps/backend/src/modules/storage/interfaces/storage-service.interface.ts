@@ -34,8 +34,17 @@ export interface FileMetadataResult {
   mimeType?: string;
 }
 
+export interface UploadFileInput {
+  storageKey: string;
+  buffer: Buffer;
+  mimeType: string;
+  bucket?: string;
+}
+
 export interface StorageService {
   uploadAvatar(input: UploadAvatarInput): Promise<StoredFile>;
+  uploadFile?(input: UploadFileInput): Promise<StoredFile>;
+  downloadFile?(storageKey: string, bucket?: string): Promise<Buffer>;
   createPresignedUploadUrl(input: CreatePresignedUploadUrlInput): Promise<PresignedUploadUrlResult>;
   getFileMetadata(storageKey: string, bucket?: string): Promise<FileMetadataResult | null>;
   deleteFile(storageKey: string, bucket?: string): Promise<void>;

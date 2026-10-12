@@ -20,8 +20,10 @@ import storageConfig from './config/storage.config';
 import rateLimitConfig from './common/rate-limit/config/rate-limit.config';
 import securityEventConfig from './common/security-events/security-event.config';
 import mailConfig from './config/mail.config';
+import redisConfig from './config/redis.config';
 import { SecurityEventModule } from './common/security-events/security-event.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
+import { BullModule } from '@nestjs/bullmq';
 import { QuestionsModule } from './modules/questions/questions.module';
 import { QuestionGroupsModule } from './modules/question-groups/question-groups.module';
 import { MediaModule } from './modules/media/media.module';
@@ -42,10 +44,21 @@ import { MediaModule } from './modules/media/media.module';
         rateLimitConfig,
         securityEventConfig,
         mailConfig,
+        redisConfig,
       ],
       validate: validateEnvironment,
     }),
     ScheduleModule.forRoot(),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('redis.host', 'localhost'),
+          port: configService.get<number>('redis.port', 6379),
+          password: configService.get<string>('redis.password'),
+        },
+      }),
+    }),
     SecurityEventModule,
     RateLimitModule,
     TypeOrmModule.forRootAsync({

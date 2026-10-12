@@ -28,4 +28,5 @@ export type ThrottlePolicyName =
   | 'catalogRead'
   | 'profileManage'
   | 'mediaManage'
+  | 'questionsImport'
   | UploadRateLimitPolicyName;

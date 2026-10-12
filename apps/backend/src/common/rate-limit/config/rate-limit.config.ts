@@ -98,4 +98,9 @@ export default registerAs('rateLimit', () => ({
     user: integer('RATE_LIMIT_UPLOAD_CONFIRM_USER_MAX', 30),
     ip: integer('RATE_LIMIT_UPLOAD_CONFIRM_IP_MAX', 60),
   },
+  questionsImport: {
+    ttl: integer('RATE_LIMIT_QUESTIONS_IMPORT_TTL_SECONDS', 900),
+    user: integer('RATE_LIMIT_QUESTIONS_IMPORT_USER_MAX', 5),
+    ip: integer('RATE_LIMIT_QUESTIONS_IMPORT_IP_MAX', 10),
+  },
 }));
