@@ -204,11 +204,14 @@ export class ExcelParserService {
         rowHasError = true;
       }
 
+      const isAudioOnlyPart = partNumber === 1 || partNumber === 2;
+      const isPart6InGroup = partNumber === 6 && !!groupId;
+
       // Validate Question_Text
-      if (!questionText) {
+      if (!questionText && !isAudioOnlyPart && !isPart6InGroup) {
         errors.push({
           row: r,
-          error: 'Nội dung câu hỏi không được để trống.',
+          error: 'Nội dung câu hỏi không được để trống (trừ Part 1, Part 2 hoặc Part 6 có nhóm).',
           code: 'MISSING_QUESTION_TEXT',
           groupId,
         });
@@ -216,7 +219,7 @@ export class ExcelParserService {
       }
 
       // Validate Options A, B, C
-      if (!optionA || !optionB || !optionC) {
+      if (!isAudioOnlyPart && (!optionA || !optionB || !optionC)) {
         errors.push({
           row: r,
           error: 'Lựa chọn A, B và C là bắt buộc.',
@@ -237,7 +240,7 @@ export class ExcelParserService {
           });
           rowHasError = true;
         }
-      } else if (!rowHasError && !optionD) {
+      } else if (!isAudioOnlyPart && !rowHasError && !optionD) {
         errors.push({
           row: r,
           error: `Lựa chọn D là bắt buộc đối với Part ${partNumber}.`,

@@ -88,6 +88,17 @@ describe('QuestionsService', () => {
     expect(result).not.toHaveProperty('createdBy');
   });
 
+  it('creates a draft question without content for Part 1/2/6', async () => {
+    const questionWithoutContent = { ...question, content: null };
+    repository.create.mockReturnValue(questionWithoutContent);
+    repository.save.mockResolvedValue(questionWithoutContent);
+    const result = await service.create(
+      { questionType: QuestionType.SINGLE_CHOICE },
+      question.createdBy,
+    );
+    expect(result.content).toBeNull();
+  });
+
   it('returns questions newest first with ordered options and without ownership data', async () => {
     const optionAtPositionTwo = {
       id: '50000000-0000-4000-8000-000000000002',

@@ -3,11 +3,11 @@ import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-v
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateQuestionOptionDto {
-  @ApiProperty({ example: 'reviewed' })
+  @ApiPropertyOptional({ example: 'reviewed', nullable: true })
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  content!: string;
+  content?: string | null;
 
   @ApiPropertyOptional({ example: false, default: false })
   @IsOptional()

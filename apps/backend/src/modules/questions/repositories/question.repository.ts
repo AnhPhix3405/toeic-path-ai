@@ -15,7 +15,10 @@ export class QuestionRepository extends Repository<Question> {
 
     if (dto.search) {
       const sanitized = dto.search.replace(/[%_\\]/g, '\\$&');
-      qb.andWhere('q.content ILIKE :search', { search: `%${sanitized}%` });
+      qb.andWhere(
+        "(COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
+        { search: `%${sanitized}%` },
+      );
     }
 
     if (dto.partId) {

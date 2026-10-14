@@ -4,11 +4,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionType } from '../../enums/question-type.enum';
 
 export class CreateQuestionDto {
-  @ApiProperty({ example: 'Where is the meeting being held?' })
+  @ApiPropertyOptional({ example: 'Where is the meeting being held?', nullable: true })
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  content!: string;
+  content?: string | null;
 
   @ApiProperty({ enum: QuestionType, example: QuestionType.SINGLE_CHOICE })
   @IsEnum(QuestionType)

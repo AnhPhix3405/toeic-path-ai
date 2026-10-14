@@ -71,6 +71,7 @@ describe('QuestionsImportService', () => {
     questionRepo = {
       findOne: jest.fn(),
       find: jest.fn().mockResolvedValue([]),
+      save: jest.fn().mockImplementation((q) => Promise.resolve(q)),
     };
 
     questionGroupRepo = {
@@ -111,6 +112,8 @@ describe('QuestionsImportService', () => {
           provide: getRepositoryToken(ToeicPart),
           useValue: {
             find: jest.fn().mockResolvedValue([
+              { id: 'p1-id', partNumber: 1 },
+              { id: 'p2-id', partNumber: 2 },
               { id: 'p3-id', partNumber: 3 },
               { id: 'p5-id', partNumber: 5 },
             ]),
@@ -293,6 +296,147 @@ describe('QuestionsImportService', () => {
 
       expect(result.errorCount).toBe(1);
       expect(result.errorDetails?.[0].code).toBe('CANNOT_REPLACE_MEDIA_ON_PUBLISHED_CONTENT');
+    });
+  });
+
+  describe('Auto Option Generation for Part 1 and Part 2 (Review Focus 1 - PMR #1)', () => {
+    it('should auto-generate exactly 4 options with null content for Part 1 when options are empty', async () => {
+      const standaloneQuestions = [
+        {
+          rowNumber: 2,
+          partNumber: 1,
+          questionText: '',
+          optionA: '',
+          optionB: '',
+          optionC: '',
+          optionD: '',
+          correctAnswer: 'C',
+          mediaRef: undefined,
+        },
+      ];
+
+      excelParserService.parseQuestionsExcel.mockResolvedValue({
+        standaloneQuestions,
+        groupedQuestions: new Map(),
+        totalRows: 1,
+        errors: [],
+      });
+
+      const savedOptions: any[] = [];
+      queryRunner.manager.save.mockImplementation((entity: any, data: any) => {
+        const item = data || entity;
+        if (item.label && item.position !== undefined) {
+          savedOptions.push(item);
+        }
+        return Promise.resolve({ id: 'saved-id', ...item });
+      });
+
+      const result = await service.processImportSync('job-uuid-1', {
+        excelBuffer: Buffer.from('mock'),
+        mediaFilesMap: new Map(),
+        targetStatus: QuestionStatus.DRAFT,
+        userId: 'user-uuid-1',
+      });
+
+      expect(result.successCount).toBe(1);
+      expect(result.errorCount).toBe(0);
+      expect(savedOptions.length).toBe(4);
+      expect(savedOptions.map((o) => o.label)).toEqual(['A', 'B', 'C', 'D']);
+      expect(savedOptions.map((o) => o.position)).toEqual([1, 2, 3, 4]);
+      expect(savedOptions.map((o) => o.content)).toEqual([null, null, null, null]);
+      expect(savedOptions.find((o) => o.label === 'C').isCorrect).toBe(true);
+      expect(savedOptions.find((o) => o.label === 'A').isCorrect).toBe(false);
+    });
+
+    it('should auto-generate exactly 3 options for Part 2 and never generate Option D', async () => {
+      const standaloneQuestions = [
+        {
+          rowNumber: 2,
+          partNumber: 2,
+          questionText: '',
+          optionA: '',
+          optionB: '',
+          optionC: '',
+          optionD: '',
+          correctAnswer: 'B',
+          mediaRef: undefined,
+        },
+      ];
+
+      excelParserService.parseQuestionsExcel.mockResolvedValue({
+        standaloneQuestions,
+        groupedQuestions: new Map(),
+        totalRows: 1,
+        errors: [],
+      });
+
+      const savedOptions: any[] = [];
+      queryRunner.manager.save.mockImplementation((entity: any, data: any) => {
+        const item = data || entity;
+        if (item.label && item.position !== undefined) {
+          savedOptions.push(item);
+        }
+        return Promise.resolve({ id: 'saved-id', ...item });
+      });
+
+      const result = await service.processImportSync('job-uuid-1', {
+        excelBuffer: Buffer.from('mock'),
+        mediaFilesMap: new Map(),
+        targetStatus: QuestionStatus.DRAFT,
+        userId: 'user-uuid-1',
+      });
+
+      expect(result.successCount).toBe(1);
+      expect(result.errorCount).toBe(0);
+      expect(savedOptions.length).toBe(3);
+      expect(savedOptions.map((o) => o.label)).toEqual(['A', 'B', 'C']);
+      expect(savedOptions.map((o) => o.position)).toEqual([1, 2, 3]);
+      expect(savedOptions.map((o) => o.content)).toEqual([null, null, null]);
+      expect(savedOptions.find((o) => o.label === 'B').isCorrect).toBe(true);
+      expect(savedOptions.some((o) => o.label === 'D')).toBe(false);
+    });
+  });
+
+  describe('submitForReview - Data Integrity Gate (Review Focus 2)', () => {
+    it('should skip submit-for-review if Part 5 question lacks content', async () => {
+      const part5 = { id: 'p5', partNumber: 5 };
+      const mockQ = {
+        id: 'q-empty-part5',
+        content: '',
+        status: QuestionStatus.DRAFT,
+        createdBy: 'user-uuid-1',
+        part: part5,
+        options: [
+          { id: 'o1', label: 'A', content: 'opt A', isCorrect: true },
+          { id: 'o2', label: 'B', content: 'opt B', isCorrect: false },
+          { id: 'o3', label: 'C', content: 'opt C', isCorrect: false },
+        ],
+      };
+      questionRepo.find.mockResolvedValueOnce([mockQ]);
+      const result = await service.submitForReview(['q-empty-part5'], 'user-uuid-1', false);
+      expect(result.submittedCount).toBe(0);
+      expect(result.skipped[0].reason).toContain('bắt buộc phải có nội dung văn bản');
+    });
+
+    it('should allow submit-for-review for Part 1 question with null content and empty options', async () => {
+      const part1 = { id: 'p1', partNumber: 1 };
+      const mockQ = {
+        id: 'q-part1',
+        content: null,
+        status: QuestionStatus.DRAFT,
+        createdBy: 'user-uuid-1',
+        part: part1,
+        options: [
+          { id: 'o1', label: 'A', content: null, isCorrect: true },
+          { id: 'o2', label: 'B', content: null, isCorrect: false },
+          { id: 'o3', label: 'C', content: null, isCorrect: false },
+          { id: 'o4', label: 'D', content: null, isCorrect: false },
+        ],
+      };
+      questionRepo.find.mockResolvedValueOnce([mockQ]);
+      const result = await service.submitForReview(['q-part1'], 'user-uuid-1', false);
+      expect(result.submittedCount).toBe(1);
+      expect(result.submittedIds).toContain('q-part1');
     });
   });
 });

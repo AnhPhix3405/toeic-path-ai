@@ -7,8 +7,8 @@ export class QuestionOptionResponseDto {
   @ApiProperty({ example: 'B' })
   label!: string;
 
-  @ApiProperty({ example: 'reviewed' })
-  content!: string;
+  @ApiProperty({ example: 'reviewed', nullable: true })
+  content!: string | null;
 
   @ApiProperty({ example: true })
   isCorrect!: boolean;

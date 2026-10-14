@@ -210,6 +210,97 @@
               "query": [{ "key": "targetStatus", "value": "draft" }]
             }
           }
+        },
+        {
+          "name": "Verify Part 1 Auto-Generated Options (4 Options, Empty Content)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "var list = json.data || json.items || [];",
+                  "var q = list.find(function(item) { return item.explanation === 'Audio explanation for Part 1'; }) || list[0];",
+                  "pm.test('Part 1 question has null content and exactly 4 auto-generated options', function () {",
+                  "    pm.expect(q).to.be.an('object');",
+                  "    pm.expect(q.content).to.be.oneOf([null, '']);",
+                  "    pm.expect(q.options).to.be.an('array').with.lengthOf(4);",
+                  "    var labels = q.options.map(function(o) { return o.label; });",
+                  "    var positions = q.options.map(function(o) { return o.position; });",
+                  "    pm.expect(labels).to.eql(['A', 'B', 'C', 'D']);",
+                  "    pm.expect(positions).to.eql([1, 2, 3, 4]);",
+                  "    q.options.forEach(function(opt) {",
+                  "        pm.expect(opt.content).to.be.oneOf([null, '']);",
+                  "    });",
+                  "    var optA = q.options.find(function(o) { return o.label === 'A'; });",
+                  "    pm.expect(optA.isCorrect).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions?search=Audio%20explanation%20for%20Part%201",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions"],
+              "query": [{ "key": "search", "value": "Audio explanation for Part 1" }]
+            }
+          }
+        },
+        {
+          "name": "Verify Part 2 Auto-Generated Options (3 Options, No Option D)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "var list = json.data || json.items || [];",
+                  "var q = list.find(function(item) { return item.explanation === 'Audio explanation for Part 2'; }) || list[0];",
+                  "pm.test('Part 2 question has null content, exactly 3 options, and no option D', function () {",
+                  "    pm.expect(q).to.be.an('object');",
+                  "    pm.expect(q.content).to.be.oneOf([null, '']);",
+                  "    pm.expect(q.options).to.be.an('array').with.lengthOf(3);",
+                  "    var labels = q.options.map(function(o) { return o.label; });",
+                  "    var positions = q.options.map(function(o) { return o.position; });",
+                  "    pm.expect(labels).to.eql(['A', 'B', 'C']);",
+                  "    pm.expect(positions).to.eql([1, 2, 3]);",
+                  "    pm.expect(labels.indexOf('D')).to.eql(-1);",
+                  "    q.options.forEach(function(opt) {",
+                  "        pm.expect(opt.content).to.be.oneOf([null, '']);",
+                  "    });",
+                  "    var optB = q.options.find(function(o) { return o.label === 'B'; });",
+                  "    pm.expect(optB.isCorrect).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/questions?search=Audio%20explanation%20for%20Part%202",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "questions"],
+              "query": [{ "key": "search", "value": "Audio explanation for Part 2" }]
+            }
+          }
         }
       ]
     },

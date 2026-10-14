@@ -74,7 +74,7 @@ describe('QuestionRepository', () => {
     expect(result.total).toBe(2);
   });
 
-  it('escapes search wildcards (% and _) in Pass 1', async () => {
+  it('escapes search wildcards (% and _) in Pass 1 and searches content or explanation', async () => {
     qb.getManyAndCount.mockResolvedValue([[], 0]);
 
     await repository.findPaginated({
@@ -83,9 +83,12 @@ describe('QuestionRepository', () => {
       limit: 20,
     });
 
-    expect(qb.andWhere).toHaveBeenCalledWith('q.content ILIKE :search', {
-      search: '%discount 50\\% on item\\_price%',
-    });
+    expect(qb.andWhere).toHaveBeenCalledWith(
+      "(COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
+      {
+        search: '%discount 50\\% on item\\_price%',
+      },
+    );
     expect(repository.find).not.toHaveBeenCalled();
   });
 

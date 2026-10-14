@@ -52,4 +52,21 @@ describe('TemplateGeneratorService', () => {
       expect(actualHeaders[index + 1]).toBe(header);
     });
   });
+
+  it('should document nullable question and option rules for Part 1, 2, 6 in Instructions_Guide', async () => {
+    const result = await service.generateQuestionsTemplate();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(result.buffer);
+    const guideSheet = workbook.getWorksheet('Instructions_Guide');
+    expect(guideSheet).toBeDefined();
+
+    let questionTextGuideDesc = '';
+    guideSheet!.eachRow((row) => {
+      if (row.getCell(1).value === 'Question_Text') {
+        questionTextGuideDesc = String(row.getCell(4).value);
+      }
+    });
+    expect(questionTextGuideDesc).toContain('Part 1, Part 2');
+    expect(questionTextGuideDesc).toContain('Part 6');
+  });
 });

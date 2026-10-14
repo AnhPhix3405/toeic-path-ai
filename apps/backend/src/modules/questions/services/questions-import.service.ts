@@ -273,7 +273,7 @@ export class QuestionsImportService {
         }
 
         const question = queryRunner.manager.create(Question, {
-          content: q.questionText,
+          content: q.questionText ? q.questionText : null,
           questionType: QuestionType.SINGLE_CHOICE,
           status: options.targetStatus,
           explanation: q.explanation ?? null,
@@ -288,12 +288,28 @@ export class QuestionsImportService {
         const savedQuestion = await queryRunner.manager.save(Question, question);
 
         // Create Options
-        const optionsData = [
-          { label: 'A', content: q.optionA, pos: 1 },
-          { label: 'B', content: q.optionB, pos: 2 },
-          { label: 'C', content: q.optionC, pos: 3 },
-          ...(q.optionD ? [{ label: 'D', content: q.optionD, pos: 4 }] : []),
-        ];
+        let optionsData: Array<{ label: string; content: string | null; pos: number }> = [];
+        if (q.partNumber === 1) {
+          optionsData = [
+            { label: 'A', content: q.optionA || null, pos: 1 },
+            { label: 'B', content: q.optionB || null, pos: 2 },
+            { label: 'C', content: q.optionC || null, pos: 3 },
+            { label: 'D', content: q.optionD || null, pos: 4 },
+          ];
+        } else if (q.partNumber === 2) {
+          optionsData = [
+            { label: 'A', content: q.optionA || null, pos: 1 },
+            { label: 'B', content: q.optionB || null, pos: 2 },
+            { label: 'C', content: q.optionC || null, pos: 3 },
+          ];
+        } else {
+          optionsData = [
+            { label: 'A', content: q.optionA || null, pos: 1 },
+            { label: 'B', content: q.optionB || null, pos: 2 },
+            { label: 'C', content: q.optionC || null, pos: 3 },
+            ...(q.optionD ? [{ label: 'D', content: q.optionD, pos: 4 }] : []),
+          ];
+        }
 
         for (const opt of optionsData) {
           const optEntity = queryRunner.manager.create(QuestionOption, {
@@ -425,7 +441,7 @@ export class QuestionsImportService {
           }
 
           const childQuestion = queryRunner.manager.create(Question, {
-            content: q.questionText,
+            content: q.questionText ? q.questionText : null,
             questionType: QuestionType.SINGLE_CHOICE,
             status: options.targetStatus,
             explanation: q.explanation ?? null,
@@ -442,12 +458,28 @@ export class QuestionsImportService {
           const savedChild = await queryRunner.manager.save(Question, childQuestion);
 
           // Options
-          const optionsData = [
-            { label: 'A', content: q.optionA, pos: 1 },
-            { label: 'B', content: q.optionB, pos: 2 },
-            { label: 'C', content: q.optionC, pos: 3 },
-            ...(q.optionD ? [{ label: 'D', content: q.optionD, pos: 4 }] : []),
-          ];
+          let optionsData: Array<{ label: string; content: string | null; pos: number }> = [];
+          if (q.partNumber === 1) {
+            optionsData = [
+              { label: 'A', content: q.optionA || null, pos: 1 },
+              { label: 'B', content: q.optionB || null, pos: 2 },
+              { label: 'C', content: q.optionC || null, pos: 3 },
+              { label: 'D', content: q.optionD || null, pos: 4 },
+            ];
+          } else if (q.partNumber === 2) {
+            optionsData = [
+              { label: 'A', content: q.optionA || null, pos: 1 },
+              { label: 'B', content: q.optionB || null, pos: 2 },
+              { label: 'C', content: q.optionC || null, pos: 3 },
+            ];
+          } else {
+            optionsData = [
+              { label: 'A', content: q.optionA || null, pos: 1 },
+              { label: 'B', content: q.optionB || null, pos: 2 },
+              { label: 'C', content: q.optionC || null, pos: 3 },
+              ...(q.optionD ? [{ label: 'D', content: q.optionD, pos: 4 }] : []),
+            ];
+          }
 
           for (const opt of optionsData) {
             const optEntity = queryRunner.manager.create(QuestionOption, {
@@ -697,7 +729,7 @@ export class QuestionsImportService {
 
     const questions = await this.questionRepo.find({
       where: { id: In(questionIds) },
-      relations: { options: true, questionGroup: true },
+      relations: { options: true, questionGroup: true, part: true },
     });
 
     const submittedIdsSet = new Set<string>();
@@ -714,7 +746,7 @@ export class QuestionsImportService {
 
         const groupQuestions = await this.questionRepo.find({
           where: { questionGroupId: q.questionGroupId },
-          relations: { options: true },
+          relations: { options: true, part: true },
         });
 
         // Validate all child questions in group
@@ -735,9 +767,25 @@ export class QuestionsImportService {
             failReason = `Câu hỏi trong nhóm có trạng thái không hợp lệ (${child.status}) để gửi duyệt.`;
             break;
           }
+          const childPartNumber = child.part?.partNumber;
+          const isContentRequired = ![1, 2, 6].includes(childPartNumber as number);
+          if (isContentRequired && (!child.content || child.content.trim() === '')) {
+            groupValid = false;
+            failReason = `Câu hỏi trong nhóm thuộc Part ${childPartNumber || 'chưa phân loại'} bắt buộc phải có nội dung văn bản.`;
+            break;
+          }
           if (!child.options || child.options.length < 3) {
             groupValid = false;
             failReason = 'Câu hỏi trong nhóm chưa có đủ tối thiểu 3 lựa chọn đáp án.';
+            break;
+          }
+          const isOptionContentRequired = ![1, 2].includes(childPartNumber as number);
+          if (
+            isOptionContentRequired &&
+            child.options.some((opt) => !opt.content || opt.content.trim() === '')
+          ) {
+            groupValid = false;
+            failReason = `Các lựa chọn đáp án của Part ${childPartNumber || 'chưa phân loại'} bắt buộc phải có nội dung văn bản.`;
             break;
           }
           const hasCorrect = child.options.some((opt) => opt.isCorrect);
@@ -776,10 +824,30 @@ export class QuestionsImportService {
           });
           continue;
         }
+        const partNumber = q.part?.partNumber;
+        const isContentRequired = ![1, 2, 6].includes(partNumber as number);
+        if (isContentRequired && (!q.content || q.content.trim() === '')) {
+          skipped.push({
+            id: q.id,
+            reason: `Câu hỏi thuộc Part ${partNumber || 'chưa phân loại'} bắt buộc phải có nội dung văn bản.`,
+          });
+          continue;
+        }
         if (!q.options || q.options.length < 3) {
           skipped.push({
             id: q.id,
             reason: 'Câu hỏi chưa có đủ tối thiểu 3 lựa chọn đáp án.',
+          });
+          continue;
+        }
+        const isOptionContentRequired = ![1, 2].includes(partNumber as number);
+        if (
+          isOptionContentRequired &&
+          q.options.some((opt) => !opt.content || opt.content.trim() === '')
+        ) {
+          skipped.push({
+            id: q.id,
+            reason: `Các lựa chọn đáp án của Part ${partNumber || 'chưa phân loại'} bắt buộc phải có nội dung văn bản.`,
           });
           continue;
         }

@@ -24,8 +24,8 @@ export class QuestionOption {
   @Column({ type: 'varchar', length: 10 })
   label!: string;
 
-  @Column({ type: 'text' })
-  content!: string;
+  @Column({ type: 'text', nullable: true })
+  content!: string | null;
 
   @Column({ name: 'is_correct', type: 'boolean', default: false })
   isCorrect!: boolean;

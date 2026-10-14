@@ -4,6 +4,7 @@ import { QuestionHistoryChangeType } from '../enums/question-history-change-type
 import { QuestionReviewAction } from '../enums/question-review-action.enum';
 import { ImportJobStatus } from '../enums/import-job-status.enum';
 import { Question } from './question.entity';
+import { QuestionOption } from './question-option.entity';
 import { MediaResource } from './media-resource.entity';
 import { QuestionHistory } from './question-history.entity';
 import { QuestionReview } from './question-review.entity';
@@ -135,6 +136,16 @@ describe('Sprint 4 Advanced Question Bank Entities & Enums', () => {
       expect(job.errorCount).toBe(5);
       expect(job.createdGroupsCount).toBe(10);
       expect(job.errorDetails?.length).toBe(1);
+    });
+
+    it('should allow question and option content to be null or empty for Part 1/2/6', () => {
+      const question = new Question();
+      question.content = null;
+      expect(question.content).toBeNull();
+
+      const option = new QuestionOption();
+      option.content = null;
+      expect(option.content).toBeNull();
     });
   });
 });

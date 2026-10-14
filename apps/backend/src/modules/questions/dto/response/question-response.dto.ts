@@ -9,8 +9,8 @@ export class QuestionResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiProperty({ example: 'Where is the meeting being held?' })
-  content!: string;
+  @ApiProperty({ example: 'Where is the meeting being held?', nullable: true })
+  content!: string | null;
 
   @ApiProperty({ enum: QuestionType })
   questionType!: QuestionType;

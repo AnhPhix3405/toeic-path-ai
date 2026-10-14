@@ -168,4 +168,73 @@ describe('ExcelParserService', () => {
       ),
     );
   });
+
+  describe('TOEIC Part Matrix Validation (Review Focus 1 & 4)', () => {
+    it('should allow empty Question_Text and Options for Part 1', async () => {
+      const buffer = await createWorkbookBuffer([
+        [1, '', '', '', '', '', 'A', 'Exp', 'easy', '', '', '', '', '', 'photo.mp3'],
+      ]);
+
+      const result = await service.parseQuestionsExcel(buffer);
+      expect(result.errors).toEqual([]);
+      expect(result.standaloneQuestions.length).toBe(1);
+      expect(result.standaloneQuestions[0].questionText).toBe('');
+      expect(result.standaloneQuestions[0].optionA).toBe('');
+    });
+
+    it('should allow empty Question_Text and Options for Part 2 without Option D', async () => {
+      const buffer = await createWorkbookBuffer([
+        [2, '', '', '', '', '', 'B', 'Exp', 'medium', '', '', '', '', '', 'audio2.mp3'],
+      ]);
+
+      const result = await service.parseQuestionsExcel(buffer);
+      expect(result.errors).toEqual([]);
+      expect(result.standaloneQuestions.length).toBe(1);
+      expect(result.standaloneQuestions[0].questionText).toBe('');
+    });
+
+    it('should allow empty Question_Text for Part 6 when Group_ID is present, but require options', async () => {
+      const buffer = await createWorkbookBuffer([
+        [
+          6,
+          '',
+          'apple',
+          'banana',
+          'cherry',
+          'date',
+          'A',
+          'Exp',
+          'hard',
+          '',
+          '',
+          'GRP_6',
+          'P1',
+          'Passage context',
+          '',
+        ],
+      ]);
+
+      const result = await service.parseQuestionsExcel(buffer);
+      expect(result.errors).toEqual([]);
+      expect(result.groupedQuestions.get('GRP_6')?.length).toBe(1);
+    });
+
+    it('should reject Part 6 with empty options', async () => {
+      const buffer = await createWorkbookBuffer([
+        [6, '', '', '', '', '', 'A', 'Exp', 'hard', '', '', 'GRP_6', 'P1', 'Passage context', ''],
+      ]);
+
+      const result = await service.parseQuestionsExcel(buffer);
+      expect(result.errors.some((e) => e.code === 'MISSING_OPTIONS')).toBe(true);
+    });
+
+    it('should reject Part 5 with empty Question_Text or empty options', async () => {
+      const buffer = await createWorkbookBuffer([
+        [5, '', 'A', 'B', 'C', 'D', 'A', '', 'easy', '', '', '', '', '', ''],
+      ]);
+
+      const result = await service.parseQuestionsExcel(buffer);
+      expect(result.errors.some((e) => e.code === 'MISSING_QUESTION_TEXT')).toBe(true);
+    });
+  });
 });
