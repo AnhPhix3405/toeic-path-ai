@@ -73,4 +73,69 @@ export class QuestionRepository extends Repository<Question> {
 
     return { questions, total };
   }
+
+  async findReviewQueue(dto: {
+    partId?: string;
+    topicIds?: string[];
+    creatorId?: string;
+    search?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ questions: Question[]; total: number }> {
+    const qb = this.createQueryBuilder('q')
+      .select('q.id')
+      .where('q.status = :status', { status: 'pending_review' })
+      .orderBy('q.createdAt', 'DESC');
+
+    if (dto.search) {
+      const sanitized = dto.search.replace(/[%_\\]/g, '\\$&');
+      qb.andWhere(
+        "(COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
+        { search: `%${sanitized}%` },
+      );
+    }
+
+    if (dto.partId) {
+      qb.andWhere('q.partId = :partId', { partId: dto.partId });
+    }
+
+    if (dto.creatorId) {
+      qb.andWhere('q.createdBy = :creatorId', { creatorId: dto.creatorId });
+    }
+
+    if (dto.topicIds && dto.topicIds.length > 0) {
+      qb.andWhere(
+        'EXISTS (SELECT 1 FROM question_topics qt WHERE qt.question_id = q.id AND qt.topic_id IN (:...topicIds))',
+        { topicIds: dto.topicIds },
+      );
+    }
+
+    const [idResults, total] = await qb
+      .skip((dto.page - 1) * dto.limit)
+      .take(dto.limit)
+      .getManyAndCount();
+
+    if (idResults.length === 0) {
+      return { questions: [], total };
+    }
+
+    const ids = idResults.map((item) => item.id);
+    const populated = await this.find({
+      where: { id: In(ids) },
+      relations: {
+        options: true,
+        part: true,
+        creator: true,
+        questionGroup: true,
+        topics: true,
+        skills: true,
+      },
+      order: { createdAt: 'DESC', options: { position: 'ASC' } },
+    });
+
+    const idMap = new Map(populated.map((q) => [q.id, q]));
+    const questions = ids.map((id) => idMap.get(id)).filter((q): q is Question => q !== undefined);
+
+    return { questions, total };
+  }
 }

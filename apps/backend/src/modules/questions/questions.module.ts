@@ -26,6 +26,9 @@ import { ZipExtractorService } from './services/zip-extractor.service';
 import { ExcelParserService } from './services/excel-parser.service';
 import { QuestionsImportService } from './services/questions-import.service';
 import { ImportQuestionsProcessor } from './processors/import-questions.processor';
+import { QuestionReviewsController } from './controllers/question-reviews.controller';
+import { QuestionReviewsService } from './services/question-reviews.service';
+import { QuestionHistoriesService } from './services/question-histories.service';
 import { IMPORT_LIMITS } from '../../config/import.config';
 
 @Module({
@@ -48,7 +51,12 @@ import { IMPORT_LIMITS } from '../../config/import.config';
       name: IMPORT_LIMITS.QUEUE_NAME,
     }),
   ],
-  controllers: [QuestionsController, QuestionsImportController, ClassificationCatalogController],
+  controllers: [
+    QuestionsController,
+    QuestionsImportController,
+    ClassificationCatalogController,
+    QuestionReviewsController,
+  ],
   providers: [
     QuestionsService,
     ClassificationCatalogService,
@@ -58,6 +66,8 @@ import { IMPORT_LIMITS } from '../../config/import.config';
     ExcelParserService,
     QuestionsImportService,
     ImportQuestionsProcessor,
+    QuestionReviewsService,
+    QuestionHistoriesService,
     JwtAuthGuard,
     RolesGuard,
   ],
@@ -65,6 +75,8 @@ import { IMPORT_LIMITS } from '../../config/import.config';
     QuestionsService,
     QuestionsImportService,
     TemplateGeneratorService,
+    QuestionReviewsService,
+    QuestionHistoriesService,
     QuestionRepository,
     TypeOrmModule,
   ],

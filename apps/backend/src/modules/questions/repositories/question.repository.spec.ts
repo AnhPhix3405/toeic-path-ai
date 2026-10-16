@@ -22,6 +22,7 @@ describe('QuestionRepository', () => {
   beforeEach(() => {
     qb = {
       select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
@@ -152,5 +153,48 @@ describe('QuestionRepository', () => {
 
     expect(result).toEqual({ questions: [], total: 0 });
     expect(repository.find).not.toHaveBeenCalled();
+  });
+
+  describe('findReviewQueue', () => {
+    it('queries questions with status pending_review and loads creator, questionGroup relations', async () => {
+      const qId = '10000000-0000-4000-8000-000000000099';
+      qb.getManyAndCount.mockResolvedValue([[{ id: qId }], 1]);
+
+      const mockQuestion = {
+        id: qId,
+        status: QuestionStatus.PENDING_REVIEW,
+        creator: { id: 'u-1', fullName: 'Teacher A' },
+        questionGroup: { id: 'g-1', title: 'Group 1' },
+      } as unknown as Question;
+      jest.spyOn(repository, 'find').mockResolvedValue([mockQuestion]);
+
+      const result = await repository.findReviewQueue({
+        partId: 'part-uuid',
+        creatorId: 'creator-uuid',
+        search: 'keyword',
+        page: 1,
+        limit: 10,
+      });
+
+      expect(qb.where).toHaveBeenCalledWith('q.status = :status', { status: 'pending_review' });
+      expect(qb.andWhere).toHaveBeenCalledWith('q.partId = :partId', { partId: 'part-uuid' });
+      expect(qb.andWhere).toHaveBeenCalledWith('q.createdBy = :creatorId', {
+        creatorId: 'creator-uuid',
+      });
+      expect(repository.find).toHaveBeenCalledWith({
+        where: { id: In([qId]) },
+        relations: {
+          options: true,
+          part: true,
+          creator: true,
+          questionGroup: true,
+          topics: true,
+          skills: true,
+        },
+        order: { createdAt: 'DESC', options: { position: 'ASC' } },
+      });
+      expect(result.questions).toEqual([mockQuestion]);
+      expect(result.total).toBe(1);
+    });
   });
 });
