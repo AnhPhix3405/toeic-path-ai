@@ -118,7 +118,7 @@ export class QuestionReviewsController {
   async getHistories(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<QuestionHistoryResponseDto[]> {
-    return this.historiesService.getHistoriesByQuestionId(id) as unknown as QuestionHistoryResponseDto[];
+    return this.historiesService.getHistoriesByQuestionId(id);
   }
 
   @Get(':id/logs')
@@ -126,6 +126,6 @@ export class QuestionReviewsController {
   async getReviewLogs(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<QuestionReviewLogResponseDto[]> {
-    return this.reviewsService.getReviewLogs(id) as unknown as QuestionReviewLogResponseDto[];
+    return this.reviewsService.getReviewLogs(id);
   }
 }

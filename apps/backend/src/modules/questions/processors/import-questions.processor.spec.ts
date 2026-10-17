@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import { ImportQuestionsJobData, ImportQuestionsProcessor } from './import-questions.processor';

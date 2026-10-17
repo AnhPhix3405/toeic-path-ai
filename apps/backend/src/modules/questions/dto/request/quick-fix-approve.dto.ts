@@ -12,7 +12,10 @@ import {
 } from 'class-validator';
 
 export class QuickFixOptionDto {
-  @ApiProperty({ description: 'Option UUID to update', example: 'd0a7a3b3-1e5b-42c2-841f-13a863c3d5e2' })
+  @ApiProperty({
+    description: 'Option UUID to update',
+    example: 'd0a7a3b3-1e5b-42c2-841f-13a863c3d5e2',
+  })
   @IsUUID('4')
   id!: string;
 

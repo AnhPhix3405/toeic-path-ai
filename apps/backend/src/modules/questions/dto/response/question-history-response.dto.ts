@@ -2,7 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionHistoryChangeType } from '../../enums/question-history-change-type.enum';
 
 export class QuestionHistoryResponseDto {
-  @ApiProperty({ description: 'History snapshot UUID', example: 'd0a7a3b3-1e5b-42c2-841f-13a863c3d5e2' })
+  @ApiProperty({
+    description: 'History snapshot UUID',
+    example: 'd0a7a3b3-1e5b-42c2-841f-13a863c3d5e2',
+  })
   id!: string;
 
   @ApiProperty({ description: 'Question UUID', example: 'd0a7a3b3-1e5b-42c2-841f-13a863c3d5e2' })
@@ -11,7 +14,11 @@ export class QuestionHistoryResponseDto {
   @ApiProperty({ description: 'UUID of user who made this change', example: 'u-123' })
   changedBy!: string;
 
-  @ApiProperty({ description: 'Type of change performed', enum: QuestionHistoryChangeType, example: QuestionHistoryChangeType.QUICK_FIXED })
+  @ApiProperty({
+    description: 'Type of change performed',
+    enum: QuestionHistoryChangeType,
+    example: QuestionHistoryChangeType.QUICK_FIXED,
+  })
   changeType!: QuestionHistoryChangeType;
 
   @ApiPropertyOptional({ description: 'State snapshot before change (JSON)', nullable: true })

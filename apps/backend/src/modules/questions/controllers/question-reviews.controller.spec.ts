@@ -51,7 +51,12 @@ describe('QuestionReviewsController', () => {
   });
 
   it('GET /queue should return paginated review queue', async () => {
-    reviewsService.getReviewQueue.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20 } as any);
+    reviewsService.getReviewQueue.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    });
     const result = await controller.getReviewQueue({ page: 1, limit: 20 });
     expect(result.total).toBe(0);
     expect(reviewsService.getReviewQueue).toHaveBeenCalledWith({ page: 1, limit: 20 });

@@ -9,12 +9,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { SecurityEventService } from '../../../common/security-events/security-event.service';
 import { UserRole } from '../../../common/enums/user-role.enum';
-import { QuestionHistory } from '../entities/question-history.entity';
-import { QuestionOption } from '../entities/question-option.entity';
 import { QuestionReview } from '../entities/question-review.entity';
 import { Question } from '../entities/question.entity';
 import { QuestionHistoryChangeType } from '../enums/question-history-change-type.enum';
-import { QuestionReviewAction } from '../enums/question-review-action.enum';
 import { QuestionStatus } from '../enums/question-status.enum';
 import { QuestionRepository } from '../repositories/question.repository';
 import { QuestionHistoriesService } from './question-histories.service';
@@ -58,9 +55,11 @@ describe('QuestionReviewsService', () => {
     };
 
     dataSource = {
-      transaction: jest.fn().mockImplementation(async (cb: (manager: EntityManager) => Promise<any>) => {
-        return cb(mockEntityManager as unknown as EntityManager);
-      }),
+      transaction: jest
+        .fn()
+        .mockImplementation(async (cb: (manager: EntityManager) => Promise<any>) => {
+          return cb(mockEntityManager as unknown as EntityManager);
+        }),
     } as unknown as jest.Mocked<DataSource>;
 
     questionRepo = {
@@ -76,7 +75,7 @@ describe('QuestionReviewsService', () => {
     } as unknown as jest.Mocked<Repository<QuestionReview>>;
 
     historyService = {
-      createSnapshot: jest.fn().mockResolvedValue({} as QuestionHistory),
+      createSnapshot: jest.fn().mockResolvedValue({}),
       getHistoriesByQuestionId: jest.fn(),
     } as unknown as jest.Mocked<QuestionHistoriesService>;
 
@@ -113,7 +112,8 @@ describe('QuestionReviewsService', () => {
         service.approveQuestion('q-1', { version: 1 }, 'teacher-creator', UserRole.TEACHER),
       ).rejects.toThrow(
         new ForbiddenException({
-          message: 'Người tạo câu hỏi không được phép tự kiểm duyệt câu hỏi của chính mình (Maker-Checker Rule).',
+          message:
+            'Người tạo câu hỏi không được phép tự kiểm duyệt câu hỏi của chính mình (Maker-Checker Rule).',
           code: 'ERR_CANNOT_SELF_REVIEW',
         }),
       );
@@ -240,7 +240,9 @@ describe('QuestionReviewsService', () => {
           'reviewer-id',
           UserRole.TEACHER,
         ),
-      ).rejects.toThrow(new BadRequestException('Câu hỏi trắc nghiệm bắt buộc phải có duy nhất 1 đáp án đúng.'));
+      ).rejects.toThrow(
+        new BadRequestException('Câu hỏi trắc nghiệm bắt buộc phải có duy nhất 1 đáp án đúng.'),
+      );
     });
   });
 

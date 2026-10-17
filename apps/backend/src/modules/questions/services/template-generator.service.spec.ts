@@ -63,7 +63,7 @@ describe('TemplateGeneratorService', () => {
     let questionTextGuideDesc = '';
     guideSheet!.eachRow((row) => {
       if (row.getCell(1).value === 'Question_Text') {
-        questionTextGuideDesc = String(row.getCell(4).value);
+        questionTextGuideDesc = row.getCell(4).text;
       }
     });
     expect(questionTextGuideDesc).toContain('Part 1, Part 2');

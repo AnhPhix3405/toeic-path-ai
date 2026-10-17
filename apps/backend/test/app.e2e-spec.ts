@@ -15,6 +15,7 @@ import { UserStatus } from '../src/common/enums/user-status.enum';
 import type { AuthenticatedUser } from '../src/common/interfaces/authenticated-user.interface';
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { AuthService, type TokenResponse } from '../src/modules/auth/auth.service';
+import { GoogleAuthService } from '../src/modules/auth/services/google-auth.service';
 import { JwtAuthGuard } from '../src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../src/common/guards/roles.guard';
 import { ProfileController } from '../src/modules/profile/profile.controller';
@@ -22,6 +23,7 @@ import { ProfileService } from '../src/modules/profile/profile.service';
 import { Gender } from '../src/common/enums/gender.enum';
 import { AuthThrottlerGuard } from '../src/common/rate-limit/guards/auth-throttler.guard';
 import { AuthOriginGuard } from '../src/common/rate-limit/guards/auth-origin.guard';
+import { PolicyThrottlerGuard } from '../src/common/rate-limit/guards/policy-throttler.guard';
 import { LoginFailureInterceptor } from '../src/common/rate-limit/interceptors/login-failure.interceptor';
 
 describe('Auth refresh cookie (e2e)', () => {
@@ -58,6 +60,7 @@ describe('Auth refresh cookie (e2e)', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: authService },
+        { provide: GoogleAuthService, useValue: { authenticate: jest.fn() } },
         {
           provide: ConfigService,
           useValue: { getOrThrow: (key: string) => values[key] },
@@ -265,6 +268,8 @@ describe('My profile (e2e)', () => {
       controllers: [ProfileController],
       providers: [{ provide: ProfileService, useValue: profileService }, JwtAuthGuard, RolesGuard],
     })
+      .overrideGuard(PolicyThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .overrideGuard(JwtAuthGuard)
       .useValue({
         canActivate(context: ExecutionContext): boolean {

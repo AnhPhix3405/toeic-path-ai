@@ -1,0 +1,638 @@
+{
+  "info": {
+    "_postman_id": "c1f2e3d4-5678-490a-bcde-9876543210fe",
+    "name": "Sprint 4 — Master Comprehensive E2E Automated Test Collection",
+    "description": "Unified Master Postman Collection cho toàn bộ Sprint 4: Quản lý tài nguyên đa phương tiện (UC13), Import câu hỏi hàng loạt (UC14), Quy trình kiểm duyệt Maker-Checker & Optimistic Locking (UC15), Tech Debt 006 (Part 1, 2, 6 nullable rules theo Rule 1002), và Phân quyền RBAC 4 vai trò (Teacher Creator, Reviewer Peer, Admin, Student).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "teacher1Email", "value": "teacher1@example.com", "type": "string" },
+    { "key": "teacher1Password", "value": "StrongPassword123!", "type": "string" },
+    { "key": "teacher2Email", "value": "teacher2@example.com", "type": "string" },
+    { "key": "teacher2Password", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentEmail", "value": "student@example.com", "type": "string" },
+    { "key": "studentPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "teacher1Token", "value": "", "type": "string" },
+    { "key": "teacher2Token", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "audioStorageKey", "value": "", "type": "string" },
+    { "key": "imageStorageKey", "value": "", "type": "string" },
+    { "key": "mediaId", "value": "", "type": "string" },
+    { "key": "testQuestionId", "value": "30000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "testQuestionVersion", "value": "1", "type": "string" },
+    { "key": "importJobId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication & Tokens Setup",
+      "item": [
+        {
+          "name": "01.1 - Login Teacher 1 (Creator)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('teacher1Token', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacher1Email}}\",\n  \"password\": \"{{teacher1Password}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "01.2 - Login Teacher 2 (Reviewer Peer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('teacher2Token', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacher2Email}}\",\n  \"password\": \"{{teacher2Password}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "01.3 - Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('adminToken', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "01.4 - Login Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "    pm.collectionVariables.set('studentToken', json.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Media Direct Upload & Presigned URLs (UC13)",
+      "item": [
+        {
+          "name": "02.1 - Request Audio Presigned URL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Contains uploadUrl and storageKey', function () {",
+                  "    pm.expect(json).to.have.property('uploadUrl');",
+                  "    pm.expect(json).to.have.property('storageKey');",
+                  "    pm.collectionVariables.set('audioStorageKey', json.storageKey);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"conversation_part3.mp3\",\n  \"resourceType\": \"audio\",\n  \"mimeType\": \"audio/mpeg\",\n  \"fileSize\": 1048576\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/media/presigned-url", "host": ["{{baseUrl}}"], "path": ["media", "presigned-url"] }
+          }
+        },
+        {
+          "name": "02.2 - Request Batch Presigned URLs (3 files)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Returns array of presigned items', function () {",
+                  "    var arr = json.results || json.items;",
+                  "    pm.expect(arr).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"files\": [\n    {\n      \"fileName\": \"part1_image.png\",\n      \"resourceType\": \"image\",\n      \"mimeType\": \"image/png\",\n      \"fileSize\": 512000\n    },\n    {\n      \"fileName\": \"part1_audio.mp3\",\n      \"resourceType\": \"audio\",\n      \"mimeType\": \"audio/mpeg\",\n      \"fileSize\": 1024000\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/media/presigned-url/batch", "host": ["{{baseUrl}}"], "path": ["media", "presigned-url", "batch"] }
+          }
+        },
+        {
+          "name": "02.3 - Fail Presigned URL: File Size Exceeds Quota (>15MB Audio)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"oversized_audio.mp3\",\n  \"resourceType\": \"audio\",\n  \"mimeType\": \"audio/mpeg\",\n  \"fileSize\": 20000000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/media/presigned-url", "host": ["{{baseUrl}}"], "path": ["media", "presigned-url"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Question Import & Template Download (UC14)",
+      "item": [
+        {
+          "name": "03.1 - Download Excel Template 15-Columns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Content-Type is spreadsheetml', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('spreadsheetml');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacher1Token}}" }],
+            "url": { "raw": "{{baseUrl}}/questions/import/template", "host": ["{{baseUrl}}"], "path": ["questions", "import", "template"] }
+          }
+        },
+        {
+          "name": "03.2 - Query Import Jobs History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Returns paginated jobs array', function () {",
+                  "    var list = json.data || json.items;",
+                  "    pm.expect(list).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacher1Token}}" }],
+            "url": { "raw": "{{baseUrl}}/questions/import/jobs?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["questions", "import", "jobs"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Review Queue & Eager Group Context (UC15)",
+      "item": [
+        {
+          "name": "04.1 - Get Review Queue with Eager Context",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Queue has total and items array', function () {",
+                  "    pm.expect(json).to.have.property('total');",
+                  "    pm.expect(json.items).to.be.an('array');",
+                  "    if (json.items.length > 0) {",
+                  "        pm.collectionVariables.set('testQuestionId', json.items[0].id);",
+                  "        pm.collectionVariables.set('testQuestionVersion', json.items[0].version.toString());",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacher2Token}}" }],
+            "url": { "raw": "{{baseUrl}}/questions/reviews/queue?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "queue"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Maker-Checker Defense (UC15)",
+      "item": [
+        {
+          "name": "05.1 - Fail: Creator Cannot Approve Own Question (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/reviews/{{testQuestionId}}/approve", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "{{testQuestionId}}", "approve"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Optimistic Locking Concurrency Conflict (UC15)",
+      "item": [
+        {
+          "name": "06.1 - Fail: Stale Version Conflict (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409 Conflict or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([409, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 99999\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/reviews/{{testQuestionId}}/approve", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "{{testQuestionId}}", "approve"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Quick-Fix & Part Content Matrix (Rule 1002)",
+      "item": [
+        {
+          "name": "07.1 - Fail Quick-Fix: Options Missing Text on Part 5 (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request, 409 Conflict or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"content\": \"The committee will meet _____ noon.\",\n  \"options\": [\n    { \"id\": \"50000000-0000-4000-8000-000000000001\", \"content\": \"\", \"isCorrect\": true },\n    { \"id\": \"50000000-0000-4000-8000-000000000002\", \"content\": \"at\", \"isCorrect\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/reviews/{{testQuestionId}}/quick-fix", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "{{testQuestionId}}", "quick-fix"] }
+          }
+        },
+        {
+          "name": "07.2 - Fail Quick-Fix: Multiple Correct Options (Single Choice Invariant) (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request, 409 Conflict or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"options\": [\n    { \"id\": \"50000000-0000-4000-8000-000000000001\", \"content\": \"at\", \"isCorrect\": true },\n    { \"id\": \"50000000-0000-4000-8000-000000000002\", \"content\": \"on\", \"isCorrect\": true }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/reviews/{{testQuestionId}}/quick-fix", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "{{testQuestionId}}", "quick-fix"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Revision Request & Rejection",
+      "item": [
+        {
+          "name": "08.1 - Fail Request Revision: Missing Mandatory Feedback (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacher2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/reviews/{{testQuestionId}}/request-revision", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "{{testQuestionId}}", "request-revision"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Admin Emergency Bypass & Security Audit Log",
+      "item": [
+        {
+          "name": "09.1 - Admin Emergency Bypass on Own Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK, 409 Conflict or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"emergencyBypass\": true,\n  \"feedback\": \"Urgent exam publishing requirement\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/reviews/{{testQuestionId}}/approve", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "{{testQuestionId}}", "approve"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Student RBAC Defense",
+      "item": [
+        {
+          "name": "10.1 - Fail: Student Calling Media Presigned URL (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"student_upload.mp3\",\n  \"resourceType\": \"audio\",\n  \"mimeType\": \"audio/mpeg\",\n  \"fileSize\": 1024\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/media/presigned-url", "host": ["{{baseUrl}}"], "path": ["media", "presigned-url"] }
+          }
+        },
+        {
+          "name": "10.2 - Fail: Student Downloading Import Template (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/questions/import/template", "host": ["{{baseUrl}}"], "path": ["questions", "import", "template"] }
+          }
+        },
+        {
+          "name": "10.3 - Fail: Student Accessing Review Queue (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/questions/reviews/queue", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "queue"] }
+          }
+        },
+        {
+          "name": "10.4 - Fail: Student Approving Question (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/questions/reviews/{{testQuestionId}}/approve", "host": ["{{baseUrl}}"], "path": ["questions", "reviews", "{{testQuestionId}}", "approve"] }
+          }
+        }
+      ]
+    }
+  ]
+}

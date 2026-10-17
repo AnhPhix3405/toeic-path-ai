@@ -3,7 +3,10 @@ import { Type } from 'class-transformer';
 import { ArrayNotEmpty, IsArray, IsInt, IsUUID, Min, ValidateNested } from 'class-validator';
 
 export class BatchApproveItemDto {
-  @ApiProperty({ description: 'Question UUID to approve', example: 'd0a7a3b3-1e5b-42c2-841f-13a863c3d5e2' })
+  @ApiProperty({
+    description: 'Question UUID to approve',
+    example: 'd0a7a3b3-1e5b-42c2-841f-13a863c3d5e2',
+  })
   @IsUUID('4')
   questionId!: string;
 
@@ -15,7 +18,10 @@ export class BatchApproveItemDto {
 }
 
 export class BatchApproveQuestionsDto {
-  @ApiProperty({ description: 'Array of questions to approve in batch', type: [BatchApproveItemDto] })
+  @ApiProperty({
+    description: 'Array of questions to approve in batch',
+    type: [BatchApproveItemDto],
+  })
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })

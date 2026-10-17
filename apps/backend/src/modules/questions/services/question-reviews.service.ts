@@ -16,7 +16,10 @@ import type { QueryReviewQueueDto } from '../dto/request/query-review-queue.dto'
 import type { QuickFixApproveDto } from '../dto/request/quick-fix-approve.dto';
 import type { RejectQuestionDto } from '../dto/request/reject-question.dto';
 import type { RequestRevisionDto } from '../dto/request/request-revision.dto';
-import type { BatchReviewResponseDto, SkippedReviewItemDto } from '../dto/response/batch-review-response.dto';
+import type {
+  BatchReviewResponseDto,
+  SkippedReviewItemDto,
+} from '../dto/response/batch-review-response.dto';
 import type { ReviewActionResponseDto } from '../dto/response/review-action-response.dto';
 import { QuestionOption } from '../entities/question-option.entity';
 import { QuestionReview } from '../entities/question-review.entity';
@@ -214,7 +217,9 @@ export class QuestionReviewsService {
       if (dto.options && dto.options.length > 0) {
         const correctCount = dto.options.filter((o) => o.isCorrect === true).length;
         if (correctCount !== 1) {
-          throw new BadRequestException('Câu hỏi trắc nghiệm bắt buộc phải có duy nhất 1 đáp án đúng.');
+          throw new BadRequestException(
+            'Câu hỏi trắc nghiệm bắt buộc phải có duy nhất 1 đáp án đúng.',
+          );
         }
 
         // 2. Data Integrity Gate: Part Content Matrix (Tech Debt 006 Sync)
@@ -367,10 +372,12 @@ export class QuestionReviewsService {
         });
 
         approvedCount++;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const reason =
+          error instanceof Error ? error.message : 'Lỗi kiểm duyệt hoặc xung đột phiên bản';
         skipped.push({
           questionId: item.questionId,
-          reason: error.message || 'Lỗi kiểm duyệt hoặc xung đột phiên bản',
+          reason,
         });
       }
     }
@@ -417,7 +424,8 @@ export class QuestionReviewsService {
         return; // Admin bypass allowed
       }
       throw new ForbiddenException({
-        message: 'Người tạo câu hỏi không được phép tự kiểm duyệt câu hỏi của chính mình (Maker-Checker Rule).',
+        message:
+          'Người tạo câu hỏi không được phép tự kiểm duyệt câu hỏi của chính mình (Maker-Checker Rule).',
         code: 'ERR_CANNOT_SELF_REVIEW',
       });
     }
