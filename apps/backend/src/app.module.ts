@@ -27,6 +27,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { QuestionsModule } from './modules/questions/questions.module';
 import { QuestionGroupsModule } from './modules/question-groups/question-groups.module';
 import { MediaModule } from './modules/media/media.module';
+import { ExamsModule } from './modules/exams/exams.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { MediaModule } from './modules/media/media.module';
     QuestionsModule,
     QuestionGroupsModule,
     MediaModule,
+    ExamsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
