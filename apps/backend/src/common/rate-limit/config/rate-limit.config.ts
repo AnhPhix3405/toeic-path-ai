@@ -108,4 +108,9 @@ export default registerAs('rateLimit', () => ({
     user: integer('RATE_LIMIT_QUESTIONS_REVIEWS_USER_MAX', 60),
     ip: integer('RATE_LIMIT_QUESTIONS_REVIEWS_IP_MAX', 120),
   },
+  examsMutate: {
+    ttl: integer('RATE_LIMIT_EXAMS_MUTATE_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_EXAMS_MUTATE_USER_MAX', 30),
+    ip: integer('RATE_LIMIT_EXAMS_MUTATE_IP_MAX', 60),
+  },
 }));

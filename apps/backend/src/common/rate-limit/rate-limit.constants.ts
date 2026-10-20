@@ -30,4 +30,5 @@ export type ThrottlePolicyName =
   | 'mediaManage'
   | 'questionsImport'
   | 'questionsReviews'
+  | 'examsMutate'
   | UploadRateLimitPolicyName;

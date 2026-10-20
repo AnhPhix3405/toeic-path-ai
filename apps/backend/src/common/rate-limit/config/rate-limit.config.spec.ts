@@ -8,4 +8,13 @@ describe('rateLimitConfig', () => {
     expect(config.questionsReviews.user).toBe(60);
     expect(config.questionsReviews.ip).toBe(120);
   });
+
+  it('should load default rate limit configuration for examsMutate', () => {
+    const config = rateLimitConfig() as any;
+    expect(config.examsMutate).toEqual({
+      ttl: 60,
+      user: 30,
+      ip: 60,
+    });
+  });
 });

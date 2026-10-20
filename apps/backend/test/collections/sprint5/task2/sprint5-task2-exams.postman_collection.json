@@ -1,0 +1,1010 @@
+{
+  "info": {
+    "_postman_id": "c5d1e2f3-a4b5-4678-9012-3456789abcde",
+    "name": "TOEIC Path AI - Sprint 5 Task 2 Exam Management (UC16)",
+    "description": "Bộ kiểm thử tự động Postman cho Sprint 5 - Task 2 (UC16: Khởi tạo đề thi & Quản lý cấu hình cơ bản). Bao gồm: Setup & Auth, Khởi tạo đề thi (Full Test auto-seed 7 sections, Mini/Placement test), Chi tiết đề thi quản trị, Cập nhật cấu hình & Optimistic Locking, Soft Delete & Chặn xóa, Phân quyền RBAC kép và Dọn dẹp dữ liệu.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{teacherToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "studentEmail",
+      "value": "sprint5.task2.student@example.com",
+      "type": "string"
+    },
+    {
+      "key": "teacherEmail",
+      "value": "sprint5.task2.teacher@example.com",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "StrongPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "StrongPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fullTestExamId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fullTestExamVersion",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "miniTestExamId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "miniTestExamVersion",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "placementTestExamId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup & Auth",
+      "item": [
+        {
+          "name": "00.1 - Register Student Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Task 2 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student registered or already exists (201/409)\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Register Teacher Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Task 2 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher registered or already exists (201/409)\", function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "  if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set(\"teacherUserId\", json.id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"adminToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Find Teacher Candidate User ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?search={{teacherEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [{ "key": "search", "value": "{{teacherEmail}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Found teacher user in admin directory (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var users = json.data || json.items || (Array.isArray(json) ? json : []);",
+                  "  var teacher = users.find(function (u) { return u.email === pm.collectionVariables.get(\"teacherEmail\"); });",
+                  "  pm.expect(teacher).to.be.an(\"object\");",
+                  "  pm.collectionVariables.set(\"teacherUserId\", teacher.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Upgrade Teacher Role via Admin",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"teacher\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{teacherUserId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{teacherUserId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Role upgraded to teacher (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.6 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"teacherToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.7 - Login Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"studentToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Create Exam (POST /exams)",
+      "item": [
+        {
+          "name": "01.1 - Create Full Test (Auto-seed 7 Sections)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"ETS TOEIC 2026 Test 01 [S5T2]\",\n  \"description\": \"Đề thi thử TOEIC chuẩn format 2026 gồm 200 câu trong 120 phút.\",\n  \"type\": \"full_test\",\n  \"durationMinutes\": 120,\n  \"maxAttempts\": 3,\n  \"passingScore\": 600,\n  \"allowPartPractice\": true,\n  \"isShuffledQuestions\": false,\n  \"isShuffledOptions\": false,\n  \"scoreConversionType\": \"DEFAULT_ETS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Full Test created successfully (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a(\"string\");",
+                  "  pm.expect(json.type).to.eql(\"full_test\");",
+                  "  pm.expect(json.status).to.eql(\"draft\");",
+                  "  pm.expect(json.version).to.eql(1);",
+                  "  pm.expect(json.sectionsCount).to.eql(7);",
+                  "  pm.expect(json.sections).to.be.an(\"array\").with.lengthOf(7);",
+                  "  pm.expect(json.sections[0].targetQuestionsCount).to.eql(6);",
+                  "  pm.expect(json.sections[6].targetQuestionsCount).to.eql(54);",
+                  "  pm.collectionVariables.set(\"fullTestExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"fullTestExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Create Mini Test (No Auto-seeding)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TOEIC Mini Test 45 Mins [S5T2]\",\n  \"type\": \"mini_test\",\n  \"durationMinutes\": 45,\n  \"allowPartPractice\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mini Test created successfully without sections (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.type).to.eql(\"mini_test\");",
+                  "  pm.expect(json.sectionsCount).to.eql(0);",
+                  "  pm.collectionVariables.set(\"miniTestExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"miniTestExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Create Placement Test with Schedule Window",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TOEIC Placement Test 2026 [S5T2]\",\n  \"type\": \"placement_test\",\n  \"durationMinutes\": 60,\n  \"openAt\": \"2026-10-01T00:00:00.000Z\",\n  \"closeAt\": \"2026-12-31T23:59:59.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Placement test with schedule created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.type).to.eql(\"placement_test\");",
+                  "  pm.collectionVariables.set(\"placementTestExamId\", json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Validation Error: closeAt earlier than openAt",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Invalid Schedule Exam [S5T2]\",\n  \"type\": \"full_test\",\n  \"durationMinutes\": 120,\n  \"openAt\": \"2026-12-31T00:00:00.000Z\",\n  \"closeAt\": \"2026-10-01T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Schedule validation rejected (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.eql(\"ERR_INVALID_SCHEDULE_TIME\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.5 - Validation Error: Title Too Short & Duration = 0",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"ABC\",\n  \"type\": \"full_test\",\n  \"durationMinutes\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Payload validation rejected (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.6 - RBAC Guard: Student Cannot Create Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Student Unauthorized Exam [S5T2]\",\n  \"type\": \"mini_test\",\n  \"durationMinutes\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student blocked from creating exam (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Get Exam Management Detail (GET /exams/:id/manage)",
+      "item": [
+        {
+          "name": "02.1 - Teacher Get Own Full Test Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}/manage",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}", "manage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher retrieves full exam detail (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get(\"fullTestExamId\"));",
+                  "  pm.expect(json.sections).to.be.an(\"array\").with.lengthOf(7);",
+                  "  pm.expect(json.sectionsCount).to.eql(7);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Admin Get Full Test Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}/manage",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}", "manage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin retrieves exam detail successfully (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get(\"fullTestExamId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - RBAC Guard: Student Cannot Access Manage Endpoint",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}/manage",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}", "manage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student blocked from accessing management detail (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Not Found: Non-existent Exam UUID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/00000000-0000-0000-0000-000000000000/manage",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "00000000-0000-0000-0000-000000000000", "manage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Non-existent exam returns 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Update Exam Configuration (PATCH /exams/:id)",
+      "item": [
+        {
+          "name": "03.1 - Teacher Update Exam Title & Duration (Optimistic Lock Match)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{fullTestExamVersion}},\n  \"title\": \"ETS TOEIC 2026 Test 01 - Updated [S5T2]\",\n  \"durationMinutes\": 125\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Exam updated successfully & version incremented (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.title).to.eql(\"ETS TOEIC 2026 Test 01 - Updated [S5T2]\");",
+                  "  pm.expect(json.durationMinutes).to.eql(125);",
+                  "  pm.expect(json.version).to.eql(Number(pm.collectionVariables.get(\"fullTestExamVersion\")) + 1);",
+                  "  pm.collectionVariables.set(\"fullTestExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Optimistic Locking Conflict (Stale Version)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"title\": \"Stale Conflict Title [S5T2]\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Optimistic lock conflict rejected (409)\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.eql(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Missing Version Field in Payload",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"No Version Provided [S5T2]\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Missing version rejected by DTO validation (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 - Partial Update Schedule Conflict (closeAt <= effective openAt)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"closeAt\": \"2026-09-01T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{placementTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{placementTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Partial update date conflict rejected (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.eql(\"ERR_INVALID_SCHEDULE_TIME\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.5 - RBAC Guard: Student Cannot Update Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"title\": \"Unauthorized Student Update\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student blocked from updating exam (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Delete & Delete Guards (DELETE /exams/:id)",
+      "item": [
+        {
+          "name": "04.1 - RBAC Guard: Student Cannot Delete Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student blocked from deleting exam (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Teacher Soft Delete Mini Test (No Attempts)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mini test soft-deleted successfully (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.success).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.3 - Verify Soft Deleted Exam Cannot Be Retrieved",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/manage",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "manage"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Soft deleted exam is hidden (404)\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.4 - Verify Soft Deleted Exam Cannot Be Updated",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"title\": \"Update Deleted Exam\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Cannot update deleted exam (404)\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.5 - Cleanup: Soft Delete Remaining Test Exams",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Full test cleaned up (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
