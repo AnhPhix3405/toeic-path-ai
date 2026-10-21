@@ -1,0 +1,1045 @@
+{
+  "info": {
+    "_postman_id": "e7f3a5b6-c7d8-4901-2345-6789abcdef01",
+    "name": "TOEIC Path AI - Sprint 5 Task 4 Exam Publishing & Lifecycle (UC18)",
+    "description": "Bộ kiểm thử tự động Postman cho Sprint 5 - Task 4 (UC18: Quy Trình Thẩm Định, Xuất Bản & Vòng Đời Đề Thi). Bao gồm: Setup & Auth, Publish Checklist Validator (loại đề Full/Placement/Mini test, Single Choice Invariant, ràng buộc Media không nghẽn I/O qua DB metadata, context bài đọc Part 6-7, tính liên tục orderIndex, lịch thi tương lai và cờ isScheduled), Unpublish Guard (chặn khi có attemptsCount > 0, cho phép chuyển về draft khi chưa có lượt thi), Đóng đề thủ công (close), Lưu trữ đề thi (archive), Concurrency Conflict (Optimistic Locking version) và RBAC Guards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{teacherToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "sprint5.task4.student@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "sprint5.task4.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "teacherUserId", "value": "", "type": "string" },
+    { "key": "emptyExamId", "value": "", "type": "string" },
+    { "key": "emptyExamVersion", "value": "1", "type": "string" },
+    { "key": "scheduledExamId", "value": "", "type": "string" },
+    { "key": "scheduledExamVersion", "value": "1", "type": "string" },
+    { "key": "lifecycleExamId", "value": "", "type": "string" },
+    { "key": "lifecycleExamVersion", "value": "1", "type": "string" },
+    { "key": "sectionPart5Id", "value": "", "type": "string" },
+    { "key": "validQuestionId1", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup & Auth",
+      "item": [
+        {
+          "name": "00.1 - Register Student Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Task 4 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student registration succeeded or already exists (201 or 409)\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Register Teacher Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Task 4 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher registration succeeded or already exists (201 or 409)\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"adminToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Find Teacher Candidate User ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?search={{teacherEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [{ "key": "search", "value": "{{teacherEmail}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Found teacher user in admin directory (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var users = json.data || json.items || (Array.isArray(json) ? json : []);",
+                  "  var teacher = users.find(function (u) { return u.email === pm.collectionVariables.get(\"teacherEmail\"); });",
+                  "  pm.expect(teacher).to.be.an(\"object\");",
+                  "  pm.collectionVariables.set(\"teacherUserId\", teacher.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Upgrade Teacher Role via Admin",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"teacher\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{teacherUserId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{teacherUserId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher role assigned (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.6 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"teacherToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.7 - Login Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"studentToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.8 - Query Published Bank Questions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/questions?limit=10&status=published",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "published" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Query bank questions (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var items = json.data || json.items || (Array.isArray(json) ? json : []);",
+                  "  if (items.length > 0) {",
+                  "    pm.collectionVariables.set(\"validQuestionId1\", items[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.9 - Create Empty Exam For Checklist Rejection Test",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sprint 5 Task 4 Empty Full Test Exam\",\n  \"type\": \"full_test\",\n  \"durationMinutes\": 120\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Empty full test created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"emptyExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"emptyExamVersion\", json.version || 1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.10 - Create Future Scheduled Exam Base",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sprint 5 Task 4 Scheduled Exam Test\",\n  \"type\": \"mini_test\",\n  \"durationMinutes\": 30,\n  \"openAt\": \"2099-01-01T08:00:00.000Z\",\n  \"closeAt\": \"2099-01-02T08:00:00.000Z\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Scheduled exam created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"scheduledExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"scheduledExamVersion\", json.version || 1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.11 - Configure 1 Section for Scheduled Exam (Part 5)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{scheduledExamVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 5,\n      \"targetQuestionsCount\": 1,\n      \"targetDurationMinutes\": 10\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{scheduledExamId}}/sections", "host": ["{{baseUrl}}"], "path": ["exams", "{{scheduledExamId}}", "sections"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Section configured for scheduled exam (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"scheduledExamVersion\", json.version);",
+                  "  if (json.sections && json.sections.length > 0) {",
+                  "    pm.collectionVariables.set(\"sectionPart5Id\", json.sections[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.12 - Add Single Question to Scheduled Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{scheduledExamVersion}},\n  \"sectionId\": \"{{sectionPart5Id}}\",\n  \"questionIds\": [\"{{validQuestionId1}}\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{scheduledExamId}}/questions", "host": ["{{baseUrl}}"], "path": ["exams", "{{scheduledExamId}}", "questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Question added to scheduled exam (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"scheduledExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.13 - Create Lifecycle Test Exam Base",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sprint 5 Task 4 Lifecycle Exam Flow\",\n  \"type\": \"mini_test\",\n  \"durationMinutes\": 30\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lifecycle exam created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"lifecycleExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version || 1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.14 - Configure Section for Lifecycle Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 5,\n      \"targetQuestionsCount\": 1\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/sections", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "sections"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Section configured for lifecycle exam (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version);",
+                  "  if (json.sections && json.sections.length > 0) {",
+                  "    pm.collectionVariables.set(\"sectionPart5Id\", json.sections[0].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.15 - Add Question to Lifecycle Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}},\n  \"sectionId\": \"{{sectionPart5Id}}\",\n  \"questionIds\": [\"{{validQuestionId1}}\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/questions", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Question added to lifecycle exam (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Publish Checklist Validator (POST /exams/:id/publish)",
+      "item": [
+        {
+          "name": "01.1 - Error: Publish Checklist Rejects Incomplete Full Test",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{emptyExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{emptyExamId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{emptyExamId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects empty full test (400 ERR_EXAM_INCOMPLETE_QUESTIONS)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_EXAM_INCOMPLETE_QUESTIONS\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Error: Optimistic Locking Stale Version on Publish",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 999\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{scheduledExamId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{scheduledExamId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Stale version publish rejected (409 ERR_CONCURRENCY_CONFLICT)\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - RBAC Guard: Student Cannot Publish Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{scheduledExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{scheduledExamId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{scheduledExamId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student forbidden to publish exam (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Teacher Publish Scheduled Exam (Computed Status isScheduled=true)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{scheduledExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{scheduledExamId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{scheduledExamId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Publish scheduled exam succeeded (200, status=published, isScheduled=true)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal(\"published\");",
+                  "  pm.expect(json.isScheduled).to.be.true;",
+                  "  pm.expect(json.publishedAt).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"scheduledExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.5 - Error: Cannot Re-publish Exam Already Published",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{scheduledExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{scheduledExamId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{scheduledExamId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Re-publishing published exam rejected (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_INVALID_EXAM_STATUS_TRANSITION\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Unpublish Guard (POST /exams/:id/unpublish)",
+      "item": [
+        {
+          "name": "02.1 - Teacher Publish Lifecycle Exam for Unpublish Testing",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lifecycle exam published (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal(\"published\");",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Error: Stale Version Conflict on Unpublish",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/unpublish", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "unpublish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Stale version unpublish rejected (409 ERR_CONCURRENCY_CONFLICT)\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - RBAC Guard: Student Cannot Unpublish Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/unpublish", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "unpublish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student forbidden to unpublish exam (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Teacher Unpublish Exam Back to Draft (attemptsCount === 0)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/unpublish", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "unpublish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Unpublish succeeded (200, status=draft, publishedAt=null)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal(\"draft\");",
+                  "  pm.expect(json.publishedAt).to.be.null;",
+                  "  pm.expect(json.isScheduled).to.be.false;",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.5 - Error: Cannot Unpublish Draft Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/unpublish", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "unpublish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Cannot unpublish exam that is already draft (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_INVALID_EXAM_STATUS_TRANSITION\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - State Machine: Close & Archive",
+      "item": [
+        {
+          "name": "03.1 - Re-publish Lifecycle Exam for Close/Archive Flow",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Re-publish succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Error: Cannot Archive Published Exam Directly",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/archive", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "archive"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Archiving published exam rejected (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_INVALID_EXAM_STATUS_TRANSITION\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Teacher Close Exam Manually (Published -> Closed)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/close", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "close"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Close exam succeeded (200, status=closed)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal(\"closed\");",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 - Teacher Archive Exam (Closed -> Archived)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{lifecycleExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}/archive", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}", "archive"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Archive exam succeeded (200, status=archived)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal(\"archived\");",
+                  "  pm.collectionVariables.set(\"lifecycleExamVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Cleanup",
+      "item": [
+        {
+          "name": "04.1 - Soft Delete Empty Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/exams/{{emptyExamId}}", "host": ["{{baseUrl}}"], "path": ["exams", "{{emptyExamId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Empty exam cleaned up (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Soft Delete Scheduled Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/exams/{{scheduledExamId}}", "host": ["{{baseUrl}}"], "path": ["exams", "{{scheduledExamId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Scheduled exam cleaned up (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.3 - Soft Delete Lifecycle Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/exams/{{lifecycleExamId}}", "host": ["{{baseUrl}}"], "path": ["exams", "{{lifecycleExamId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lifecycle exam cleaned up (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
