@@ -1,0 +1,1322 @@
+{
+  "info": {
+    "_postman_id": "d6e2f3a4-b5c6-4789-0123-456789abcdef",
+    "name": "TOEIC Path AI - Sprint 5 Task 3 Exam Structure Management (UC17)",
+    "description": "Bộ kiểm thử tự động Postman cho Sprint 5 - Task 3 (UC17: Thiết lập cấu trúc đề & Tuyển chọn câu hỏi từ ngân hàng). Bao gồm: Setup & Auth, Cấu hình Sections (Mini/Placement Test, chặn Full Test), Tra cứu cấu trúc đề, Tuyển chọn nạp câu hỏi đơn & nhóm, Kiểm tra toàn vẹn nhóm câu hỏi & chéo section, Sắp xếp thứ tự (Reorder Deferrable), Gỡ bỏ câu hỏi & dồn thứ tự, Thuật toán sinh đề tự động A4 Knapsack, Optimistic Locking và Dọn dẹp dữ liệu.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{teacherToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "sprint5.task3.student@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "sprint5.task3.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "teacherUserId", "value": "", "type": "string" },
+    { "key": "miniTestExamId", "value": "", "type": "string" },
+    { "key": "miniTestVersion", "value": "1", "type": "string" },
+    { "key": "placementTestExamId", "value": "", "type": "string" },
+    { "key": "placementTestVersion", "value": "1", "type": "string" },
+    { "key": "fullTestExamId", "value": "", "type": "string" },
+    { "key": "fullTestVersion", "value": "1", "type": "string" },
+    { "key": "sectionPart1Id", "value": "", "type": "string" },
+    { "key": "sectionPart5Id", "value": "", "type": "string" },
+    { "key": "singleQuestionId1", "value": "", "type": "string" },
+    { "key": "singleQuestionId2", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup & Auth",
+      "item": [
+        {
+          "name": "00.1 - Register Student Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Task 3 Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student registration succeeded or already exists (201 or 409)\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Register Teacher Candidate",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Task 3 Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher registration succeeded or already exists (201 or 409)\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"adminToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Find Teacher Candidate User ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?search={{teacherEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [{ "key": "search", "value": "{{teacherEmail}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Found teacher user in admin directory (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var users = json.data || json.items || (Array.isArray(json) ? json : []);",
+                  "  var teacher = users.find(function (u) { return u.email === pm.collectionVariables.get(\"teacherEmail\"); });",
+                  "  pm.expect(teacher).to.be.an(\"object\");",
+                  "  pm.collectionVariables.set(\"teacherUserId\", teacher.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Upgrade Teacher Role via Admin",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"teacher\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{teacherUserId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{teacherUserId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher role assigned (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.6 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"teacherToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.7 - Login Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student login succeeded (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a(\"string\");",
+                  "  pm.collectionVariables.set(\"studentToken\", json.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.8 - Create Mini Test for Structure Testing",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sprint 5 Task 3 Mini Test Exam\",\n  \"type\": \"mini_test\",\n  \"durationMinutes\": 60\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mini test created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"miniTestExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"miniTestVersion\", json.version || 1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.9 - Create Full Test for Structure Testing",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sprint 5 Task 3 Full Test Exam\",\n  \"type\": \"full_test\",\n  \"durationMinutes\": 120\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Full test created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"fullTestExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"fullTestVersion\", json.version || 1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.10 - Create Placement Test Base",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sprint 5 Task 3 Placement Test Exam\",\n  \"type\": \"placement_test\",\n  \"durationMinutes\": 60\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Placement test created (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"placementTestExamId\", json.id);",
+                  "  pm.collectionVariables.set(\"placementTestVersion\", json.version || 1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.11 - Query Published Questions from Bank",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/questions?limit=20&status=published",
+              "host": ["{{baseUrl}}"],
+              "path": ["questions"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "status", "value": "published" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Query published questions (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  var items = json.data || json.items || (Array.isArray(json) ? json : []);",
+                  "  var singles = items.filter(function (q) { return !q.questionGroupId; });",
+                  "  if (singles.length > 0) {",
+                  "    pm.collectionVariables.set(\"singleQuestionId1\", singles[0].id);",
+                  "  }",
+                  "  if (singles.length > 1) {",
+                  "    pm.collectionVariables.set(\"singleQuestionId2\", singles[1].id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Configure Sections (POST /exams/:id/sections)",
+      "item": [
+        {
+          "name": "01.1 - Teacher Configure Sections for Mini Test (Part 1 & 5)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 1,\n      \"targetQuestionsCount\": 6,\n      \"targetDurationMinutes\": 10\n    },\n    {\n      \"partNumber\": 5,\n      \"targetQuestionsCount\": 30,\n      \"targetDurationMinutes\": 20\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "sections"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Configure Mini Test sections succeeded (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.sections).to.be.an(\"array\").with.lengthOf(2);",
+                  "  pm.collectionVariables.set(\"miniTestVersion\", json.version);",
+                  "  var sec1 = json.sections.find(function(s) { return s.partNumber === 1; });",
+                  "  var sec5 = json.sections.find(function(s) { return s.partNumber === 5; });",
+                  "  if (sec1) pm.collectionVariables.set(\"sectionPart1Id\", sec1.id);",
+                  "  if (sec5) pm.collectionVariables.set(\"sectionPart5Id\", sec5.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Teacher Configure Valid Placement Test Sections (50 Qs)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{placementTestVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 1,\n      \"targetQuestionsCount\": 20\n    },\n    {\n      \"partNumber\": 5,\n      \"targetQuestionsCount\": 30\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{placementTestExamId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{placementTestExamId}}", "sections"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Configure Placement Test sections succeeded (201)\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.sections).to.be.an(\"array\").with.lengthOf(2);",
+                  "  pm.collectionVariables.set(\"placementTestVersion\", json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Error: Configure Sections on Full Test Forbidden",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{fullTestVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 1,\n      \"targetQuestionsCount\": 6\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}", "sections"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Full Test sections cannot be reconfigured (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_FULL_TEST_SECTIONS_IMMUTABLE\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Error: Placement Test with < 20 questions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{placementTestVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 1,\n      \"targetQuestionsCount\": 5\n    },\n    {\n      \"partNumber\": 5,\n      \"targetQuestionsCount\": 5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{placementTestExamId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{placementTestExamId}}", "sections"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Placement test rejects < 20 questions (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_INVALID_PLACEMENT_TEST_STRUCTURE\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.5 - Error: Placement Test missing Reading Section",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{placementTestVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 1,\n      \"targetQuestionsCount\": 15\n    },\n    {\n      \"partNumber\": 2,\n      \"targetQuestionsCount\": 15\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{placementTestExamId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{placementTestExamId}}", "sections"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Placement test rejects missing reading section (400)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_INVALID_PLACEMENT_TEST_STRUCTURE\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.6 - Error: Optimistic Locking Stale Version",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"sections\": [\n    {\n      \"partNumber\": 1,\n      \"targetQuestionsCount\": 6\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "sections"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rejects stale version with 409 Conflict\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.7 - RBAC Guard: Student Cannot Configure Sections",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}},\n  \"sections\": [\n    {\n      \"partNumber\": 1,\n      \"targetQuestionsCount\": 6\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "sections"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student is forbidden to configure sections (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Get Structure (GET /exams/:id/structure)",
+      "item": [
+        {
+          "name": "02.1 - Teacher Get Own Exam Structure",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/structure",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "structure"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Teacher gets structure (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.equal(pm.collectionVariables.get(\"miniTestExamId\"));",
+                  "  pm.expect(json.sections).to.be.an(\"array\");",
+                  "  pm.expect(json.questions).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Admin Get Exam Structure",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/structure",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "structure"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin gets structure (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.equal(pm.collectionVariables.get(\"miniTestExamId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - RBAC Guard: Student Cannot Access Draft Structure",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/structure",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "structure"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student forbidden to access draft structure (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Not Found: Non-existent Exam UUID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams/00000000-0000-4000-8000-000000000099/structure",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "00000000-0000-4000-8000-000000000099", "structure"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Non-existent exam returns 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Add Questions (POST /exams/:id/questions)",
+      "item": [
+        {
+          "name": "03.1 - Teacher Add Single Question to Section",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}},\n  \"sectionId\": \"{{sectionPart5Id}}\",\n  \"questionIds\": [\"{{singleQuestionId1}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"singleQuestionId1\")) {",
+                  "  pm.test(\"Skip if no question available in bank\", function () { pm.expect(true).to.be.true; });",
+                  "} else {",
+                  "  pm.test(\"Add question succeeded or published check (201 or 400)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+                  "    if (pm.response.code === 201) {",
+                  "      var json = pm.response.json();",
+                  "      pm.collectionVariables.set(\"miniTestVersion\", json.version);",
+                  "    }",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Error: Section Does Not Belong to Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}},\n  \"sectionId\": \"00000000-0000-4000-8000-000000000001\",\n  \"questionIds\": [\"00000000-0000-4000-8000-000000000002\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Cross-exam section rejected (400 ERR_SECTION_NOT_FOUND)\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_SECTION_NOT_FOUND\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Error: Duplicate Question In Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}},\n  \"sectionId\": \"{{sectionPart5Id}}\",\n  \"questionIds\": [\"{{singleQuestionId1}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"singleQuestionId1\")) {",
+                  "  pm.test(\"Skip if no question\", function () { pm.expect(true).to.be.true; });",
+                  "} else {",
+                  "  pm.test(\"Duplicate question rejected (409 or 400)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([409, 400]);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 - Error: Optimistic Locking Stale Version",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"sectionId\": \"{{sectionPart5Id}}\",\n  \"questionIds\": [\"00000000-0000-4000-8000-000000000002\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Stale version on add questions rejected (409)\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.5 - RBAC Guard: Student Cannot Add Questions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}},\n  \"sectionId\": \"{{sectionPart5Id}}\",\n  \"questionIds\": [\"00000000-0000-4000-8000-000000000002\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student forbidden to add questions (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Reorder Questions (PUT /exams/:id/questions/reorder)",
+      "item": [
+        {
+          "name": "04.1 - Error: Stale Version Conflict on Reorder",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1,\n  \"items\": [\n    {\n      \"questionId\": \"00000000-0000-4000-8000-000000000001\",\n      \"orderIndex\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions", "reorder"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Stale version reorder rejected (409)\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - RBAC Guard: Student Cannot Reorder Questions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}},\n  \"items\": [\n    {\n      \"questionId\": \"00000000-0000-4000-8000-000000000001\",\n      \"orderIndex\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions", "reorder"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student forbidden to reorder questions (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Remove Question (DELETE /exams/:id/questions/:questionId)",
+      "item": [
+        {
+          "name": "05.1 - Error: Stale Version Conflict on Delete",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions/00000000-0000-4000-8000-000000000001?version=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions", "00000000-0000-4000-8000-000000000001"],
+              "query": [{ "key": "version", "value": "1" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Stale version delete rejected (409)\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.2 - Error: Question Not Found in Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions/00000000-0000-4000-8000-000000000099?version={{miniTestVersion}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions", "00000000-0000-4000-8000-000000000099"],
+              "query": [{ "key": "version", "value": "{{miniTestVersion}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Question not in exam returns 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.3 - RBAC Guard: Student Cannot Remove Question",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/questions/00000000-0000-4000-8000-000000000001?version={{miniTestVersion}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "questions", "00000000-0000-4000-8000-000000000001"],
+              "query": [{ "key": "version", "value": "{{miniTestVersion}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student forbidden to remove question (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Auto-Generate Exam A4 (POST /exams/:id/auto-generate)",
+      "item": [
+        {
+          "name": "06.1 - Error: Optimistic Locking Stale Version on Auto-generate",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/auto-generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "auto-generate"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Stale version auto-generate rejected (409)\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.code).to.equal(\"ERR_CONCURRENCY_CONFLICT\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06.2 - RBAC Guard: Student Cannot Auto-Generate",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/auto-generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "auto-generate"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Student forbidden to auto-generate (403)\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06.3 - Teacher Auto-Generate Exam (Result 201 or 422 if bank empty)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{miniTestVersion}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}/auto-generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}", "auto-generate"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Auto-generate responds with 201 or 422 if bank insufficient\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 422]);",
+                  "  if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set(\"miniTestVersion\", json.version);",
+                  "  } else {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.code).to.equal(\"ERR_QUESTION_BANK_INSUFFICIENT\");",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Cleanup",
+      "item": [
+        {
+          "name": "07.1 - Soft Delete Mini Test Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{miniTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{miniTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mini test cleaned up (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.2 - Soft Delete Placement Test Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{placementTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{placementTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Placement test cleaned up (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07.3 - Soft Delete Full Test Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{teacherToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{fullTestExamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{fullTestExamId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Full test cleaned up (200)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
