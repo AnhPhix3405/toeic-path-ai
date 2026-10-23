@@ -11,9 +11,11 @@ import { MediaResource } from '../questions/entities/media-resource.entity';
 import { ExamsService } from './services/exams.service';
 import { ExamsStructureService } from './services/exams-structure.service';
 import { ExamsPublishingService } from './services/exams-publishing.service';
+import { ExamsCatalogService } from './services/exams-catalog.service';
 import { ExamsController } from './controllers/exams.controller';
 import { ExamsStructureController } from './controllers/exams-structure.controller';
 import { ExamsPublishingController } from './controllers/exams-publishing.controller';
+import { ExamsCatalogController } from './controllers/exams-catalog.controller';
 
 @Module({
   imports: [
@@ -28,8 +30,19 @@ import { ExamsPublishingController } from './controllers/exams-publishing.contro
       MediaResource,
     ]),
   ],
-  controllers: [ExamsController, ExamsStructureController, ExamsPublishingController],
-  providers: [ExamsService, ExamsStructureService, ExamsPublishingService],
-  exports: [TypeOrmModule, ExamsService, ExamsStructureService, ExamsPublishingService],
+  controllers: [
+    ExamsCatalogController,
+    ExamsController,
+    ExamsStructureController,
+    ExamsPublishingController,
+  ],
+  providers: [ExamsService, ExamsStructureService, ExamsPublishingService, ExamsCatalogService],
+  exports: [
+    TypeOrmModule,
+    ExamsService,
+    ExamsStructureService,
+    ExamsPublishingService,
+    ExamsCatalogService,
+  ],
 })
 export class ExamsModule {}
