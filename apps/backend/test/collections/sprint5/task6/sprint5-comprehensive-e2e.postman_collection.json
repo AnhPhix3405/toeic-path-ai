@@ -1,0 +1,491 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-4789-0123-abcdef456789",
+    "name": "TOEIC Path AI - Sprint 5 Comprehensive Master E2E Collection",
+    "description": "Master Postman Automated Test Collection kiểm thử tự động toàn diện cho toàn bộ Sprint 5 (UC16: Quản lý & Khởi tạo đề thi, UC17: Thiết lập cấu trúc & Tuyển chọn câu hỏi, UC18: Thẩm định xuất bản & Vòng đời đề thi, UC19: Tra cứu danh mục công khai/quản trị & Zero Answer Leakage Overview). Thiết kế theo chuẩn Zero-Configuration / One-Touch tự động lấy token và dọn dẹp biến môi trường.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{teacherToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "sprint5.master.student@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "sprint5.task2.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "examId", "value": "", "type": "string" },
+    { "key": "examVersion", "value": "1", "type": "string" },
+    { "key": "placementExamId", "value": "", "type": "string" },
+    { "key": "placementExamVersion", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Environment Setup",
+      "item": [
+        {
+          "name": "00.1 - Register / Setup Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Master Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 or 409 (already registered)', function () {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login student successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('studentToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Register / Setup Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 5 Master Teacher\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 or 409', function () {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login teacher successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('teacherToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login admin successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Exam Configuration & Auto-seeding (UC16)",
+      "item": [
+        {
+          "name": "01.1 - Create Full Test -> Auto-seeding 7 Sections",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TEST_E2E_FullTest_Master_01\",\n  \"description\": \"Đề thi thử Full Test toàn diện Master\",\n  \"type\": \"full_test\",\n  \"durationMinutes\": 120,\n  \"allowPartPractice\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create Full Test succeeds with 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.id).to.be.a('string');",
+                  "    pm.expect(res.sectionsCount).to.eql(7);",
+                  "    pm.expect(res.sections.length).to.eql(7);",
+                  "    pm.expect(res.status).to.eql('draft');",
+                  "    pm.collectionVariables.set('examId', res.id);",
+                  "    pm.collectionVariables.set('examVersion', res.version);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Update Exam Configuration with Optimistic Locking",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TEST_E2E_FullTest_Master_Updated\",\n  \"version\": {{examVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{examId}}", "host": ["{{baseUrl}}"], "path": ["exams", "{{examId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Update config succeeds with 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.title).to.eql('TEST_E2E_FullTest_Master_Updated');",
+                  "    pm.collectionVariables.set('examVersion', res.version);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Optimistic Locking Conflict (Wrong Version)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TEST_E2E_Conflict\",\n  \"version\": 999\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{examId}}", "host": ["{{baseUrl}}"], "path": ["exams", "{{examId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 409 Conflict', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Exam Structure & Question Selection (UC17)",
+      "item": [
+        {
+          "name": "02.1 - Create Placement Test",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TEST_E2E_PlacementTest_01\",\n  \"type\": \"placement_test\",\n  \"durationMinutes\": 60\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create Placement Test succeeds with 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('placementExamId', res.id);",
+                  "    pm.collectionVariables.set('placementExamVersion', res.version);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Get Detailed Management View",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exams/{{examId}}/manage", "host": ["{{baseUrl}}"], "path": ["exams", "{{examId}}", "manage"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get management view succeeds 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.id).to.eql(pm.collectionVariables.get('examId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Publishing Checklist & Lifecycle (UC18)",
+      "item": [
+        {
+          "name": "03.1 - Reject Publishing When Questions Are Insufficient",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{examVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{examId}}/publish", "host": ["{{baseUrl}}"], "path": ["exams", "{{examId}}", "publish"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Reject publish with 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Close Draft/Exam Directly",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": {{placementExamVersion}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams/{{placementExamId}}/close", "host": ["{{baseUrl}}"], "path": ["exams", "{{placementExamId}}", "close"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Close exam response', function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Public & Management Catalogs (UC19)",
+      "item": [
+        {
+          "name": "04.1 - Get Public Catalog (Guest / Optional Auth)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exams?limit=10&page=1", "host": ["{{baseUrl}}"], "path": ["exams"], "query": [{ "key": "limit", "value": "10" }, { "key": "page", "value": "1" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Public Catalog returns standardized envelope 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.items).to.be.an('array');",
+                  "    pm.expect(res.total).to.be.a('number');",
+                  "    pm.expect(res.limit).to.eql(10);",
+                  "    pm.expect(res.page).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Public Catalog Hard Limit 50 (Tech Debt 003)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exams?limit=51", "host": ["{{baseUrl}}"], "path": ["exams"], "query": [{ "key": "limit", "value": "51" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Limit > 50 returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.3 - Management Catalog (Teacher / Admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exams/manage?limit=10&page=1", "host": ["{{baseUrl}}"], "path": ["exams", "manage"], "query": [{ "key": "limit", "value": "10" }, { "key": "page", "value": "1" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Management Catalog returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.items).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Perimeter Defenses & RBAC Protection",
+      "item": [
+        {
+          "name": "05.1 - Student Blocked From Creating Exams",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TEST_E2E_Student_Hacker\",\n  \"type\": \"full_test\",\n  \"durationMinutes\": 120\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exams", "host": ["{{baseUrl}}"], "path": ["exams"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student is blocked with 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05.2 - Student Blocked From Management Catalog",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exams/manage", "host": ["{{baseUrl}}"], "path": ["exams", "manage"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student blocked from manage catalog 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

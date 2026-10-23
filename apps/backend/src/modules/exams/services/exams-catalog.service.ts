@@ -52,27 +52,39 @@ export class ExamsCatalogService {
       qb.andWhere('LOWER(exam.title) LIKE LOWER(:search)', { search: `%${query.search.trim()}%` });
     }
 
-    // Load relation count trực tiếp từ PostgreSQL engine (chống N+1 và tràn RAM)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    (qb as any).loadRelationCountAndMap('exam.totalQuestions', 'exam.questions');
+    // Tối ưu hóa đếm tổng số câu hỏi bằng subquery trực tiếp ở tầng SQL
+    qb.addSelect((subQuery) => {
+      return subQuery
+        .select('COUNT(eq.id)', 'count')
+        .from(ExamQuestion, 'eq')
+        .where('eq.exam_id = exam.id');
+    }, 'totalQuestionsCount');
 
     qb.orderBy('exam.openAt', 'ASC', 'NULLS LAST');
     qb.addOrderBy('exam.createdAt', 'DESC');
     qb.skip(skip).take(limit);
 
     const [exams, total] = await qb.getManyAndCount();
+    const rawEntities = await qb.getRawMany<Record<string, unknown>>();
+    const countMap = new Map<string, number>();
+    for (const r of rawEntities) {
+      const examId = (r.exam_id as string) || (r.id as string);
+      const c = Number(r.totalQuestionsCount ?? 0);
+      if (examId) countMap.set(examId, c);
+    }
+
     const now = new Date();
 
     const items: ExamCatalogItemResponseDto[] = exams.map((exam) => {
       const isScheduled = exam.openAt ? new Date(exam.openAt).getTime() > now.getTime() : false;
-      const rawCount = (exam as unknown as Record<string, unknown>).totalQuestions;
+      const totalQuestions = countMap.get(exam.id) ?? 0;
       return {
         id: exam.id,
         title: exam.title,
         description: exam.description,
         type: exam.type,
         durationMinutes: exam.durationMinutes,
-        totalQuestions: typeof rawCount === 'number' ? rawCount : Number(rawCount ?? 0),
+        totalQuestions,
         allowPartPractice: exam.allowPartPractice,
         totalAttempts: 0, // Forward compatibility cho Sprint 6 (bảng exam_attempts)
         openAt: exam.openAt,

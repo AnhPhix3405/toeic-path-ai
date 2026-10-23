@@ -57,11 +57,14 @@ describe('ExamsCatalogService', () => {
       const qb: any = {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
-        loadRelationCountAndMap: jest.fn().mockReturnThis(),
+        getRawMany: jest
+          .fn()
+          .mockResolvedValue([{ exam_id: 'exam-1', totalQuestionsCount: '200' }]),
         getManyAndCount: jest.fn().mockResolvedValue([
           [
             {
@@ -73,7 +76,6 @@ describe('ExamsCatalogService', () => {
               allowPartPractice: true,
               openAt: futureDate,
               closeAt: null,
-              totalQuestions: 200,
             },
           ],
           1,
