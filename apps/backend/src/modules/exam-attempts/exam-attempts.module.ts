@@ -13,6 +13,7 @@ import { ToeicPart } from '../questions/entities/toeic-part.entity';
 import { ExamAttemptsController } from './controllers/exam-attempts.controller';
 import { ExamAttemptsService } from './services/exam-attempts.service';
 import { SnapshotService } from './services/snapshot.service';
+import { ExamAttemptsDeliveryService } from './services/exam-attempts-delivery.service';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { SnapshotService } from './services/snapshot.service';
     ]),
   ],
   controllers: [ExamAttemptsController],
-  providers: [ExamAttemptsService, SnapshotService],
-  exports: [TypeOrmModule, ExamAttemptsService, SnapshotService],
+  providers: [ExamAttemptsService, SnapshotService, ExamAttemptsDeliveryService],
+  exports: [TypeOrmModule, ExamAttemptsService, SnapshotService, ExamAttemptsDeliveryService],
 })
 export class ExamAttemptsModule {}

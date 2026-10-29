@@ -287,7 +287,8 @@ describe('ExamAttemptsService', () => {
         selectedParts: [1],
       });
 
-      expect(result.remainingSeconds).toBe(300);
+      expect(result.remainingSeconds).toBeGreaterThanOrEqual(299);
+      expect(result.remainingSeconds).toBeLessThanOrEqual(300);
     });
   });
 

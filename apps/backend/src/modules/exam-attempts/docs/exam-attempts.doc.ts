@@ -11,6 +11,8 @@ import {
 } from '@nestjs/swagger';
 import { ExamAttemptSummaryResponseDto } from '../dto/response/exam-attempt-summary-response.dto';
 import { AbandonAttemptResponseDto } from '../dto/response/abandon-attempt-response.dto';
+import { ExamAttemptOverviewResponseDto } from '../dto/response/exam-attempt-overview-response.dto';
+import { ExamAttemptQuestionsResponseDto } from '../dto/response/exam-attempt-questions-response.dto';
 
 export const ApiExamAttemptsControllerDoc = () => applyDecorators(ApiBearerAuth());
 
@@ -65,5 +67,48 @@ export const ApiAbandonAttemptDoc = () =>
     }),
     ApiNotFoundResponse({
       description: 'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND)',
+    }),
+  );
+
+export const ApiGetAttemptOverviewDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Lấy thông tin tổng quan bài thi và ma trận tiến độ (UC21)',
+      description:
+        'Cung cấp ma trận câu hỏi (1..N) trạng thái isAnswered, cờ isExpired, remainingSeconds và serverTimeNow để đồng bộ countdown timer. Anti memory-leak.',
+    }),
+    ApiOkResponse({
+      description: 'Lấy thông tin tổng quan bài thi thành công',
+      type: ExamAttemptOverviewResponseDto,
+    }),
+    ApiForbiddenResponse({
+      description: 'Không có quyền truy cập lượt thi này (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
+    }),
+    ApiNotFoundResponse({
+      description:
+        'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND) hoặc Snapshot (ERR_SNAPSHOT_NOT_FOUND)',
+    }),
+  );
+
+export const ApiGetAttemptQuestionsDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Tải nội dung câu hỏi phân trang theo Part kèm khôi phục phiên (UC21)',
+      description:
+        'Trả về danh sách QuestionGroups (split-view deduplicated) và Questions kèm câu trả lời đã lưu và cờ isFlagged.',
+    }),
+    ApiOkResponse({
+      description: 'Tải nội dung câu hỏi thành công',
+      type: ExamAttemptQuestionsResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description: 'Part yêu cầu không nằm trong lượt thi này (ERR_PART_NOT_IN_ATTEMPT)',
+    }),
+    ApiForbiddenResponse({
+      description: 'Không có quyền truy cập lượt thi này (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
+    }),
+    ApiNotFoundResponse({
+      description:
+        'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND) hoặc Snapshot (ERR_SNAPSHOT_NOT_FOUND)',
     }),
   );

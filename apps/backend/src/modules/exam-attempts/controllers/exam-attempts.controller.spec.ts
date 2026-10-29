@@ -1,22 +1,44 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request, Response } from 'express';
 import { ExamAttemptsController } from './exam-attempts.controller';
 import { ExamAttemptsService } from '../services/exam-attempts.service';
+import { ExamAttemptsDeliveryService } from '../services/exam-attempts-delivery.service';
 import { CreateExamAttemptDto } from '../dto/request/create-exam-attempt.dto';
+import { QueryAttemptQuestionsDto } from '../dto/request/query-attempt-questions.dto';
 import { PartPracticeMode } from '../enums/part-practice-mode.enum';
 import { ExamAttemptStatus } from '../enums/exam-attempt-status.enum';
 import { UserRole } from '../../../common/enums/user-role.enum';
+import { UserStatus } from '../../../common/enums/user-status.enum';
+import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PolicyThrottlerGuard } from '../../../common/rate-limit/guards/policy-throttler.guard';
 
 describe('ExamAttemptsController', () => {
   let controller: ExamAttemptsController;
-  let serviceMock: any;
+  let serviceMock: {
+    startAttempt: jest.Mock;
+    abandonAttempt: jest.Mock;
+  };
+  let deliveryServiceMock: {
+    getAttemptOverview: jest.Mock;
+    getAttemptQuestions: jest.Mock;
+  };
 
-  const mockUser = {
+  const mockUser: AuthenticatedUser = {
     id: 'user-uuid-1',
+    sessionId: 'sess-1',
     email: 'student@example.com',
     role: UserRole.STUDENT,
+    status: UserStatus.ACTIVE,
+  };
+
+  const mockAdmin: AuthenticatedUser = {
+    id: 'admin-uuid-1',
+    sessionId: 'sess-2',
+    email: 'admin@example.com',
+    role: UserRole.ADMIN,
+    status: UserStatus.ACTIVE,
   };
 
   beforeEach(async () => {
@@ -25,12 +47,21 @@ describe('ExamAttemptsController', () => {
       abandonAttempt: jest.fn(),
     };
 
+    deliveryServiceMock = {
+      getAttemptOverview: jest.fn(),
+      getAttemptQuestions: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ExamAttemptsController],
       providers: [
         {
           provide: ExamAttemptsService,
           useValue: serviceMock,
+        },
+        {
+          provide: ExamAttemptsDeliveryService,
+          useValue: deliveryServiceMock,
         },
       ],
     })
@@ -66,10 +97,10 @@ describe('ExamAttemptsController', () => {
 
       serviceMock.startAttempt.mockResolvedValue(mockResponse);
 
-      const req: any = { ip: '127.0.0.1', headers: {} };
-      const res: any = { status: jest.fn() };
+      const req = { ip: '127.0.0.1', headers: {} } as unknown as Request;
+      const res = { status: jest.fn() } as unknown as Response;
 
-      const result = await controller.startAttempt(mockUser as any, dto, req, res);
+      const result = await controller.startAttempt(mockUser, dto, req, res);
 
       expect(result).toEqual(mockResponse);
       expect(res.status).toHaveBeenCalledWith(HttpStatus.CREATED);
@@ -97,10 +128,10 @@ describe('ExamAttemptsController', () => {
 
       serviceMock.startAttempt.mockResolvedValue(mockResponse);
 
-      const req: any = { ip: '127.0.0.1', headers: {} };
-      const res: any = { status: jest.fn() };
+      const req = { ip: '127.0.0.1', headers: {} } as unknown as Request;
+      const res = { status: jest.fn() } as unknown as Response;
 
-      const result = await controller.startAttempt(mockUser as any, dto, req, res);
+      const result = await controller.startAttempt(mockUser, dto, req, res);
 
       expect(result).toEqual(mockResponse);
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
@@ -117,9 +148,98 @@ describe('ExamAttemptsController', () => {
 
       serviceMock.abandonAttempt.mockResolvedValue(mockResult);
 
-      const result = await controller.abandonAttempt(mockUser as any, 'att-1');
+      const result = await controller.abandonAttempt(mockUser, 'att-1');
       expect(result).toEqual(mockResult);
       expect(serviceMock.abandonAttempt).toHaveBeenCalledWith('user-uuid-1', 'att-1', false);
+    });
+  });
+
+  describe('getAttemptOverview', () => {
+    it('should return overview for student', async () => {
+      const mockOverview = {
+        attemptId: 'att-1',
+        examId: 'exam-1',
+        examTitle: 'Test Exam',
+        status: ExamAttemptStatus.IN_PROGRESS,
+        totalQuestions: 100,
+        answeredCount: 10,
+        remainingSeconds: 3600,
+        isExpired: false,
+        serverTimeNow: new Date(),
+        questionsProgress: [],
+        parts: [],
+      };
+
+      deliveryServiceMock.getAttemptOverview.mockResolvedValue(mockOverview);
+
+      const result = await controller.getAttemptOverview(mockUser, 'att-1');
+      expect(result).toEqual(mockOverview);
+      expect(deliveryServiceMock.getAttemptOverview).toHaveBeenCalledWith(
+        'user-uuid-1',
+        'att-1',
+        false,
+      );
+    });
+
+    it('should pass isAdmin=true when requested by admin', async () => {
+      const mockOverview = {
+        attemptId: 'att-1',
+        examId: 'exam-1',
+        examTitle: 'Test Exam',
+      };
+
+      deliveryServiceMock.getAttemptOverview.mockResolvedValue(mockOverview);
+
+      const result = await controller.getAttemptOverview(mockAdmin, 'att-1');
+      expect(result).toEqual(mockOverview);
+      expect(deliveryServiceMock.getAttemptOverview).toHaveBeenCalledWith(
+        'admin-uuid-1',
+        'att-1',
+        true,
+      );
+    });
+  });
+
+  describe('getAttemptQuestions', () => {
+    it('should return questions delivery response for student', async () => {
+      const query: QueryAttemptQuestionsDto = { partNumber: 1 };
+      const mockDelivery = {
+        attemptId: 'att-1',
+        partNumber: 1,
+        totalQuestionsInPart: 6,
+        questionGroups: [],
+        questions: [],
+      };
+
+      deliveryServiceMock.getAttemptQuestions.mockResolvedValue(mockDelivery);
+
+      const result = await controller.getAttemptQuestions(mockUser, 'att-1', query);
+      expect(result).toEqual(mockDelivery);
+      expect(deliveryServiceMock.getAttemptQuestions).toHaveBeenCalledWith(
+        'user-uuid-1',
+        'att-1',
+        query,
+        false,
+      );
+    });
+
+    it('should pass isAdmin=true when requested by admin', async () => {
+      const query: QueryAttemptQuestionsDto = { partNumber: 7 };
+      const mockDelivery = {
+        attemptId: 'att-1',
+        partNumber: 7,
+      };
+
+      deliveryServiceMock.getAttemptQuestions.mockResolvedValue(mockDelivery);
+
+      const result = await controller.getAttemptQuestions(mockAdmin, 'att-1', query);
+      expect(result).toEqual(mockDelivery);
+      expect(deliveryServiceMock.getAttemptQuestions).toHaveBeenCalledWith(
+        'admin-uuid-1',
+        'att-1',
+        query,
+        true,
+      );
     });
   });
 });
