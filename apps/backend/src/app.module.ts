@@ -28,6 +28,7 @@ import { QuestionsModule } from './modules/questions/questions.module';
 import { QuestionGroupsModule } from './modules/question-groups/question-groups.module';
 import { MediaModule } from './modules/media/media.module';
 import { ExamsModule } from './modules/exams/exams.module';
+import { ExamAttemptsModule } from './modules/exam-attempts/exam-attempts.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { ExamsModule } from './modules/exams/exams.module';
     QuestionGroupsModule,
     MediaModule,
     ExamsModule,
+    ExamAttemptsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
