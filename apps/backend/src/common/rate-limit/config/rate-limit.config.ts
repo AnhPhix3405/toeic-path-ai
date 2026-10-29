@@ -113,4 +113,14 @@ export default registerAs('rateLimit', () => ({
     user: integer('RATE_LIMIT_EXAMS_MUTATE_USER_MAX', 30),
     ip: integer('RATE_LIMIT_EXAMS_MUTATE_IP_MAX', 60),
   },
+  examAnswerSave: {
+    ttl: integer('RATE_LIMIT_EXAM_ANSWER_SAVE_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_EXAM_ANSWER_SAVE_USER_MAX', 120),
+    ip: integer('RATE_LIMIT_EXAM_ANSWER_SAVE_IP_MAX', 240),
+  },
+  examBatchSave: {
+    ttl: integer('RATE_LIMIT_EXAM_BATCH_SAVE_TTL_SECONDS', 60),
+    user: integer('RATE_LIMIT_EXAM_BATCH_SAVE_USER_MAX', 15),
+    ip: integer('RATE_LIMIT_EXAM_BATCH_SAVE_IP_MAX', 30),
+  },
 }));

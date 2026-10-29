@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -21,19 +22,26 @@ import { ThrottlePolicy } from '../../../common/rate-limit/decorators/throttle-p
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
 import {
   ApiAbandonAttemptDoc,
+  ApiBatchSaveAnswersDoc,
   ApiExamAttemptsControllerDoc,
   ApiGetAttemptOverviewDoc,
   ApiGetAttemptQuestionsDoc,
+  ApiSaveAnswerDoc,
   ApiStartAttemptDoc,
 } from '../docs/exam-attempts.doc';
 import { CreateExamAttemptDto } from '../dto/request/create-exam-attempt.dto';
 import { QueryAttemptQuestionsDto } from '../dto/request/query-attempt-questions.dto';
+import { SaveAnswerDto } from '../dto/request/save-answer.dto';
+import { BatchSaveAnswersDto } from '../dto/request/batch-save-answers.dto';
 import { ExamAttemptSummaryResponseDto } from '../dto/response/exam-attempt-summary-response.dto';
 import { AbandonAttemptResponseDto } from '../dto/response/abandon-attempt-response.dto';
 import { ExamAttemptOverviewResponseDto } from '../dto/response/exam-attempt-overview-response.dto';
 import { ExamAttemptQuestionsResponseDto } from '../dto/response/exam-attempt-questions-response.dto';
+import { SaveAnswerResponseDto } from '../dto/response/save-answer-response.dto';
+import { BatchSaveAnswersResponseDto } from '../dto/response/batch-save-answers-response.dto';
 import { ExamAttemptsService } from '../services/exam-attempts.service';
 import { ExamAttemptsDeliveryService } from '../services/exam-attempts-delivery.service';
+import { ExamAttemptsAnswersService } from '../services/exam-attempts-answers.service';
 import { UserRole } from '../../../common/enums/user-role.enum';
 
 @ApiTags('Exam Attempts')
@@ -44,6 +52,7 @@ export class ExamAttemptsController {
   constructor(
     private readonly examAttemptsService: ExamAttemptsService,
     private readonly examAttemptsDeliveryService: ExamAttemptsDeliveryService,
+    private readonly examAttemptsAnswersService: ExamAttemptsAnswersService,
   ) {}
 
   @Post()
@@ -101,5 +110,27 @@ export class ExamAttemptsController {
   ): Promise<ExamAttemptOverviewResponseDto> {
     const isAdmin = user.role === UserRole.ADMIN;
     return this.examAttemptsDeliveryService.getAttemptOverview(user.id, id, isAdmin);
+  }
+
+  @Put(':id/answers/batch')
+  @ThrottlePolicy('examBatchSave')
+  @ApiBatchSaveAnswersDoc()
+  async batchSaveAnswers(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: BatchSaveAnswersDto,
+  ): Promise<BatchSaveAnswersResponseDto> {
+    return this.examAttemptsAnswersService.batchSaveAnswers(user.id, id, dto);
+  }
+
+  @Put(':id/answers')
+  @ThrottlePolicy('examAnswerSave')
+  @ApiSaveAnswerDoc()
+  async saveAnswer(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SaveAnswerDto,
+  ): Promise<SaveAnswerResponseDto> {
+    return this.examAttemptsAnswersService.saveAnswer(user.id, id, dto);
   }
 }

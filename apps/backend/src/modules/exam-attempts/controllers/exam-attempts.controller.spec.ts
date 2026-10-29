@@ -4,8 +4,11 @@ import type { Request, Response } from 'express';
 import { ExamAttemptsController } from './exam-attempts.controller';
 import { ExamAttemptsService } from '../services/exam-attempts.service';
 import { ExamAttemptsDeliveryService } from '../services/exam-attempts-delivery.service';
+import { ExamAttemptsAnswersService } from '../services/exam-attempts-answers.service';
 import { CreateExamAttemptDto } from '../dto/request/create-exam-attempt.dto';
 import { QueryAttemptQuestionsDto } from '../dto/request/query-attempt-questions.dto';
+import { SaveAnswerDto } from '../dto/request/save-answer.dto';
+import { BatchSaveAnswersDto } from '../dto/request/batch-save-answers.dto';
 import { PartPracticeMode } from '../enums/part-practice-mode.enum';
 import { ExamAttemptStatus } from '../enums/exam-attempt-status.enum';
 import { UserRole } from '../../../common/enums/user-role.enum';
@@ -23,6 +26,10 @@ describe('ExamAttemptsController', () => {
   let deliveryServiceMock: {
     getAttemptOverview: jest.Mock;
     getAttemptQuestions: jest.Mock;
+  };
+  let answersServiceMock: {
+    saveAnswer: jest.Mock;
+    batchSaveAnswers: jest.Mock;
   };
 
   const mockUser: AuthenticatedUser = {
@@ -52,6 +59,11 @@ describe('ExamAttemptsController', () => {
       getAttemptQuestions: jest.fn(),
     };
 
+    answersServiceMock = {
+      saveAnswer: jest.fn(),
+      batchSaveAnswers: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ExamAttemptsController],
       providers: [
@@ -62,6 +74,10 @@ describe('ExamAttemptsController', () => {
         {
           provide: ExamAttemptsDeliveryService,
           useValue: deliveryServiceMock,
+        },
+        {
+          provide: ExamAttemptsAnswersService,
+          useValue: answersServiceMock,
         },
       ],
     })
@@ -240,6 +256,63 @@ describe('ExamAttemptsController', () => {
         query,
         true,
       );
+    });
+  });
+
+  describe('saveAnswer', () => {
+    it('should call answersService.saveAnswer with user.id, id, and dto', async () => {
+      const dto: SaveAnswerDto = {
+        questionId: '20000000-0000-4000-8000-000000000001',
+        selectedOptionId: '30000000-0000-4000-8000-000000000001',
+        isMarkedForReview: true,
+      };
+
+      const mockResponse = {
+        success: true,
+        questionId: dto.questionId,
+        selectedOptionId: dto.selectedOptionId,
+        isMarkedForReview: true,
+        answeredCount: 15,
+        remainingSeconds: 3000,
+        savedAt: new Date(),
+      };
+
+      answersServiceMock.saveAnswer.mockResolvedValue(mockResponse);
+
+      const result = await controller.saveAnswer(mockUser, 'att-1', dto);
+
+      expect(result).toEqual(mockResponse);
+      expect(answersServiceMock.saveAnswer).toHaveBeenCalledWith('user-uuid-1', 'att-1', dto);
+    });
+  });
+
+  describe('batchSaveAnswers', () => {
+    it('should call answersService.batchSaveAnswers with user.id, id, and dto', async () => {
+      const dto: BatchSaveAnswersDto = {
+        answers: [
+          {
+            questionId: '20000000-0000-4000-8000-000000000001',
+            selectedOptionId: '30000000-0000-4000-8000-000000000001',
+          },
+        ],
+      };
+
+      const mockResponse = {
+        success: true,
+        syncedCount: 1,
+        failedCount: 0,
+        failedItems: [],
+        answeredCount: 16,
+        remainingSeconds: 2990,
+        serverTimeNow: new Date(),
+      };
+
+      answersServiceMock.batchSaveAnswers.mockResolvedValue(mockResponse);
+
+      const result = await controller.batchSaveAnswers(mockUser, 'att-1', dto);
+
+      expect(result).toEqual(mockResponse);
+      expect(answersServiceMock.batchSaveAnswers).toHaveBeenCalledWith('user-uuid-1', 'att-1', dto);
     });
   });
 });

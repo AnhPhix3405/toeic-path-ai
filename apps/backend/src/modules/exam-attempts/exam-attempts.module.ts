@@ -14,6 +14,7 @@ import { ExamAttemptsController } from './controllers/exam-attempts.controller';
 import { ExamAttemptsService } from './services/exam-attempts.service';
 import { SnapshotService } from './services/snapshot.service';
 import { ExamAttemptsDeliveryService } from './services/exam-attempts-delivery.service';
+import { ExamAttemptsAnswersService } from './services/exam-attempts-answers.service';
 
 @Module({
   imports: [
@@ -31,7 +32,18 @@ import { ExamAttemptsDeliveryService } from './services/exam-attempts-delivery.s
     ]),
   ],
   controllers: [ExamAttemptsController],
-  providers: [ExamAttemptsService, SnapshotService, ExamAttemptsDeliveryService],
-  exports: [TypeOrmModule, ExamAttemptsService, SnapshotService, ExamAttemptsDeliveryService],
+  providers: [
+    ExamAttemptsService,
+    SnapshotService,
+    ExamAttemptsDeliveryService,
+    ExamAttemptsAnswersService,
+  ],
+  exports: [
+    TypeOrmModule,
+    ExamAttemptsService,
+    SnapshotService,
+    ExamAttemptsDeliveryService,
+    ExamAttemptsAnswersService,
+  ],
 })
 export class ExamAttemptsModule {}

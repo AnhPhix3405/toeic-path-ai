@@ -13,6 +13,8 @@ import { ExamAttemptSummaryResponseDto } from '../dto/response/exam-attempt-summ
 import { AbandonAttemptResponseDto } from '../dto/response/abandon-attempt-response.dto';
 import { ExamAttemptOverviewResponseDto } from '../dto/response/exam-attempt-overview-response.dto';
 import { ExamAttemptQuestionsResponseDto } from '../dto/response/exam-attempt-questions-response.dto';
+import { SaveAnswerResponseDto } from '../dto/response/save-answer-response.dto';
+import { BatchSaveAnswersResponseDto } from '../dto/response/batch-save-answers-response.dto';
 
 export const ApiExamAttemptsControllerDoc = () => applyDecorators(ApiBearerAuth());
 
@@ -106,6 +108,56 @@ export const ApiGetAttemptQuestionsDoc = () =>
     }),
     ApiForbiddenResponse({
       description: 'Không có quyền truy cập lượt thi này (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
+    }),
+    ApiNotFoundResponse({
+      description:
+        'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND) hoặc Snapshot (ERR_SNAPSHOT_NOT_FOUND)',
+    }),
+  );
+
+export const ApiSaveAnswerDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Tự động lưu câu trả lời hoặc cờ đánh dấu xem lại (UC22)',
+      description:
+        'Lưu câu trả lời real-time với Conditional Upsert chống xóa đè đáp án khi toggle review flag và atomic counter chống lỗi xung đột khóa lạc quan.',
+    }),
+    ApiOkResponse({
+      description: 'Lưu câu trả lời thành công',
+      type: SaveAnswerResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Trạng thái không hợp lệ, hết giờ hoặc câu hỏi/phương án không hợp lệ (ERR_ATTEMPT_NOT_IN_PROGRESS, ERR_ATTEMPT_EXPIRED, ERR_QUESTION_NOT_IN_ATTEMPT, ERR_INVALID_OPTION_CHOICE)',
+    }),
+    ApiForbiddenResponse({
+      description:
+        'Chỉ thí sinh sở hữu lượt thi mới được phép lưu đáp án (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
+    }),
+    ApiNotFoundResponse({
+      description:
+        'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND) hoặc Snapshot (ERR_SNAPSHOT_NOT_FOUND)',
+    }),
+  );
+
+export const ApiBatchSaveAnswersDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Đồng bộ hàng loạt câu trả lời sau khi phục hồi kết nối mạng (UC22)',
+      description:
+        'Xử lý đồng bộ theo lô với in-memory pre-validation đối chiếu Snapshot và Multi-row Upsert chống vỡ transaction.',
+    }),
+    ApiOkResponse({
+      description: 'Đồng bộ hàng loạt câu trả lời thành công',
+      type: BatchSaveAnswersResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Trạng thái không hợp lệ hoặc hết giờ (ERR_ATTEMPT_NOT_IN_PROGRESS, ERR_ATTEMPT_EXPIRED)',
+    }),
+    ApiForbiddenResponse({
+      description:
+        'Chỉ thí sinh sở hữu lượt thi mới được phép lưu đáp án (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
     }),
     ApiNotFoundResponse({
       description:

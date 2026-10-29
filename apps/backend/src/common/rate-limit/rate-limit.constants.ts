@@ -31,4 +31,6 @@ export type ThrottlePolicyName =
   | 'questionsImport'
   | 'questionsReviews'
   | 'examsMutate'
+  | 'examAnswerSave'
+  | 'examBatchSave'
   | UploadRateLimitPolicyName;
