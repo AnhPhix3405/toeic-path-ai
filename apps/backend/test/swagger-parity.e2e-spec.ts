@@ -90,4 +90,76 @@ describe('Swagger / OpenAPI Parity Test for Exams Module', () => {
       expect(overviewSchema.properties.isScheduled).toBeDefined();
     }
   });
+
+  // =========================================================================
+  // SPRINT 6: Exam Attempts Module Parity (UC20, UC21, UC22)
+  // =========================================================================
+  describe('Exam Attempts Module Swagger / OpenAPI Parity (Sprint 6)', () => {
+    const getPathObj = (route: string) => {
+      const paths = swaggerDoc.paths || {};
+      const matchedKey = Object.keys(paths).find(
+        (p) => p.endsWith(route) || p === route || p.endsWith(route.replace(/^\//, '')),
+      );
+      return matchedKey ? paths[matchedKey] : undefined;
+    };
+
+    it('5. Đảm bảo hiện diện OpenAPI Tag và 6 core endpoints của Sprint 6', () => {
+      const paths = swaggerDoc.paths || {};
+      const allPathKeys = Object.keys(paths);
+
+      // 1. Kiểm tra hiện diện tiền tố exam-attempts
+      expect(allPathKeys.some((p) => p.includes('exam-attempts'))).toBe(true);
+
+      // 2. UC20: Khởi tạo và hủy lượt thi
+      expect(getPathObj('/exam-attempts')?.post).toBeDefined();
+      expect(getPathObj('/exam-attempts/{id}/abandon')?.post).toBeDefined();
+
+      // 3. UC21: Overview ma trận tiến độ & Tải câu hỏi phân Part
+      expect(getPathObj('/exam-attempts/{id}')?.get).toBeDefined();
+      expect(getPathObj('/exam-attempts/{id}/questions')?.get).toBeDefined();
+
+      // 4. UC22: Lưu đáp án đơn lẻ real-time & Batch recovery
+      expect(getPathObj('/exam-attempts/{id}/answers')?.put).toBeDefined();
+      expect(getPathObj('/exam-attempts/{id}/answers/batch')?.put).toBeDefined();
+    });
+
+    it('6. Đảm bảo Zero Answer Leakage trên OpenAPI Schemas của Sprint 6', () => {
+      const schemas = swaggerDoc.components?.schemas || {};
+
+      // 1. Overview Schema
+      const overviewSchema = schemas.ExamAttemptOverviewResponseDto;
+      if (overviewSchema && overviewSchema.properties) {
+        expect(overviewSchema.properties.isCorrect).toBeUndefined();
+        expect(overviewSchema.properties.explanation).toBeUndefined();
+        expect(overviewSchema.properties.correctOptionId).toBeUndefined();
+        expect(overviewSchema.properties.answerKeySnapshot).toBeUndefined();
+      }
+
+      // 2. Questions Delivery Schema & Option Delivery Schema
+      const questionItemSchema = schemas.QuestionDeliveryItemDto;
+      if (questionItemSchema && questionItemSchema.properties) {
+        expect(questionItemSchema.properties.isCorrect).toBeUndefined();
+        expect(questionItemSchema.properties.explanation).toBeUndefined();
+      }
+
+      const optionItemSchema = schemas.QuestionOptionDeliveryDto;
+      if (optionItemSchema && optionItemSchema.properties) {
+        expect(optionItemSchema.properties.isCorrect).toBeUndefined();
+        expect(optionItemSchema.properties.explanation).toBeUndefined();
+      }
+    });
+
+    it('7. Đảm bảo các DTOs cốt lõi của Sprint 6 được định nghĩa trong OpenAPI Components', () => {
+      const schemas = swaggerDoc.components?.schemas || {};
+
+      expect(schemas.CreateExamAttemptDto).toBeDefined();
+      expect(schemas.SaveAnswerDto).toBeDefined();
+      expect(schemas.BatchSaveAnswersDto).toBeDefined();
+      expect(schemas.ExamAttemptSummaryResponseDto).toBeDefined();
+      expect(schemas.SaveAnswerResponseDto).toBeDefined();
+      expect(schemas.BatchSaveAnswersResponseDto).toBeDefined();
+      expect(schemas.ExamAttemptOverviewResponseDto).toBeDefined();
+      expect(schemas.ExamAttemptQuestionsResponseDto).toBeDefined();
+    });
+  });
 });

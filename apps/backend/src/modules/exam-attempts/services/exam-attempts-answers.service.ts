@@ -168,7 +168,9 @@ export class ExamAttemptsAnswersService {
     );
 
     // 3. Cập nhật answered_count nguyên tử và lấy kết quả qua RETURNING (PMR 023)
-    const updateResult = await this.dataSource.query<Array<{ answered_count: number }>>(
+    const updateResult = await this.dataSource.query<
+      Array<{ answered_count: number }> | [Array<{ answered_count: number }>, number]
+    >(
       `UPDATE exam_attempts
        SET answered_count = (
          SELECT COUNT(1) FROM exam_attempt_answers
@@ -180,7 +182,10 @@ export class ExamAttemptsAnswersService {
       [attemptId],
     );
 
-    const answeredCount = Number(updateResult[0]?.answered_count ?? 0);
+    const rawRows = (
+      Array.isArray(updateResult) && Array.isArray(updateResult[0]) ? updateResult[0] : updateResult
+    ) as Array<{ answered_count: number }>;
+    const answeredCount = Number(rawRows[0]?.answered_count ?? 0);
     const remainingSeconds = Math.max(
       0,
       Math.floor((attempt.expiresAt.getTime() - Date.now()) / 1000),

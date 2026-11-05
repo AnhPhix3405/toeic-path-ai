@@ -25,9 +25,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       });
       return;
     }
+    const errorCode = structured?.errorCode ?? structured?.code;
     response.status(status).json({
       statusCode: status,
-      code: structured?.code,
+      code: errorCode,
+      errorCode: errorCode,
       timestamp: new Date().toISOString(),
       path: request.url,
       traceId: request.traceId ?? null,
@@ -35,6 +37,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         typeof exceptionResponse === 'object' && 'message' in exceptionResponse
           ? exceptionResponse['message']
           : exception,
+      ...(structured ? structured : {}),
     });
   }
 }

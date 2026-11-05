@@ -1,0 +1,671 @@
+{
+  "info": {
+    "_postman_id": "c6e5a1b2-7d8e-4f9a-bc01-23456789abcd",
+    "name": "TOEIC Path AI - Sprint 6 Comprehensive Master E2E Collection",
+    "description": "Master Postman Automated Test Collection kiểm thử tự động toàn diện cho toàn bộ Sprint 6 (UC20: Bắt đầu làm bài thi & Snapshot đề thi, UC21: Tải nội dung bài thi & Split-view UI, UC22: Tự động lưu đáp án Realtime & Batch Recovery). Tuân thủ 100% Rule #777, Rule #1001, Rule #1002 và PMR 024.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{studentToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "sprint6.student1@example.com", "type": "string" },
+    { "key": "student2Email", "value": "sprint6.student2@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "student2Token", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "examId", "value": "c0000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "examIdB", "value": "c0000000-0000-4000-8000-000000000002", "type": "string" },
+    { "key": "attemptId", "value": "", "type": "string" },
+    { "key": "student2AttemptId", "value": "", "type": "string" },
+    { "key": "firstQuestionId", "value": "", "type": "string" },
+    { "key": "firstOptionId", "value": "", "type": "string" },
+    { "key": "secondQuestionId", "value": "", "type": "string" },
+    { "key": "secondOptionId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Environment Setup",
+      "item": [
+        {
+          "name": "00.1 - Register / Setup Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 6 Student One\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register Student 1 returns 201, 409 or 429', function () {",
+                  "    pm.expect([201, 409, 429]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 1 successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('studentToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Register / Setup Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sprint 6 Student Two\",\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register Student 2 returns 201, 409 or 429', function () {",
+                  "    pm.expect([201, 409, 429]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Login Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 2 successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('student2Token', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Admin successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.6 - Fetch Published Exams For Testing",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exams?search=TEST_POSTMAN_SPR6&page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"],
+              "query": [
+                { "key": "search", "value": "TEST_POSTMAN_SPR6" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fetch published exams successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.items).to.be.an('array');",
+                  "    if (res.items.length > 0) {",
+                  "        pm.collectionVariables.set('examId', res.items[0].id);",
+                  "    }",
+                  "    if (res.items.length > 1) {",
+                  "        pm.collectionVariables.set('examIdB', res.items[1].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - UC20: Start Exam Attempt & Lifecycle Invariants",
+      "item": [
+        {
+          "name": "01.1 - Start Full Test Attempt (Student 1)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{examId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Attempt status is 201 Created or 200 OK (auto-resumed)', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "    const res = pm.response.json();",
+                  "    const attId = res.attemptId || res.id;",
+                  "    pm.expect(attId).to.be.a('string');",
+                  "    pm.expect(res.status).to.eql('in_progress');",
+                  "    pm.expect(res.totalQuestions).to.be.above(0);",
+                  "    pm.collectionVariables.set('attemptId', attId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Auto-Resume Same Exam (Student 1)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{examId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Auto-resume same exam returns 200 OK with isResumed: true', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.isResumed).to.eql(true);",
+                  "    pm.expect(res.attemptId || res.id).to.eql(pm.collectionVariables.get('attemptId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Conflict Multiple Exams Prevention (Student 1 tries Exam B)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{examIdB}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Starting another exam concurrently returns 409 Conflict', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_ANOTHER_EXAM_IN_PROGRESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Start Part Practice Attempt (Student 2)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{student2Token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{examId}}\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": [5, 6]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Part Practice returns 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.mode).to.eql('part_practice');",
+                  "    pm.expect(res.selectedParts).to.eql([5, 6]);",
+                  "    pm.collectionVariables.set('student2AttemptId', res.attemptId || res.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - UC21: Exam Delivery & Split-View UI Optimization",
+      "item": [
+        {
+          "name": "02.1 - Get Attempt Overview Matrix (Student 1)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get Attempt Overview returns 200 OK with progress matrix', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.id).to.eql(pm.collectionVariables.get('attemptId'));",
+                  "    pm.expect(res.questionsProgress).to.be.an('array');",
+                  "    pm.expect(res.remainingSeconds).to.be.above(0);",
+                  "    pm.expect(res.isExpired).to.eql(false);",
+                  "    pm.expect(res.isCorrect).to.be.undefined;",
+                  "    pm.expect(res.explanation).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Get Attempt Questions All (Student 1)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/questions", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "questions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get Attempt Questions returns 200 OK with deduplicated groups & zero answer leakage', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.questions).to.be.an('array');",
+                  "    pm.expect(res.questions.length).to.be.above(0);",
+                  "    pm.expect(res.questionGroups).to.be.an('array');",
+                  "    const q0 = res.questions[0];",
+                  "    pm.collectionVariables.set('firstQuestionId', q0.id);",
+                  "    if (q0.options && q0.options.length > 0) {",
+                  "        pm.collectionVariables.set('firstOptionId', q0.options[0].id);",
+                  "    }",
+                  "    if (res.questions.length > 1) {",
+                  "        const q1 = res.questions[1];",
+                  "        pm.collectionVariables.set('secondQuestionId', q1.id);",
+                  "        if (q1.options && q1.options.length > 0) {",
+                  "            pm.collectionVariables.set('secondOptionId', q1.options[0].id);",
+                  "        }",
+                  "    }",
+                  "    for (const q of res.questions) {",
+                  "        pm.expect(q.isCorrect).to.be.undefined;",
+                  "        pm.expect(q.explanation).to.be.undefined;",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - Part Boundary Validation (Student 2 tries Part 1 not in [5, 6])",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{student2Token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{student2AttemptId}}/questions?partNumber=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{student2AttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "1" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Querying part outside selectedParts returns 400 ERR_PART_NOT_IN_ATTEMPT', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_PART_NOT_IN_ATTEMPT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Security Check: Student 2 Forbidden on Student 1 Attempt",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{student2Token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Accessing another student attempt returns 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - UC22: Real-time Autosave & Batch Recovery",
+      "item": [
+        {
+          "name": "03.1 - Real-time Single Answer Save (Student 1)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{firstQuestionId}}\",\n  \"selectedOptionId\": \"{{firstOptionId}}\",\n  \"isMarkedForReview\": true,\n  \"timeSpentSeconds\": 15\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/answers", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "answers"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Save single answer returns 200 OK with updated count', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "    pm.expect(res.questionId).to.eql(pm.collectionVariables.get('firstQuestionId'));",
+                  "    pm.expect(res.selectedOptionId).to.eql(pm.collectionVariables.get('firstOptionId'));",
+                  "    pm.expect(res.isMarkedForReview).to.eql(true);",
+                  "    pm.expect(res.answeredCount).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Toggle Review Flag Without Option (Student 1 Conditional Upsert)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{firstQuestionId}}\",\n  \"isMarkedForReview\": false\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/answers", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "answers"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Toggle review flag preserves existing selectedOptionId', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "    pm.expect(res.isMarkedForReview).to.eql(false);",
+                  "    pm.expect(res.answeredCount).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Batch Save Answers Pre-Validation & Resilience (Student 1)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"{{secondQuestionId}}\",\n      \"selectedOptionId\": \"{{secondOptionId}}\",\n      \"isMarkedForReview\": false,\n      \"timeSpentSeconds\": 20\n    },\n    {\n      \"questionId\": \"20000000-0000-4000-8000-000000000099\",\n      \"selectedOptionId\": \"30000000-0000-4000-8000-000000000099\",\n      \"isMarkedForReview\": false,\n      \"timeSpentSeconds\": 5\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/answers/batch", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "answers", "batch"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Batch save handles valid item and tracks error without rollback', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.syncedCount).to.be.at.least(1);",
+                  "    pm.expect(res.failedCount).to.eql(1);",
+                  "    pm.expect(res.failedItems).to.be.an('array');",
+                  "    pm.expect(res.failedItems[0].reason).to.eql('ERR_QUESTION_NOT_IN_ATTEMPT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 - Invalid Option Validation Check",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{firstQuestionId}}\",\n  \"selectedOptionId\": \"30000000-0000-4000-8000-000000000099\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/answers", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "answers"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Saving invalid option returns 400 ERR_INVALID_OPTION_CHOICE', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_INVALID_OPTION_CHOICE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Cleanup & Teardown",
+      "item": [
+        {
+          "name": "04.1 - Abandon Student 1 Attempt (Free Partial Unique Index)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/abandon", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "abandon"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Abandon Student 1 attempt returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "    pm.expect(res.abandonedAt).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Abandon Student 2 Attempt",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{student2Token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{student2AttemptId}}/abandon", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{student2AttemptId}}", "abandon"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Abandon Student 2 attempt returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "    pm.expect(res.abandonedAt).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
