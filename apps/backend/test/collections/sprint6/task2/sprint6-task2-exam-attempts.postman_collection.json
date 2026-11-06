@@ -1,0 +1,510 @@
+{
+  "info": {
+    "_postman_id": "c6t20000-0000-4000-8000-000000000001",
+    "name": "TOEIC Path AI - Sprint 6 Task 2 Exam Attempts & Snapshot Collection",
+    "description": "Postman Automated Test Collection kiểm thử chuyên sâu cho Task 2 (UC20: Khởi Tạo Lượt Thi, Kiểm Soát Giới Hạn & Snapshot Đề Thi). Tập trung kiểm chứng các Business Constraints, Guardrails, Max Attempts Accounting và Error Codes quan trọng ngoài phạm vi E2E.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{studentToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "task2.student1@example.com", "type": "string" },
+    { "key": "student2Email", "value": "task2.student2@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "student2Token", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "fullExamId", "value": "c0000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "examBId", "value": "c0000000-0000-4000-8000-000000000002", "type": "string" },
+    { "key": "noPracticeExamId", "value": "c0000000-0000-4000-8000-000000000003", "type": "string" },
+    { "key": "futureExamId", "value": "c0000000-0000-4000-8000-000000000004", "type": "string" },
+    { "key": "closedExamId", "value": "c0000000-0000-4000-8000-000000000005", "type": "string" },
+    { "key": "oneAttemptExamId", "value": "c0000000-0000-4000-8000-000000000006", "type": "string" },
+    { "key": "attemptId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Environment Setup",
+      "item": [
+        {
+          "name": "00.1 - Register / Setup Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Task 2 Student One\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register Student 1 returns 201, 409 or 429', function () {",
+                  "    pm.expect([201, 409, 429]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 1 successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('studentToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Register / Setup Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Task 2 Student Two\",\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register Student 2 returns 201, 409 or 429', function () {",
+                  "    pm.expect([201, 409, 429]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Login Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 2 successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('student2Token', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Admin successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('adminToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Exam Availability & Schedule Guards",
+      "item": [
+        {
+          "name": "01.1 - Non-existent Exam Returns 404",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"e0000000-0000-4000-8000-000000000099\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Non-existent exam returns 404 ERR_EXAM_NOT_AVAILABLE', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_EXAM_NOT_AVAILABLE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Exam Not Yet Open Returns 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{futureExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Future exam returns 403 ERR_EXAM_NOT_YET_OPEN', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_EXAM_NOT_YET_OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Closed Exam Returns 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{closedExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Closed exam returns 403 ERR_EXAM_CLOSED', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_EXAM_CLOSED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Part Practice Constraints & Validation",
+      "item": [
+        {
+          "name": "02.1 - Part Practice Forbidden on Exam Returns 400",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{noPracticeExamId}}\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": [5]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Part practice on forbidden exam returns 400 ERR_PART_PRACTICE_NOT_ALLOWED', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_PART_PRACTICE_NOT_ALLOWED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Empty selectedParts Returns 400",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"c0000000-0000-4000-8000-000000000001\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": []\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Empty selectedParts returns 400 validation error', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    const msg = Array.isArray(res.message) ? res.message.join(' ') : (res.message || '');",
+                  "    pm.expect(msg).to.include('selectedParts');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - Unconfigured Part Returns 400 ERR_INVALID_SELECTED_PARTS",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{examBId}}\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": [7]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Exam B without Part 7 returns 400 ERR_INVALID_SELECTED_PARTS', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_INVALID_SELECTED_PARTS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Max Attempts Enforcement & Accounting",
+      "item": [
+        {
+          "name": "03.1 - Start 1st Attempt on Single Attempt Exam",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{oneAttemptExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('First attempt creates 201', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('attemptId', res.attemptId || res.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Abandon 1st Attempt",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/abandon", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "abandon"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Abandon returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Starting 2nd Attempt Blocked by max_attempts Limit",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{oneAttemptExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Exceeding max attempts returns 403 ERR_MAX_ATTEMPTS_EXCEEDED', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_MAX_ATTEMPTS_EXCEEDED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Abandon State & Permission Guards",
+      "item": [
+        {
+          "name": "04.1 - Re-abandon Already Abandoned Attempt Returns 400",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/{{attemptId}}/abandon", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "{{attemptId}}", "abandon"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Re-abandon returns 400 ERR_ATTEMPT_NOT_IN_PROGRESS', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_ATTEMPT_NOT_IN_PROGRESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Abandon Non-existent Attempt Returns 404",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/exam-attempts/e0000000-0000-4000-8000-000000000099/abandon", "host": ["{{baseUrl}}"], "path": ["exam-attempts", "e0000000-0000-4000-8000-000000000099", "abandon"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Abandon non-existent attempt returns 404 ERR_ATTEMPT_NOT_FOUND', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_ATTEMPT_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

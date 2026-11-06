@@ -1,0 +1,712 @@
+{
+  "info": {
+    "_postman_id": "c6t30000-0000-4000-8000-000000000001",
+    "name": "TOEIC Path AI - Sprint 6 Task 3 Exam Delivery Collection",
+    "description": "Postman Automated Test Collection kiểm thử chuyên sâu cho Task 3 (UC21: Lấy nội dung đề thi, phân trang câu hỏi theo Part và tối ưu UI split-view). Tập trung kiểm chứng các Business Constraints, Query Validation, Part Practice Filtering, Role Permissions và Payload Integrity.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{studentToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "studentEmail", "value": "task3.student1@example.com", "type": "string" },
+    { "key": "student2Email", "value": "task3.student2@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "adminEmail", "value": "admin@example.com", "type": "string" },
+    { "key": "adminPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "student2Token", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "fullExamId", "value": "c0000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "practiceAttemptId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Setup",
+      "item": [
+        {
+          "name": "00.1 - Register / Setup Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Task 3 Student One\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register Student 1 returns 201, 409 or 429', function () {",
+                  "    pm.expect([201, 409, 429]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 1 successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.collectionVariables.set('studentToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Register / Setup Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Task 3 Student Two\",\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\",\n  \"confirmPassword\": \"{{testPassword}}\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Register Student 2 returns 201, 409 or 429', function () {",
+                  "    pm.expect([201, 409, 429]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Login Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 2 successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.collectionVariables.set('student2Token', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.5 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Admin successfully 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.collectionVariables.set('adminToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.6 - Create Part Practice Attempt (Parts 5 & 6)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": [5, 6]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/exam-attempts", "host": ["{{baseUrl}}"], "path": ["exam-attempts"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create Part Practice attempt returns 200/201', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "    const res = pm.response.json();",
+                  "    const attId = res.attemptId || res.id;",
+                  "    pm.expect(attId).to.be.a('string');",
+                  "    pm.expect(res.mode).to.eql('part_practice');",
+                  "    pm.collectionVariables.set('practiceAttemptId', attId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Query Param & Boundary Validation",
+      "item": [
+        {
+          "name": "01.1 - Query partNumber 0 Returns 400",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions?partNumber=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "0" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('partNumber 0 returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    const msg = Array.isArray(res.message) ? res.message.join(' ') : (res.message || '');",
+                  "    pm.expect(msg).to.include('partNumber');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Query partNumber 8 Returns 400",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions?partNumber=8",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "8" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('partNumber 8 returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    const msg = Array.isArray(res.message) ? res.message.join(' ') : (res.message || '');",
+                  "    pm.expect(msg).to.include('partNumber');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Query partNumber Non-integer Returns 400",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions?partNumber=abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "abc" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Non-integer partNumber returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    const msg = Array.isArray(res.message) ? res.message.join(' ') : (res.message || '');",
+                  "    pm.expect(msg).to.include('partNumber');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Query Non-existent Attempt Returns 404",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/e0000000-0000-4000-8000-000000000099/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "e0000000-0000-4000-8000-000000000099", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Non-existent attempt returns 404 ERR_ATTEMPT_NOT_FOUND', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_ATTEMPT_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Granular Part Practice Delivery & Filtering",
+      "item": [
+        {
+          "name": "02.1 - Fetch Part 5 Questions (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions?partNumber=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "5" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fetch Part 5 questions returns 200 OK with only Part 5 questions', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.attemptId).to.eql(pm.collectionVariables.get('practiceAttemptId'));",
+                  "    pm.expect(res.partNumber).to.eql(5);",
+                  "    pm.expect(res.questions).to.be.an('array');",
+                  "    pm.expect(res.questions.length).to.be.above(0);",
+                  "    res.questions.forEach(q => {",
+                  "        pm.expect(q.partNumber).to.eql(5);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - Fetch Part 6 Questions (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions?partNumber=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "6" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Fetch Part 6 questions returns 200 OK with group context', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.partNumber).to.eql(6);",
+                  "    pm.expect(res.questions.length).to.be.above(0);",
+                  "    res.questions.forEach(q => {",
+                  "        pm.expect(q.partNumber).to.eql(6);",
+                  "    });",
+                  "    pm.expect(res.questionGroups).to.be.an('array');",
+                  "    pm.expect(res.questionGroups.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - Fetch Unselected Part 7 Returns 400 ERR_PART_NOT_IN_ATTEMPT",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions?partNumber=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "7" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unselected Part 7 returns 400 ERR_PART_NOT_IN_ATTEMPT', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_PART_NOT_IN_ATTEMPT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Fetch All Practice Questions Returns Only Parts 5 & 6",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('All practice questions only include parts 5 and 6', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.questions.length).to.be.above(0);",
+                  "    const partsFound = new Set(res.questions.map(q => q.partNumber));",
+                  "    pm.expect(Array.from(partsFound).sort()).to.eql([5, 6]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Multi-User Security & Permission Guards",
+      "item": [
+        {
+          "name": "03.1 - Student 2 Cannot Fetch Student 1 Questions Returns 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{student2Token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student 2 blocked from questions with 403 ERR_FORBIDDEN_ATTEMPT_ACCESS', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Student 2 Cannot Fetch Student 1 Overview Returns 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{student2Token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student 2 blocked from overview with 403 ERR_FORBIDDEN_ATTEMPT_ACCESS', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Admin Can Fetch Student 1 Overview (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin is authorized to read overview 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.id).to.eql(pm.collectionVariables.get('practiceAttemptId'));",
+                  "    pm.expect(res.mode).to.eql('part_practice');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 - Admin Can Fetch Student 1 Questions (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin is authorized to read questions 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.attemptId).to.eql(pm.collectionVariables.get('practiceAttemptId'));",
+                  "    pm.expect(res.questions).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Split-view Context & UI Optimization",
+      "item": [
+        {
+          "name": "04.1 - Verify Question Group & Passage Text Context Delivery",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/questions?partNumber=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "questions"],
+              "query": [{ "key": "partNumber", "value": "6" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Question group delivers passageText and linked questions have no answer leak', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.questionGroups.length).to.be.above(0);",
+                  "    const group = res.questionGroups[0];",
+                  "    pm.expect(group.id).to.be.a('string');",
+                  "    pm.expect(group.passageText).to.be.a('string');",
+                  "    res.questions.forEach(q => {",
+                  "        pm.expect(q.options.length).to.be.above(0);",
+                  "        q.options.forEach(opt => {",
+                  "            pm.expect(opt).to.not.have.property('isCorrect');",
+                  "            pm.expect(opt.id).to.be.a('string');",
+                  "            pm.expect(opt.label).to.be.a('string');",
+                  "        });",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Verify Overview Matrix questionsProgress Completeness",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Overview returns questionsProgress matrix and remainingSeconds', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.remainingSeconds).to.be.a('number');",
+                  "    pm.expect(res.questionsProgress).to.be.an('array');",
+                  "    pm.expect(res.questionsProgress.length).to.eql(res.totalQuestions);",
+                  "    res.questionsProgress.forEach(qp => {",
+                  "        pm.expect(qp).to.have.property('questionId');",
+                  "        pm.expect(qp).to.have.property('partNumber');",
+                  "        pm.expect(qp).to.have.property('orderIndex');",
+                  "        pm.expect(qp).to.have.property('isAnswered');",
+                  "        pm.expect(qp).to.have.property('isMarkedForReview');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Teardown & Lifecycle Cleanup",
+      "item": [
+        {
+          "name": "05.1 - Abandon Part Practice Attempt",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/exam-attempts/{{practiceAttemptId}}/abandon",
+              "host": ["{{baseUrl}}"],
+              "path": ["exam-attempts", "{{practiceAttemptId}}", "abandon"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Abandon practice attempt returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.success).to.eql(true);",
+                  "    pm.expect(res.abandonedAt).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

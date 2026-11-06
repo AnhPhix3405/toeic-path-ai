@@ -178,13 +178,13 @@
             },
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/exams?search=TEST_POSTMAN_SPR6&page=1&limit=5",
+              "raw": "{{baseUrl}}/exams?search=TEST_POSTMAN_SPR6&page=1&limit=10",
               "host": ["{{baseUrl}}"],
               "path": ["exams"],
               "query": [
                 { "key": "search", "value": "TEST_POSTMAN_SPR6" },
                 { "key": "page", "value": "1" },
-                { "key": "limit", "value": "5" }
+                { "key": "limit", "value": "10" }
               ]
             }
           },
@@ -197,11 +197,11 @@
                   "    pm.response.to.have.status(200);",
                   "    const res = pm.response.json();",
                   "    pm.expect(res.items).to.be.an('array');",
-                  "    if (res.items.length > 0) {",
-                  "        pm.collectionVariables.set('examId', res.items[0].id);",
-                  "    }",
-                  "    if (res.items.length > 1) {",
-                  "        pm.collectionVariables.set('examIdB', res.items[1].id);",
+                  "    const fullExam = res.items.find(e => e.title === 'TEST_POSTMAN_SPR6_Full_Exam') || res.items[0];",
+                  "    const examB = res.items.find(e => e.title === 'TEST_POSTMAN_SPR6_Exam_B') || res.items[1];",
+                  "    pm.collectionVariables.set('examId', fullExam.id);",
+                  "    if (examB) {",
+                  "        pm.collectionVariables.set('examIdB', examB.id);",
                   "    }",
                   "});"
                 ]

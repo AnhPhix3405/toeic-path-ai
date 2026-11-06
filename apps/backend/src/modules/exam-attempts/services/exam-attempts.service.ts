@@ -45,6 +45,12 @@ export class ExamAttemptsService {
     });
 
     if (!exam || exam.status !== ExamStatus.PUBLISHED) {
+      if (exam && exam.status === ExamStatus.CLOSED) {
+        throw new ForbiddenException({
+          errorCode: 'ERR_EXAM_CLOSED',
+          message: 'Đề thi đã kết thúc thời gian làm bài',
+        });
+      }
       throw new NotFoundException({
         errorCode: 'ERR_EXAM_NOT_AVAILABLE',
         message: 'Đề thi không tồn tại hoặc chưa được xuất bản',
