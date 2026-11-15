@@ -15,6 +15,7 @@ import { ExamAttemptOverviewResponseDto } from '../dto/response/exam-attempt-ove
 import { ExamAttemptQuestionsResponseDto } from '../dto/response/exam-attempt-questions-response.dto';
 import { SaveAnswerResponseDto } from '../dto/response/save-answer-response.dto';
 import { BatchSaveAnswersResponseDto } from '../dto/response/batch-save-answers-response.dto';
+import { SubmitExamAttemptResponseDto } from '../dto/response/submit-exam-attempt-response.dto';
 
 export const ApiExamAttemptsControllerDoc = () => applyDecorators(ApiBearerAuth());
 
@@ -162,5 +163,31 @@ export const ApiBatchSaveAnswersDoc = () =>
     ApiNotFoundResponse({
       description:
         'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND) hoặc Snapshot (ERR_SNAPSHOT_NOT_FOUND)',
+    }),
+  );
+
+export const ApiSubmitAttemptDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Nộp bài thi thủ công và kích hoạt chấm điểm tức thì (UC23)',
+      description:
+        'Chốt trạng thái lượt thi (submitted nếu trong 30s Grace Period, timed_out nếu quá hạn), tính durationSpentSeconds chặn trần theo allocatedSeconds và chấm điểm TOEIC tự động (UC25).',
+    }),
+    ApiOkResponse({
+      description: 'Nộp bài và chấm điểm thành công',
+      type: SubmitExamAttemptResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description: 'Lượt thi đã bị hủy (abandoned) (ERR_ATTEMPT_NOT_IN_PROGRESS)',
+    }),
+    ApiForbiddenResponse({
+      description:
+        'Chỉ học viên sở hữu lượt thi mới được phép nộp bài (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
+    }),
+    ApiNotFoundResponse({
+      description: 'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND)',
+    }),
+    ApiConflictResponse({
+      description: 'Lượt thi đã được nộp trước đó (ERR_ATTEMPT_ALREADY_SUBMITTED)',
     }),
   );

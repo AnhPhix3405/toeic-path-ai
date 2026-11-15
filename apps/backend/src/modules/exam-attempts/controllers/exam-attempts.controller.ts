@@ -28,6 +28,7 @@ import {
   ApiGetAttemptQuestionsDoc,
   ApiSaveAnswerDoc,
   ApiStartAttemptDoc,
+  ApiSubmitAttemptDoc,
 } from '../docs/exam-attempts.doc';
 import { CreateExamAttemptDto } from '../dto/request/create-exam-attempt.dto';
 import { QueryAttemptQuestionsDto } from '../dto/request/query-attempt-questions.dto';
@@ -39,9 +40,11 @@ import { ExamAttemptOverviewResponseDto } from '../dto/response/exam-attempt-ove
 import { ExamAttemptQuestionsResponseDto } from '../dto/response/exam-attempt-questions-response.dto';
 import { SaveAnswerResponseDto } from '../dto/response/save-answer-response.dto';
 import { BatchSaveAnswersResponseDto } from '../dto/response/batch-save-answers-response.dto';
+import { SubmitExamAttemptResponseDto } from '../dto/response/submit-exam-attempt-response.dto';
 import { ExamAttemptsService } from '../services/exam-attempts.service';
 import { ExamAttemptsDeliveryService } from '../services/exam-attempts-delivery.service';
 import { ExamAttemptsAnswersService } from '../services/exam-attempts-answers.service';
+import { ExamAttemptsSubmissionService } from '../services/exam-attempts-submission.service';
 import { UserRole } from '../../../common/enums/user-role.enum';
 
 @ApiTags('Exam Attempts')
@@ -53,6 +56,7 @@ export class ExamAttemptsController {
     private readonly examAttemptsService: ExamAttemptsService,
     private readonly examAttemptsDeliveryService: ExamAttemptsDeliveryService,
     private readonly examAttemptsAnswersService: ExamAttemptsAnswersService,
+    private readonly examAttemptsSubmissionService: ExamAttemptsSubmissionService,
   ) {}
 
   @Post()
@@ -132,5 +136,16 @@ export class ExamAttemptsController {
     @Body() dto: SaveAnswerDto,
   ): Promise<SaveAnswerResponseDto> {
     return this.examAttemptsAnswersService.saveAnswer(user.id, id, dto);
+  }
+
+  @Post(':id/submit')
+  @HttpCode(HttpStatus.OK)
+  @ThrottlePolicy('examsMutate')
+  @ApiSubmitAttemptDoc()
+  async submitAttempt(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<SubmitExamAttemptResponseDto> {
+    return this.examAttemptsSubmissionService.submitAttempt(user.id, id);
   }
 }

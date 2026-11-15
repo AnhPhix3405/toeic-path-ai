@@ -5,6 +5,7 @@ import { ExamAttemptsController } from './exam-attempts.controller';
 import { ExamAttemptsService } from '../services/exam-attempts.service';
 import { ExamAttemptsDeliveryService } from '../services/exam-attempts-delivery.service';
 import { ExamAttemptsAnswersService } from '../services/exam-attempts-answers.service';
+import { ExamAttemptsSubmissionService } from '../services/exam-attempts-submission.service';
 import { CreateExamAttemptDto } from '../dto/request/create-exam-attempt.dto';
 import { QueryAttemptQuestionsDto } from '../dto/request/query-attempt-questions.dto';
 import { SaveAnswerDto } from '../dto/request/save-answer.dto';
@@ -30,6 +31,9 @@ describe('ExamAttemptsController', () => {
   let answersServiceMock: {
     saveAnswer: jest.Mock;
     batchSaveAnswers: jest.Mock;
+  };
+  let submissionServiceMock: {
+    submitAttempt: jest.Mock;
   };
 
   const mockUser: AuthenticatedUser = {
@@ -64,6 +68,10 @@ describe('ExamAttemptsController', () => {
       batchSaveAnswers: jest.fn(),
     };
 
+    submissionServiceMock = {
+      submitAttempt: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ExamAttemptsController],
       providers: [
@@ -78,6 +86,10 @@ describe('ExamAttemptsController', () => {
         {
           provide: ExamAttemptsAnswersService,
           useValue: answersServiceMock,
+        },
+        {
+          provide: ExamAttemptsSubmissionService,
+          useValue: submissionServiceMock,
         },
       ],
     })
@@ -313,6 +325,33 @@ describe('ExamAttemptsController', () => {
 
       expect(result).toEqual(mockResponse);
       expect(answersServiceMock.batchSaveAnswers).toHaveBeenCalledWith('user-uuid-1', 'att-1', dto);
+    });
+  });
+
+  describe('submitAttempt', () => {
+    it('should call submissionService.submitAttempt with user.id and attempt id and return 200 OK result', async () => {
+      const mockSubmittedResponse = {
+        attemptId: 'att-1',
+        status: ExamAttemptStatus.SUBMITTED,
+        submittedAt: new Date(),
+        durationSpentSeconds: 3500,
+        totalScore: 810,
+        listeningScore: 420,
+        readingScore: 390,
+        correctCount: 162,
+        wrongCount: 30,
+        skippedCount: 8,
+        totalQuestions: 200,
+        accuracyPercentage: 81,
+        isPassed: true,
+      };
+
+      submissionServiceMock.submitAttempt.mockResolvedValue(mockSubmittedResponse);
+
+      const result = await controller.submitAttempt(mockUser, 'att-1');
+
+      expect(result).toEqual(mockSubmittedResponse);
+      expect(submissionServiceMock.submitAttempt).toHaveBeenCalledWith('user-uuid-1', 'att-1');
     });
   });
 });
