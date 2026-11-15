@@ -16,6 +16,9 @@ import { ExamAttemptQuestionsResponseDto } from '../dto/response/exam-attempt-qu
 import { SaveAnswerResponseDto } from '../dto/response/save-answer-response.dto';
 import { BatchSaveAnswersResponseDto } from '../dto/response/batch-save-answers-response.dto';
 import { SubmitExamAttemptResponseDto } from '../dto/response/submit-exam-attempt-response.dto';
+import { ExamAttemptResultResponseDto } from '../dto/response/exam-attempt-result-response.dto';
+import { PaginatedExamAttemptHistoryResponseDto } from '../dto/response/exam-attempt-history-response.dto';
+import { ExamAttemptReviewResponseDto } from '../dto/response/exam-attempt-review-response.dto';
 
 export const ApiExamAttemptsControllerDoc = () => applyDecorators(ApiBearerAuth());
 
@@ -189,5 +192,74 @@ export const ApiSubmitAttemptDoc = () =>
     }),
     ApiConflictResponse({
       description: 'Lượt thi đã được nộp trước đó (ERR_ATTEMPT_ALREADY_SUBMITTED)',
+    }),
+  );
+
+export const ApiGetAttemptHistoryDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Xem lịch sử làm bài thi của học viên (UC27)',
+      description:
+        'Tra cứu danh sách phân trang các lượt làm bài của bản thân kèm bộ lọc examId, mode, status, fromDate, toDate. Không tải cột JSONB nặng để tối ưu hiệu năng.',
+    }),
+    ApiOkResponse({
+      description: 'Lấy lịch sử làm bài thành công',
+      type: PaginatedExamAttemptHistoryResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Tham số lọc không hợp lệ hoặc khoảng thời gian bị ngược (ERR_INVALID_DATE_RANGE)',
+    }),
+  );
+
+export const ApiGetAttemptResultDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Xem kết quả tổng quan bài thi và phân tích năng lực (UC26)',
+      description:
+        'Hiển thị báo cáo điểm số TOEIC (Listening, Reading, Total), tỷ lệ chính xác, thời gian làm bài và phân tích chi tiết theo từng Part (partBreakdown) và kỹ năng (skillBreakdown).',
+    }),
+    ApiOkResponse({
+      description: 'Lấy kết quả bài thi thành công',
+      type: ExamAttemptResultResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Lượt thi chưa được nộp (in_progress hoặc abandoned) (ERR_ATTEMPT_NOT_SUBMITTED)',
+    }),
+    ApiForbiddenResponse({
+      description: 'Không có quyền xem kết quả lượt thi này (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
+    }),
+    ApiNotFoundResponse({
+      description: 'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND)',
+    }),
+    ApiConflictResponse({
+      description: 'Lượt thi chưa hoàn tất chấm điểm (ERR_ATTEMPT_NOT_GRADED)',
+    }),
+  );
+
+export const ApiGetAttemptReviewDoc = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Xem đáp án, lời giải và lời thoại chi tiết sau khi nộp bài (UC28)',
+      description:
+        'Đối chiếu lựa chọn của học viên với đáp án đúng (giữ nguyên thứ tự A–D đã xáo trộn từ Snapshot), xem explanation/transcript và lọc theo Part hoặc trạng thái (all, correct, wrong, skipped, marked).',
+    }),
+    ApiOkResponse({
+      description: 'Lấy chi tiết lời giải bài thi thành công',
+      type: ExamAttemptReviewResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Lượt thi chưa được nộp (ERR_ATTEMPT_NOT_SUBMITTED) hoặc Part yêu cầu không nằm trong lượt luyện tập (ERR_PART_NOT_IN_ATTEMPT)',
+    }),
+    ApiForbiddenResponse({
+      description: 'Không có quyền xem lời giải lượt thi này (ERR_FORBIDDEN_ATTEMPT_ACCESS)',
+    }),
+    ApiNotFoundResponse({
+      description: 'Không tìm thấy lượt thi (ERR_ATTEMPT_NOT_FOUND)',
+    }),
+    ApiConflictResponse({
+      description: 'Lượt thi chưa hoàn tất chấm điểm (ERR_ATTEMPT_NOT_GRADED)',
     }),
   );

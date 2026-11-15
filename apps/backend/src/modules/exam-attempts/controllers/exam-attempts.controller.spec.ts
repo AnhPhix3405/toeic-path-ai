@@ -6,12 +6,16 @@ import { ExamAttemptsService } from '../services/exam-attempts.service';
 import { ExamAttemptsDeliveryService } from '../services/exam-attempts-delivery.service';
 import { ExamAttemptsAnswersService } from '../services/exam-attempts-answers.service';
 import { ExamAttemptsSubmissionService } from '../services/exam-attempts-submission.service';
+import { ExamAttemptsResultsService } from '../services/exam-attempts-results.service';
 import { CreateExamAttemptDto } from '../dto/request/create-exam-attempt.dto';
 import { QueryAttemptQuestionsDto } from '../dto/request/query-attempt-questions.dto';
+import { QueryAttemptHistoryDto } from '../dto/request/query-attempt-history.dto';
+import { QueryAttemptReviewDto } from '../dto/request/query-attempt-review.dto';
 import { SaveAnswerDto } from '../dto/request/save-answer.dto';
 import { BatchSaveAnswersDto } from '../dto/request/batch-save-answers.dto';
 import { PartPracticeMode } from '../enums/part-practice-mode.enum';
 import { ExamAttemptStatus } from '../enums/exam-attempt-status.enum';
+import { AttemptReviewFilter } from '../enums/attempt-review-filter.enum';
 import { UserRole } from '../../../common/enums/user-role.enum';
 import { UserStatus } from '../../../common/enums/user-status.enum';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
@@ -34,6 +38,11 @@ describe('ExamAttemptsController', () => {
   };
   let submissionServiceMock: {
     submitAttempt: jest.Mock;
+  };
+  let resultsServiceMock: {
+    getAttemptResult: jest.Mock;
+    getAttemptHistory: jest.Mock;
+    getAttemptReview: jest.Mock;
   };
 
   const mockUser: AuthenticatedUser = {
@@ -72,6 +81,12 @@ describe('ExamAttemptsController', () => {
       submitAttempt: jest.fn(),
     };
 
+    resultsServiceMock = {
+      getAttemptResult: jest.fn(),
+      getAttemptHistory: jest.fn(),
+      getAttemptReview: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ExamAttemptsController],
       providers: [
@@ -90,6 +105,10 @@ describe('ExamAttemptsController', () => {
         {
           provide: ExamAttemptsSubmissionService,
           useValue: submissionServiceMock,
+        },
+        {
+          provide: ExamAttemptsResultsService,
+          useValue: resultsServiceMock,
         },
       ],
     })
@@ -352,6 +371,96 @@ describe('ExamAttemptsController', () => {
 
       expect(result).toEqual(mockSubmittedResponse);
       expect(submissionServiceMock.submitAttempt).toHaveBeenCalledWith('user-uuid-1', 'att-1');
+    });
+  });
+
+  describe('getAttemptHistory (UC27)', () => {
+    it('should declare getAttemptHistory BEFORE dynamic :id GET routes on ExamAttemptsController prototype (PMR 027)', () => {
+      const methodNames = Object.getOwnPropertyNames(ExamAttemptsController.prototype);
+      const historyIdx = methodNames.indexOf('getAttemptHistory');
+      const overviewIdx = methodNames.indexOf('getAttemptOverview');
+      const questionsIdx = methodNames.indexOf('getAttemptQuestions');
+
+      expect(historyIdx).toBeGreaterThan(-1);
+      expect(historyIdx).toBeLessThan(overviewIdx);
+      expect(historyIdx).toBeLessThan(questionsIdx);
+    });
+
+    it('should call resultsService.getAttemptHistory with user.id and query', async () => {
+      const query: QueryAttemptHistoryDto = { page: 1, limit: 10 };
+      const mockHistory = {
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+      };
+      resultsServiceMock.getAttemptHistory.mockResolvedValue(mockHistory);
+
+      const result = await controller.getAttemptHistory(mockUser, query);
+
+      expect(result).toEqual(mockHistory);
+      expect(resultsServiceMock.getAttemptHistory).toHaveBeenCalledWith('user-uuid-1', query);
+    });
+  });
+
+  describe('getAttemptResult (UC26)', () => {
+    it('should call resultsService.getAttemptResult with isAdmin=false for student and isAdmin=true for admin', async () => {
+      const mockResult = {
+        attemptId: 'att-1',
+        totalScore: 785,
+      };
+      resultsServiceMock.getAttemptResult.mockResolvedValue(mockResult);
+
+      const studentRes = await controller.getAttemptResult(mockUser, 'att-1');
+      expect(studentRes).toEqual(mockResult);
+      expect(resultsServiceMock.getAttemptResult).toHaveBeenCalledWith(
+        'user-uuid-1',
+        'att-1',
+        false,
+      );
+
+      const adminRes = await controller.getAttemptResult(mockAdmin, 'att-1');
+      expect(adminRes).toEqual(mockResult);
+      expect(resultsServiceMock.getAttemptResult).toHaveBeenCalledWith(
+        'admin-uuid-1',
+        'att-1',
+        true,
+      );
+    });
+  });
+
+  describe('getAttemptReview (UC28)', () => {
+    it('should call resultsService.getAttemptReview with user.id, id, query, and isAdmin flag', async () => {
+      const query: QueryAttemptReviewDto = {
+        partNumber: 5,
+        filter: AttemptReviewFilter.WRONG,
+      };
+      const mockReview = {
+        attemptId: 'att-1',
+        filterCounts: { all: 30, correct: 25, wrong: 5, skipped: 0, marked: 2 },
+        questionGroups: [],
+        questions: [],
+      };
+      resultsServiceMock.getAttemptReview.mockResolvedValue(mockReview);
+
+      const studentRes = await controller.getAttemptReview(mockUser, 'att-1', query);
+      expect(studentRes).toEqual(mockReview);
+      expect(resultsServiceMock.getAttemptReview).toHaveBeenCalledWith(
+        'user-uuid-1',
+        'att-1',
+        query,
+        false,
+      );
+
+      const adminRes = await controller.getAttemptReview(mockAdmin, 'att-1', query);
+      expect(adminRes).toEqual(mockReview);
+      expect(resultsServiceMock.getAttemptReview).toHaveBeenCalledWith(
+        'admin-uuid-1',
+        'att-1',
+        query,
+        true,
+      );
     });
   });
 });

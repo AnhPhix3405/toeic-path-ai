@@ -18,6 +18,7 @@ import { ExamAttemptsDeliveryService } from './services/exam-attempts-delivery.s
 import { ExamAttemptsAnswersService } from './services/exam-attempts-answers.service';
 import { ExamAttemptsGradingService } from './services/exam-attempts-grading.service';
 import { ExamAttemptsSubmissionService } from './services/exam-attempts-submission.service';
+import { ExamAttemptsResultsService } from './services/exam-attempts-results.service';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ExamAttemptsSubmissionService } from './services/exam-attempts-submissi
     ExamAttemptsAnswersService,
     ExamAttemptsGradingService,
     ExamAttemptsSubmissionService,
+    ExamAttemptsResultsService,
   ],
   exports: [
     TypeOrmModule,
@@ -52,6 +54,7 @@ import { ExamAttemptsSubmissionService } from './services/exam-attempts-submissi
     ExamAttemptsAnswersService,
     ExamAttemptsGradingService,
     ExamAttemptsSubmissionService,
+    ExamAttemptsResultsService,
   ],
 })
 export class ExamAttemptsModule {}

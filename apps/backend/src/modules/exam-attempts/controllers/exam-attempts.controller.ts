@@ -24,14 +24,19 @@ import {
   ApiAbandonAttemptDoc,
   ApiBatchSaveAnswersDoc,
   ApiExamAttemptsControllerDoc,
+  ApiGetAttemptHistoryDoc,
   ApiGetAttemptOverviewDoc,
   ApiGetAttemptQuestionsDoc,
+  ApiGetAttemptResultDoc,
+  ApiGetAttemptReviewDoc,
   ApiSaveAnswerDoc,
   ApiStartAttemptDoc,
   ApiSubmitAttemptDoc,
 } from '../docs/exam-attempts.doc';
 import { CreateExamAttemptDto } from '../dto/request/create-exam-attempt.dto';
 import { QueryAttemptQuestionsDto } from '../dto/request/query-attempt-questions.dto';
+import { QueryAttemptHistoryDto } from '../dto/request/query-attempt-history.dto';
+import { QueryAttemptReviewDto } from '../dto/request/query-attempt-review.dto';
 import { SaveAnswerDto } from '../dto/request/save-answer.dto';
 import { BatchSaveAnswersDto } from '../dto/request/batch-save-answers.dto';
 import { ExamAttemptSummaryResponseDto } from '../dto/response/exam-attempt-summary-response.dto';
@@ -41,10 +46,14 @@ import { ExamAttemptQuestionsResponseDto } from '../dto/response/exam-attempt-qu
 import { SaveAnswerResponseDto } from '../dto/response/save-answer-response.dto';
 import { BatchSaveAnswersResponseDto } from '../dto/response/batch-save-answers-response.dto';
 import { SubmitExamAttemptResponseDto } from '../dto/response/submit-exam-attempt-response.dto';
+import { ExamAttemptResultResponseDto } from '../dto/response/exam-attempt-result-response.dto';
+import { PaginatedExamAttemptHistoryResponseDto } from '../dto/response/exam-attempt-history-response.dto';
+import { ExamAttemptReviewResponseDto } from '../dto/response/exam-attempt-review-response.dto';
 import { ExamAttemptsService } from '../services/exam-attempts.service';
 import { ExamAttemptsDeliveryService } from '../services/exam-attempts-delivery.service';
 import { ExamAttemptsAnswersService } from '../services/exam-attempts-answers.service';
 import { ExamAttemptsSubmissionService } from '../services/exam-attempts-submission.service';
+import { ExamAttemptsResultsService } from '../services/exam-attempts-results.service';
 import { UserRole } from '../../../common/enums/user-role.enum';
 
 @ApiTags('Exam Attempts')
@@ -57,6 +66,7 @@ export class ExamAttemptsController {
     private readonly examAttemptsDeliveryService: ExamAttemptsDeliveryService,
     private readonly examAttemptsAnswersService: ExamAttemptsAnswersService,
     private readonly examAttemptsSubmissionService: ExamAttemptsSubmissionService,
+    private readonly examAttemptsResultsService: ExamAttemptsResultsService,
   ) {}
 
   @Post()
@@ -81,6 +91,17 @@ export class ExamAttemptsController {
     return result;
   }
 
+  // PMR 027: Declare static @Get('history') ABOVE all dynamic @Get(':id...') routes
+  @Get('history')
+  @ThrottlePolicy('questionsSearch')
+  @ApiGetAttemptHistoryDoc()
+  async getAttemptHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: QueryAttemptHistoryDto,
+  ): Promise<PaginatedExamAttemptHistoryResponseDto> {
+    return this.examAttemptsResultsService.getAttemptHistory(user.id, query);
+  }
+
   @Post(':id/abandon')
   @HttpCode(HttpStatus.OK)
   @ThrottlePolicy('examsMutate')
@@ -103,6 +124,29 @@ export class ExamAttemptsController {
   ): Promise<ExamAttemptQuestionsResponseDto> {
     const isAdmin = user.role === UserRole.ADMIN;
     return this.examAttemptsDeliveryService.getAttemptQuestions(user.id, id, query, isAdmin);
+  }
+
+  @Get(':id/result')
+  @ThrottlePolicy('questionsSearch')
+  @ApiGetAttemptResultDoc()
+  async getAttemptResult(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ExamAttemptResultResponseDto> {
+    const isAdmin = user.role === UserRole.ADMIN;
+    return this.examAttemptsResultsService.getAttemptResult(user.id, id, isAdmin);
+  }
+
+  @Get(':id/review')
+  @ThrottlePolicy('questionsSearch')
+  @ApiGetAttemptReviewDoc()
+  async getAttemptReview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: QueryAttemptReviewDto,
+  ): Promise<ExamAttemptReviewResponseDto> {
+    const isAdmin = user.role === UserRole.ADMIN;
+    return this.examAttemptsResultsService.getAttemptReview(user.id, id, query, isAdmin);
   }
 
   @Get(':id')
