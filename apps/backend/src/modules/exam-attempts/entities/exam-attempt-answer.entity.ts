@@ -33,6 +33,9 @@ export class ExamAttemptAnswer {
   @Column({ name: 'selected_option_id', type: 'uuid', nullable: true })
   selectedOptionId?: string | null;
 
+  @Column({ name: 'is_correct', type: 'boolean', nullable: true })
+  isCorrect?: boolean | null = null;
+
   @Column({ name: 'is_marked_for_review', type: 'boolean', default: false })
   isMarkedForReview: boolean = false;
 

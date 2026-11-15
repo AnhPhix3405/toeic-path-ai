@@ -29,6 +29,7 @@ import { QuestionGroupsModule } from './modules/question-groups/question-groups.
 import { MediaModule } from './modules/media/media.module';
 import { ExamsModule } from './modules/exams/exams.module';
 import { ExamAttemptsModule } from './modules/exam-attempts/exam-attempts.module';
+import { QuestionReportsModule } from './modules/question-reports/question-reports.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { ExamAttemptsModule } from './modules/exam-attempts/exam-attempts.module
     MediaModule,
     ExamsModule,
     ExamAttemptsModule,
+    QuestionReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
