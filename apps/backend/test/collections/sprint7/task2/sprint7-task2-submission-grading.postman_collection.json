@@ -1,0 +1,654 @@
+{
+  "info": {
+    "_postman_id": "c7e20000-0000-4000-8000-000000000002",
+    "name": "TOEIC Path AI - Sprint 7 Task 2 Submission, Auto-Submit & ETS Grading Engine Collection",
+    "description": "Bộ Postman Automated Test Collection chuyên sâu cho Sprint 7 Task 2 (UC23: Nộp bài thủ công, UC24: Tự động thu bài hết giờ, UC25: Engine chấm điểm TOEIC ETS / RAW_PERCENTAGE / Part Practice / Single-Skill Exam). Thiết kế theo chuẩn Chuan_Testing.md (EP, BVA, Decision Table, State Transition; >= 50% Negative Cases) nhằm ngăn chặn triệt để các lỗi chấm điểm sai, nộp hộ hoặc xung đột trạng thái làm mất lòng khách hàng.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "student1Email", "value": "spr7.task2.student1@example.com", "type": "string" },
+    { "key": "student2Email", "value": "spr7.task2.student2@example.com", "type": "string" },
+    { "key": "student3Email", "value": "spr7.task2.student3@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "spr7.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "student1Token", "value": "", "type": "string" },
+    { "key": "student2Token", "value": "", "type": "string" },
+    { "key": "student3Token", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "fullExamId", "value": "d0000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "rawExamId", "value": "d0000000-0000-4000-8000-000000000002", "type": "string" },
+    { "key": "singleSkillExamId", "value": "d0000000-0000-4000-8000-000000000003", "type": "string" },
+    { "key": "expiredAttemptId", "value": "d0000000-0000-4000-8000-000000000098", "type": "string" },
+    { "key": "q1Id", "value": "d0000000-0000-4000-8000-000000000011", "type": "string" },
+    { "key": "q1OptCorrect", "value": "d0000000-0000-4000-8000-000000000111", "type": "string" },
+    { "key": "q2Id", "value": "d0000000-0000-4000-8000-000000000012", "type": "string" },
+    { "key": "q2OptWrong", "value": "d0000000-0000-4000-8000-000000000122", "type": "string" },
+    { "key": "q3Id", "value": "d0000000-0000-4000-8000-000000000013", "type": "string" },
+    { "key": "q3OptCorrect", "value": "d0000000-0000-4000-8000-000000000131", "type": "string" },
+    { "key": "attemptId", "value": "", "type": "string" },
+    { "key": "abandonedAttemptId", "value": "", "type": "string" },
+    { "key": "partPracticeAttemptId", "value": "", "type": "string" },
+    { "key": "rawAttemptId", "value": "", "type": "string" },
+    { "key": "singleSkillAttemptId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Actor Setup",
+      "item": [
+        {
+          "name": "00.1 - Login Task 2 Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student1Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Task 2 Student 1 returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('student1Token', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Task 2 Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Task 2 Student 2 returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('student2Token', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Task 2 Student 3 (Expired Attempt Actor)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student3Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Task 2 Student 3 returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('student3Token', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Teacher returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('teacherToken', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Input Validation, Ownership & State Machine Guardrails (Negative Cases - EP, BVA, ST)",
+      "item": [
+        {
+          "name": "TC-T2-01 [Negative - BVA/EP] Submit With Malformed UUID Returns 400 Bad Request",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/not-a-valid-uuid/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-01] Malformed UUID parameter returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-02 [Negative - EP] Submit Non-Existent Attempt Returns 404 ERR_ATTEMPT_NOT_FOUND",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/d0000000-0000-4000-8000-999999999999/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-02] Non-existent attempt returns 404 ERR_ATTEMPT_NOT_FOUND', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_ATTEMPT_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-03a [Setup] Start Full Exam Attempt for Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start attempt for Student 1 returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('attemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-03b [Negative - Security/DT] Other Student Cannot Submit Student 1 Attempt (403 ERR_FORBIDDEN_ATTEMPT_ACCESS)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-03b] Another student submitting returns 403 ERR_FORBIDDEN_ATTEMPT_ACCESS', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-03c [Negative - Security/DT] Teacher Cannot Submit Attempt on Behalf of Student (403 ERR_FORBIDDEN_ATTEMPT_ACCESS)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-03c] Teacher submitting student attempt returns 403 ERR_FORBIDDEN_ATTEMPT_ACCESS', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Review-Only Skipped Answer Accuracy, ETS Grading & Idempotency (DT, ST)",
+      "item": [
+        {
+          "name": "TC-T2-04a [Setup] Save Correct (Q1), Wrong (Q2), and Review-Only Skipped (Q3 selectedOptionId=null)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"{{q1Id}}\",\n      \"selectedOptionId\": \"{{q1OptCorrect}}\",\n      \"isMarkedForReview\": false,\n      \"timeSpentSeconds\": 12\n    },\n    {\n      \"questionId\": \"{{q2Id}}\",\n      \"selectedOptionId\": \"{{q2OptWrong}}\",\n      \"isMarkedForReview\": false,\n      \"timeSpentSeconds\": 20\n    },\n    {\n      \"questionId\": \"{{q3Id}}\",\n      \"selectedOptionId\": null,\n      \"isMarkedForReview\": true,\n      \"timeSpentSeconds\": 8\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/answers/batch"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Batch save 3 answers (including review-only null option) returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().syncedCount).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-04b [Positive - DT] Submit Attempt Counts Review-Only Row as Skipped (NOT Wrong) & Computes ETS Score",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-04b] Review-only answer (selectedOptionId=null) is counted in skippedCount=2, wrongCount=1, correctCount=1', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('submitted');",
+                  "    pm.expect(res.totalQuestions).to.eql(4);",
+                  "    pm.expect(res.correctCount).to.eql(1);",
+                  "    pm.expect(res.wrongCount).to.eql(1);",
+                  "    pm.expect(res.skippedCount).to.eql(2);",
+                  "    pm.expect(res.accuracyPercentage).to.eql(25);",
+                  "    pm.expect(res.listeningScore).to.be.within(5, 495);",
+                  "    pm.expect(res.readingScore).to.be.within(5, 495);",
+                  "    pm.expect(res.totalScore).to.eql(res.listeningScore + res.readingScore);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-05 [Negative - ST] Double-Click / Duplicate Submit Returns 409 ERR_ATTEMPT_ALREADY_SUBMITTED With Metadata",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-05] Second submit on already submitted attempt returns 409 with status and submittedAt', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_ATTEMPT_ALREADY_SUBMITTED');",
+                  "    pm.expect(res.status).to.eql('submitted');",
+                  "    pm.expect(res.submittedAt).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-06 [Negative - ST] Submit Abandoned Attempt Returns 400 ERR_ATTEMPT_NOT_IN_PROGRESS",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start attempt to abandon returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('abandonedAttemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-06b [Setup] Abandon Attempt",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{abandonedAttemptId}}/abandon"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Abandon attempt returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-06c [Negative - ST] Submitting Abandoned Attempt Returns 400 ERR_ATTEMPT_NOT_IN_PROGRESS",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{abandonedAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-06c] Submitting abandoned attempt returns 400 ERR_ATTEMPT_NOT_IN_PROGRESS', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_ATTEMPT_NOT_IN_PROGRESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Multi-Mode Grading Edge Cases: Part Practice, RAW_PERCENTAGE, Single-Skill & Timed-Out (DT, BVA)",
+      "item": [
+        {
+          "name": "TC-T2-07a [Setup] Start Part Practice Attempt (Part 5 Only)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": [5]\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Part Practice attempt returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('partPracticeAttemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-07b [Positive - DT] Submit Part Practice Returns Null ETS Scores & Null isPassed",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{partPracticeAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-07b] Part Practice grading sets listeningScore=null, readingScore=null, totalScore=null, isPassed=null', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.listeningScore).to.be.null;",
+                  "    pm.expect(res.readingScore).to.be.null;",
+                  "    pm.expect(res.totalScore).to.be.null;",
+                  "    pm.expect(res.isPassed).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-08a [Setup] Start RAW_PERCENTAGE Exam Attempt & Answer Q3 Correctly",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{rawExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start RAW_PERCENTAGE exam returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('rawAttemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-08b [Setup] Save Correct Answer on RAW_PERCENTAGE Exam",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{q3Id}}\",\n  \"selectedOptionId\": \"{{q3OptCorrect}}\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts/{{rawAttemptId}}/answers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Save correct answer on RAW_PERCENTAGE exam returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-08c [Positive - DT] Submit RAW_PERCENTAGE Exam Evaluates isPassed Against accuracyPercentage",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{rawAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-08c] RAW_PERCENTAGE exam sets ETS scores to null and isPassed=true (100% >= 50%)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.totalScore).to.be.null;",
+                  "    pm.expect(res.listeningScore).to.be.null;",
+                  "    pm.expect(res.readingScore).to.be.null;",
+                  "    pm.expect(res.accuracyPercentage).to.eql(100);",
+                  "    pm.expect(res.isPassed).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-09a [Setup] Start Single-Skill Exam (Listening Only, readingTotal = 0)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{singleSkillExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Single-Skill Listening exam returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('singleSkillAttemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-09b [Positive - Edge Case DT] Submit Single-Skill Exam Sets Absent Skill Score, totalScore & isPassed to Null (PMR 025)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{singleSkillAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-09b] Single-skill Listening exam sets listeningScore=5, readingScore=null, totalScore=null, isPassed=null', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.listeningScore).to.eql(5);",
+                  "    pm.expect(res.readingScore).to.be.null;",
+                  "    pm.expect(res.totalScore).to.be.null;",
+                  "    pm.expect(res.isPassed).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T2-10 [Boundary - BVA/ST] Expired Attempt Past 30s Grace Period Transitions to timed_out With Capped durationSpentSeconds",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student3Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{expiredAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T2-10] Expired attempt transitions to timed_out (200 via late submit or 409 if collected by Cron UC24)', function () {",
+                  "    pm.expect([200, 409]).to.include(pm.response.code);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('timed_out');",
+                  "    if (pm.response.code === 200) {",
+                  "        pm.expect(res.durationSpentSeconds).to.eql(7200);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

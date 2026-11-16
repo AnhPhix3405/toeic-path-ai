@@ -16,7 +16,9 @@ config();
 
 export const POSTMAN_SPR7_FULL_EXAM_ID = 'd0000000-0000-4000-8000-000000000001';
 export const POSTMAN_SPR7_RAW_EXAM_ID = 'd0000000-0000-4000-8000-000000000002';
+export const POSTMAN_SPR7_SINGLE_SKILL_EXAM_ID = 'd0000000-0000-4000-8000-000000000003';
 export const POSTMAN_SPR7_EXPIRED_ATTEMPT_ID = 'd0000000-0000-4000-8000-000000000099';
+export const POSTMAN_SPR7_TASK2_EXPIRED_ATTEMPT_ID = 'd0000000-0000-4000-8000-000000000098';
 
 export const POSTMAN_SPR7_Q1_ID = 'd0000000-0000-4000-8000-000000000011';
 export const POSTMAN_SPR7_Q1_OPT_CORRECT = 'd0000000-0000-4000-8000-000000000111';
@@ -34,20 +36,35 @@ export const POSTMAN_SPR7_Q4_ID = 'd0000000-0000-4000-8000-000000000014';
 export const POSTMAN_SPR7_Q4_OPT_CORRECT = 'd0000000-0000-4000-8000-000000000141';
 export const POSTMAN_SPR7_Q4_OPT_WRONG = 'd0000000-0000-4000-8000-000000000142';
 
-const ALL_POSTMAN_EXAM_IDS = [POSTMAN_SPR7_FULL_EXAM_ID, POSTMAN_SPR7_RAW_EXAM_ID];
+export const POSTMAN_SPR7_OUTSIDE_QUESTION_ID = 'd0000000-0000-4000-8000-000000000019';
+
+const ALL_POSTMAN_EXAM_IDS = [
+  POSTMAN_SPR7_FULL_EXAM_ID,
+  POSTMAN_SPR7_RAW_EXAM_ID,
+  POSTMAN_SPR7_SINGLE_SKILL_EXAM_ID,
+];
 
 const ALL_POSTMAN_QUESTION_IDS = [
   POSTMAN_SPR7_Q1_ID,
   POSTMAN_SPR7_Q2_ID,
   POSTMAN_SPR7_Q3_ID,
   POSTMAN_SPR7_Q4_ID,
+  POSTMAN_SPR7_OUTSIDE_QUESTION_ID,
 ];
 
 const TEST_ACCOUNTS = [
   { email: 'spr7.student1@example.com', role: UserRole.STUDENT },
   { email: 'spr7.student2@example.com', role: UserRole.STUDENT },
   { email: 'spr7.student3@example.com', role: UserRole.STUDENT },
+  { email: 'spr7.task2.student1@example.com', role: UserRole.STUDENT },
+  { email: 'spr7.task2.student2@example.com', role: UserRole.STUDENT },
+  { email: 'spr7.task2.student3@example.com', role: UserRole.STUDENT },
+  { email: 'spr7.task3.student1@example.com', role: UserRole.STUDENT },
+  { email: 'spr7.task3.student2@example.com', role: UserRole.STUDENT },
+  { email: 'spr7.task4.student1@example.com', role: UserRole.STUDENT },
+  { email: 'spr7.task4.student2@example.com', role: UserRole.STUDENT },
   { email: 'spr7.teacher@example.com', role: UserRole.TEACHER },
+  { email: 'spr7.admin@example.com', role: UserRole.ADMIN },
 ];
 
 async function seedSprint7Postman(): Promise<void> {
@@ -147,6 +164,7 @@ async function seedSprint7Postman(): Promise<void> {
 
     const teacherId = userIdByEmail.get('spr7.teacher@example.com')!;
     const student3Id = userIdByEmail.get('spr7.student3@example.com')!;
+    const task2Student3Id = userIdByEmail.get('spr7.task2.student3@example.com')!;
 
     // 3. Dynamically load toeic_parts (PMR 032)
     const parts: Array<{ id: string; part_number: number }> = await qr.query(
@@ -182,11 +200,7 @@ async function seedSprint7Postman(): Promise<void> {
     );
     const group7Id = grp7Res[0].id;
 
-    // 6. Seed 4 deterministic questions:
-    // Q1: Part 1 (content: null per Rule #1002)
-    // Q2: Part 3 (group3Id)
-    // Q3: Part 5 (attached to skillId)
-    // Q4: Part 7 (group7Id)
+    // 6. Seed 4 deterministic exam questions + 1 outside question:
     const questionConfigs = [
       {
         id: POSTMAN_SPR7_Q1_ID,
@@ -284,7 +298,23 @@ async function seedSprint7Postman(): Promise<void> {
       );
     }
 
-    // 7. Create Full Exam (DEFAULT_ETS, is_shuffled_questions = false, is_shuffled_options = false for deterministic Postman IDs)
+    // Seed an extra standalone question NOT belonging to any exam attempt (for ERR_QUESTION_NOT_IN_ATTEMPT)
+    await qr.query(
+      `INSERT INTO questions (
+         id, content, question_type, status, part_id,
+         created_by, question_group_id, group_order, explanation, version
+       )
+       VALUES ($1, 'TEST_POSTMAN_SPR7_Outside_Question', $2, $3, $4, $5, NULL, NULL, 'TEST_POSTMAN_SPR7_EXP_OUTSIDE', 1)`,
+      [
+        POSTMAN_SPR7_OUTSIDE_QUESTION_ID,
+        QuestionType.SINGLE_CHOICE,
+        QuestionStatus.PUBLISHED,
+        partMap.get(5),
+        teacherId,
+      ],
+    );
+
+    // 7. Create Full Exam (DEFAULT_ETS)
     await qr.query(
       `INSERT INTO exams (
          id, title, description, type, status, duration_minutes,
@@ -301,7 +331,6 @@ async function seedSprint7Postman(): Promise<void> {
       ],
     );
 
-    // Create sections & exam_questions for POSTMAN_SPR7_FULL_EXAM_ID
     let orderIdx = 1;
     for (const qc of questionConfigs) {
       const secRes: Array<{ id: string }> = await qr.query(
@@ -348,25 +377,37 @@ async function seedSprint7Postman(): Promise<void> {
       [POSTMAN_SPR7_RAW_EXAM_ID, rawSecRes[0].id, POSTMAN_SPR7_Q3_ID],
     );
 
-    // 9. Pre-seed an expired attempt for student3 (expires_at = NOW() - 120s) to test timed_out via HTTP submit (PMR 032)
+    // 9. Create Single-Skill Exam (Listening Only - Part 1 Q1, DEFAULT_ETS, readingTotal = 0)
     await qr.query(
-      `INSERT INTO exam_attempts (
-         id, user_id, exam_id, status, mode, selected_parts,
-         started_at, expires_at, total_questions, answered_count, version
+      `INSERT INTO exams (
+         id, title, description, type, status, duration_minutes,
+         allow_part_practice, max_attempts, score_conversion_type, passing_score,
+         is_shuffled_questions, is_shuffled_options, created_by, version, is_deleted
        )
-       VALUES (
-         $1, $2, $3, $4, $5, NULL,
-         NOW() - INTERVAL '7320 seconds', NOW() - INTERVAL '120 seconds', 4, 0, 1
-       )`,
+       VALUES ($1, 'TEST_POSTMAN_SPR7_Listening_Only_Exam', 'Đề thi 1 kỹ năng Listening (readingTotal = 0)', $2, $3, 30, true, 10, $4, 400, false, false, $5, 1, false)`,
       [
-        POSTMAN_SPR7_EXPIRED_ATTEMPT_ID,
-        student3Id,
-        POSTMAN_SPR7_FULL_EXAM_ID,
-        ExamAttemptStatus.IN_PROGRESS,
-        PartPracticeMode.FULL_EXAM,
+        POSTMAN_SPR7_SINGLE_SKILL_EXAM_ID,
+        ExamType.MINI_TEST,
+        ExamStatus.PUBLISHED,
+        ScoreConversionType.DEFAULT_ETS,
+        teacherId,
       ],
     );
 
+    const singleSkillSecRes: Array<{ id: string }> = await qr.query(
+      `INSERT INTO exam_sections (id, exam_id, part_id, target_questions_count, target_duration_minutes)
+       VALUES (gen_random_uuid(), $1, $2, 1, 15)
+       RETURNING id`,
+      [POSTMAN_SPR7_SINGLE_SKILL_EXAM_ID, partMap.get(1)],
+    );
+
+    await qr.query(
+      `INSERT INTO exam_questions (id, exam_id, exam_section_id, question_id, question_group_id, order_index, group_order)
+       VALUES (gen_random_uuid(), $1, $2, $3, NULL, 1, NULL)`,
+      [POSTMAN_SPR7_SINGLE_SKILL_EXAM_ID, singleSkillSecRes[0].id, POSTMAN_SPR7_Q1_ID],
+    );
+
+    // 10. Pre-seed expired attempts for Task 5 (student3) and Task 2 (task2.student3)
     const snapshotQuestions = questionConfigs.map((qc, idx) => ({
       id: qc.id,
       partNumber: qc.partNumber,
@@ -397,28 +438,51 @@ async function seedSprint7Postman(): Promise<void> {
       [POSTMAN_SPR7_Q4_ID]: POSTMAN_SPR7_Q4_OPT_CORRECT,
     };
 
-    await qr.query(
-      `INSERT INTO exam_attempt_snapshots (
-         id, attempt_id, exam_metadata, shuffled_questions, answer_key_snapshot,
-         is_shuffled_questions, is_shuffled_options
-       )
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, false, false)`,
-      [
-        POSTMAN_SPR7_EXPIRED_ATTEMPT_ID,
-        JSON.stringify({
-          id: POSTMAN_SPR7_FULL_EXAM_ID,
-          title: 'TEST_POSTMAN_SPR7_Full_Exam',
-          durationMinutes: 120,
-          scoreConversionType: ScoreConversionType.DEFAULT_ETS,
-          passingScore: 300,
-        }),
-        JSON.stringify(snapshotQuestions),
-        JSON.stringify(snapshotAnswerKey),
-      ],
-    );
+    for (const [attId, uId] of [
+      [POSTMAN_SPR7_EXPIRED_ATTEMPT_ID, student3Id],
+      [POSTMAN_SPR7_TASK2_EXPIRED_ATTEMPT_ID, task2Student3Id],
+    ] as const) {
+      await qr.query(
+        `INSERT INTO exam_attempts (
+           id, user_id, exam_id, status, mode, selected_parts,
+           started_at, expires_at, total_questions, answered_count, version
+         )
+         VALUES (
+           $1, $2, $3, $4, $5, NULL,
+           NOW() - INTERVAL '7320 seconds', NOW() - INTERVAL '120 seconds', 4, 0, 1
+         )`,
+        [
+          attId,
+          uId,
+          POSTMAN_SPR7_FULL_EXAM_ID,
+          ExamAttemptStatus.IN_PROGRESS,
+          PartPracticeMode.FULL_EXAM,
+        ],
+      );
+
+      await qr.query(
+        `INSERT INTO exam_attempt_snapshots (
+           id, attempt_id, exam_metadata, shuffled_questions, answer_key_snapshot,
+           is_shuffled_questions, is_shuffled_options
+         )
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, false, false)`,
+        [
+          attId,
+          JSON.stringify({
+            id: POSTMAN_SPR7_FULL_EXAM_ID,
+            title: 'TEST_POSTMAN_SPR7_Full_Exam',
+            durationMinutes: 120,
+            scoreConversionType: ScoreConversionType.DEFAULT_ETS,
+            passingScore: 300,
+          }),
+          JSON.stringify(snapshotQuestions),
+          JSON.stringify(snapshotAnswerKey),
+        ],
+      );
+    }
 
     await qr.commitTransaction();
-    console.log('✅ Seeded Sprint 7 Postman fixtures successfully!');
+    console.log('✅ Seeded Sprint 7 Postman fixtures (Task 2, 3, 4, 5) successfully!');
   } catch (error) {
     await qr.rollbackTransaction();
     console.error('❌ Failed to seed Sprint 7 Postman fixtures:', error);
