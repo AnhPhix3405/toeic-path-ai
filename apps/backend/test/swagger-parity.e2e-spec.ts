@@ -162,4 +162,84 @@ describe('Swagger / OpenAPI Parity Test for Exams Module', () => {
       expect(schemas.ExamAttemptQuestionsResponseDto).toBeDefined();
     });
   });
+
+  // =========================================================================
+  // SPRINT 7: Grading, Results & Question Reports Module Parity (UC23–UC29, UC49)
+  // =========================================================================
+  describe('Sprint 7 Grading, Results & Question Reports Module Swagger / OpenAPI Parity (Sprint 7)', () => {
+    const getPathObj = (route: string) => {
+      const paths = swaggerDoc.paths || {};
+      const matchedKey = Object.keys(paths).find(
+        (p) => p.endsWith(route) || p === route || p.endsWith(route.replace(/^\//, '')),
+      );
+      return matchedKey ? paths[matchedKey] : undefined;
+    };
+
+    it('8. Đảm bảo hiện diện đầy đủ 9 core endpoints của Sprint 7 (UC23, UC26, UC27, UC28, UC29, UC49)', () => {
+      // UC23: Submit
+      expect(getPathObj('/exam-attempts/{id}/submit')?.post).toBeDefined();
+
+      // UC26: Result Summary
+      expect(getPathObj('/exam-attempts/{id}/result')?.get).toBeDefined();
+
+      // UC27: History
+      expect(getPathObj('/exam-attempts/history')?.get).toBeDefined();
+
+      // UC28: Review & Explanations
+      expect(getPathObj('/exam-attempts/{id}/review')?.get).toBeDefined();
+
+      // UC29: Student Question Reporting & Feedback Loop
+      expect(getPathObj('/questions/{questionId}/reports')?.post).toBeDefined();
+      expect(getPathObj('/question-reports/my')?.get).toBeDefined();
+
+      // UC49: Teacher/Admin Question Report Moderation
+      expect(getPathObj('/question-reports')?.get).toBeDefined();
+      expect(getPathObj('/question-reports/{id}')?.get).toBeDefined();
+      expect(getPathObj('/question-reports/{id}/resolve')?.patch).toBeDefined();
+    });
+
+    it('9. Đảm bảo hiện diện đầy đủ DTO Schemas của Sprint 7, bảo vệ quyền riêng tư giảng viên (MyQuestionReportItemDto) và kiểu Nullable chuẩn OpenAPI (PMR 032)', () => {
+      const schemas = swaggerDoc.components?.schemas || {};
+
+      expect(schemas.SubmitExamAttemptResponseDto).toBeDefined();
+      expect(schemas.ExamAttemptResultResponseDto).toBeDefined();
+      expect(schemas.PartBreakdownResponseDto).toBeDefined();
+      expect(schemas.SkillBreakdownResponseDto).toBeDefined();
+      expect(schemas.PaginatedExamAttemptHistoryResponseDto).toBeDefined();
+      expect(schemas.ExamAttemptHistoryItemDto).toBeDefined();
+      expect(schemas.ExamAttemptReviewResponseDto).toBeDefined();
+      expect(schemas.ReviewFilterCountsDto).toBeDefined();
+      expect(schemas.QuestionGroupReviewDto).toBeDefined();
+      expect(schemas.QuestionReviewItemDto).toBeDefined();
+      expect(schemas.QuestionOptionReviewDto).toBeDefined();
+
+      expect(schemas.CreateQuestionReportDto).toBeDefined();
+      expect(schemas.ResolveQuestionReportDto).toBeDefined();
+      expect(schemas.MyQuestionReportItemDto).toBeDefined();
+      expect(schemas.PaginatedMyQuestionReportsResponseDto).toBeDefined();
+      expect(schemas.AdminQuestionReportItemDto).toBeDefined();
+      expect(schemas.PaginatedAdminQuestionReportsResponseDto).toBeDefined();
+      expect(schemas.ResolveQuestionReportResponseDto).toBeDefined();
+      expect(schemas.QuestionReportDetailResponseDto).toBeDefined();
+      expect(schemas.QuestionReportQuestionContextDto).toBeDefined();
+      expect(schemas.QuestionReportGroupContextDto).toBeDefined();
+
+      // Privacy check: MyQuestionReportItemDto must NOT expose resolvedBy / resolvedById
+      const myReportItemProps = schemas.MyQuestionReportItemDto?.properties || {};
+      expect(myReportItemProps.resolvedBy).toBeUndefined();
+      expect(myReportItemProps.resolvedById).toBeUndefined();
+      expect(myReportItemProps.resolutionNote).toBeDefined();
+
+      // Nullable type check: nullable fields must not degrade to generic type: 'object'
+      const resultProps = schemas.ExamAttemptResultResponseDto?.properties || {};
+      expect(resultProps.totalScore?.type).toBe('number');
+      expect(resultProps.totalScore?.nullable).toBe(true);
+      expect(resultProps.listeningScore?.type).toBe('number');
+      expect(resultProps.readingScore?.type).toBe('number');
+      expect(resultProps.isPassed?.type).toBe('boolean');
+      expect(resultProps.isPassed?.nullable).toBe(true);
+      expect(myReportItemProps.resolutionNote?.type).toBe('string');
+      expect(myReportItemProps.resolutionNote?.nullable).toBe(true);
+    });
+  });
 });

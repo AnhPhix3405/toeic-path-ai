@@ -1,0 +1,1068 @@
+{
+  "info": {
+    "_postman_id": "d7e8f9a0-1b2c-4d3e-8f4a-567890abcdef",
+    "name": "TOEIC Path AI - Sprint 7 Comprehensive Master E2E Collection (MVP Core)",
+    "description": "Master Postman Automated Test Collection kiểm thử tự động toàn diện cho toàn bộ Sprint 7 (UC23: Nộp bài thủ công, UC24/UC23: Xử lý hết giờ timed_out, UC25: Engine chấm điểm TOEIC ETS & RAW_PERCENTAGE & Part Practice, UC26: Xem kết quả & phân tích năng lực, UC27: Xem lịch sử làm bài, UC28: Xem lời giải chi tiết, UC29: Học viên báo cáo câu hỏi lỗi & Feedback loop, UC49: Giáo viên xử lý báo cáo đơn lẻ & hàng loạt). Tuân thủ 100% Rule #777, Rule #1001, Rule #1002 và PMR 032.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "student1Email", "value": "spr7.student1@example.com", "type": "string" },
+    { "key": "student2Email", "value": "spr7.student2@example.com", "type": "string" },
+    { "key": "student3Email", "value": "spr7.student3@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "spr7.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "student1Token", "value": "", "type": "string" },
+    { "key": "student2Token", "value": "", "type": "string" },
+    { "key": "student3Token", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "fullExamId", "value": "d0000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "rawExamId", "value": "d0000000-0000-4000-8000-000000000002", "type": "string" },
+    { "key": "expiredAttemptId", "value": "d0000000-0000-4000-8000-000000000099", "type": "string" },
+    { "key": "q1Id", "value": "d0000000-0000-4000-8000-000000000011", "type": "string" },
+    { "key": "q1OptCorrect", "value": "d0000000-0000-4000-8000-000000000111", "type": "string" },
+    { "key": "q2Id", "value": "d0000000-0000-4000-8000-000000000012", "type": "string" },
+    { "key": "q2OptWrong", "value": "d0000000-0000-4000-8000-000000000122", "type": "string" },
+    { "key": "q3Id", "value": "d0000000-0000-4000-8000-000000000013", "type": "string" },
+    { "key": "q3OptCorrect", "value": "d0000000-0000-4000-8000-000000000131", "type": "string" },
+    { "key": "attemptId", "value": "", "type": "string" },
+    { "key": "partPracticeAttemptId", "value": "", "type": "string" },
+    { "key": "rawAttemptId", "value": "", "type": "string" },
+    { "key": "abandonedAttemptId", "value": "", "type": "string" },
+    { "key": "report1Id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Actor Token Setup",
+      "item": [
+        {
+          "name": "00.1 - Login Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student1Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 1 returns 200 OK and accessToken', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.collectionVariables.set('student1Token', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 2 returns 200 OK and accessToken', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.collectionVariables.set('student2Token', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Student 3 (Expired Attempt Actor)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student3Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Student 3 returns 200 OK and accessToken', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.collectionVariables.set('student3Token', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Teacher returns 200 OK and accessToken', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.collectionVariables.set('teacherToken', res.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Full Exam Attempt, Manual Submit & ETS Grading (UC20, UC22, UC23, UC25)",
+      "item": [
+        {
+          "name": "01.1 - Start Full Exam Attempt (Student 1)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Full Exam Attempt returns 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.attemptId).to.be.a('string');",
+                  "    pm.expect(res.totalQuestions).to.eql(4);",
+                  "    pm.collectionVariables.set('attemptId', res.attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.2 - Guard: Block View Result Before Submit (400 ERR_ATTEMPT_NOT_SUBMITTED)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Viewing result while in_progress returns 400 ERR_ATTEMPT_NOT_SUBMITTED', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_ATTEMPT_NOT_SUBMITTED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.3 - Save Answers (Correct Q1, Wrong+Marked Q2, Correct Q3, Skipped Q4)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"{{q1Id}}\",\n      \"selectedOptionId\": \"{{q1OptCorrect}}\",\n      \"isMarkedForReview\": false,\n      \"timeSpentSeconds\": 15\n    },\n    {\n      \"questionId\": \"{{q2Id}}\",\n      \"selectedOptionId\": \"{{q2OptWrong}}\",\n      \"isMarkedForReview\": true,\n      \"timeSpentSeconds\": 25\n    },\n    {\n      \"questionId\": \"{{q3Id}}\",\n      \"selectedOptionId\": \"{{q3OptCorrect}}\",\n      \"isMarkedForReview\": false,\n      \"timeSpentSeconds\": 20\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/answers/batch"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Batch save answers returns 200 OK with syncedCount=3', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.syncedCount).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.4 - Guard: Non-Owner Cannot Submit Attempt (403 ERR_FORBIDDEN_ATTEMPT_ACCESS)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student 2 submitting Student 1 attempt returns 403 ERR_FORBIDDEN_ATTEMPT_ACCESS', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.5 - Submit Full Exam Attempt & Trigger ETS Grading (UC23 & UC25)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Submit attempt returns 200 OK with ETS scores and counts', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.attemptId).to.eql(pm.collectionVariables.get('attemptId'));",
+                  "    pm.expect(res.status).to.eql('submitted');",
+                  "    pm.expect(res.totalQuestions).to.eql(4);",
+                  "    pm.expect(res.correctCount).to.eql(2);",
+                  "    pm.expect(res.wrongCount).to.eql(1);",
+                  "    pm.expect(res.skippedCount).to.eql(1);",
+                  "    pm.expect(res.accuracyPercentage).to.eql(50);",
+                  "    pm.expect(res.listeningScore).to.be.a('number');",
+                  "    pm.expect(res.readingScore).to.be.a('number');",
+                  "    pm.expect(res.totalScore).to.eql(res.listeningScore + res.readingScore);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01.6 - Guard: Duplicate Submit Returns 409 ERR_ATTEMPT_ALREADY_SUBMITTED",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Submitting already submitted attempt returns 409 ERR_ATTEMPT_ALREADY_SUBMITTED', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.errorCode).to.eql('ERR_ATTEMPT_ALREADY_SUBMITTED');",
+                  "    pm.expect(res.status).to.eql('submitted');",
+                  "    pm.expect(res.submittedAt).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Result Summary, Attempt History & Detailed Answer Review (UC26, UC27, UC28)",
+      "item": [
+        {
+          "name": "02.1 - View Exam Attempt Result Summary & Breakdowns (UC26)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('GET /result returns 200 OK with partBreakdown and skillBreakdown', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.attemptId).to.eql(pm.collectionVariables.get('attemptId'));",
+                  "    pm.expect(res.scoreConversionType).to.eql('DEFAULT_ETS');",
+                  "    pm.expect(res.partBreakdown).to.be.an('array').with.lengthOf(4);",
+                  "    pm.expect(res.skillBreakdown).to.be.an('array').with.lengthOf(1);",
+                  "    pm.expect(res.skillBreakdown[0].skillCode).to.eql('TEST_POSTMAN_SPR7_GRAMMAR');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.2 - View Exam Attempt History Paginated (UC27)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/history?page=1&limit=10&examId={{fullExamId}}&mode=full_exam&status=submitted&fromDate=2020-01-01&toDate=2099-12-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('GET /history returns flat paginated envelope excluding JSONB columns', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.total).to.be.at.least(1);",
+                  "    pm.expect(res.items[0].attemptId).to.eql(pm.collectionVariables.get('attemptId'));",
+                  "    pm.expect(res.items[0]).to.not.have.property('partBreakdown');",
+                  "    pm.expect(res.items[0]).to.not.have.property('skillBreakdown');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.3 - Guard: Invalid Date Range in History (400 ERR_INVALID_DATE_RANGE)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/history?fromDate=2026-12-31&toDate=2026-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Reversed date range returns 400 ERR_INVALID_DATE_RANGE', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_INVALID_DATE_RANGE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.4 - Review Wrong Answers & Verify Post-Filter Group Deduplication (UC28)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/review?filter=wrong"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('GET /review?filter=wrong returns filterCounts and deduplicates questionGroups after filtering', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.filterCounts).to.eql({ all: 4, correct: 2, wrong: 1, skipped: 1, marked: 1 });",
+                  "    pm.expect(res.questions).to.be.an('array').with.lengthOf(1);",
+                  "    pm.expect(res.questions[0].id).to.eql(pm.collectionVariables.get('q2Id'));",
+                  "    pm.expect(res.questionGroups).to.be.an('array').with.lengthOf(1);",
+                  "    pm.expect(res.questionGroups[0].title).to.eql('TEST_POSTMAN_SPR7_Group_Part_3');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.5 - Review Part 1 & Verify Rule #1002 Nullable Content",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/review?partNumber=1&filter=all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Part 1 review preserves null content per Rule #1002', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.questions).to.have.lengthOf(1);",
+                  "    pm.expect(res.questions[0].content).to.be.null;",
+                  "    pm.expect(res.questions[0].options[0].content).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Timed-Out Submit, Part Practice, RAW_PERCENTAGE & Abandon Guardrails",
+      "item": [
+        {
+          "name": "03.1 - Submit Expired Attempt Past 30s Grace Period -> timed_out (Student 3)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student3Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{expiredAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expired attempt transitions to timed_out (200 via late submit or 409 if already auto-collected by Cron UC24)', function () {",
+                  "    pm.expect([200, 409]).to.include(pm.response.code);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('timed_out');",
+                  "    if (pm.response.code === 200) {",
+                  "        pm.expect(res.durationSpentSeconds).to.eql(7200);",
+                  "    } else {",
+                  "        pm.expect(res.errorCode).to.eql('ERR_ATTEMPT_ALREADY_SUBMITTED');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.1b - Verify Expired Attempt Result Summary Has status=timed_out & durationSpentSeconds=7200",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student3Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{expiredAttemptId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expired attempt result has status=timed_out and capped durationSpentSeconds=7200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('timed_out');",
+                  "    pm.expect(res.durationSpentSeconds).to.eql(7200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.2 - Start & Submit Part Practice Attempt (Part 5 Only)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": [5]\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Part Practice attempt returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('partPracticeAttemptId', res.attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.3 - Submit Part Practice Attempt -> ETS Scores Null",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{partPracticeAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Part Practice submit returns null ETS scores and isPassed=null', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.totalScore).to.be.null;",
+                  "    pm.expect(res.listeningScore).to.be.null;",
+                  "    pm.expect(res.readingScore).to.be.null;",
+                  "    pm.expect(res.isPassed).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.4 - Guard: Request Part Outside selectedParts on Review (400 ERR_PART_NOT_IN_ATTEMPT)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{partPracticeAttemptId}}/review?partNumber=7"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Reviewing Part 7 on Part 5 practice returns 400 ERR_PART_NOT_IN_ATTEMPT', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_PART_NOT_IN_ATTEMPT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.5 - Start, Abandon & Verify Submit Blocked on Abandoned Attempt (400 ERR_ATTEMPT_NOT_IN_PROGRESS)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{rawExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start attempt to abandon returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('abandonedAttemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.6 - Abandon Attempt",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{abandonedAttemptId}}/abandon"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Abandon attempt returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.7 - Submit Abandoned Attempt Returns 400 ERR_ATTEMPT_NOT_IN_PROGRESS",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "url": "{{baseUrl}}/exam-attempts/{{abandonedAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Submitting abandoned attempt returns 400 ERR_ATTEMPT_NOT_IN_PROGRESS', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_ATTEMPT_NOT_IN_PROGRESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Question Reporting & Teacher Moderation Workflow (UC29 & UC49)",
+      "item": [
+        {
+          "name": "04.1 - Guard: Whitespace Description Rejected When reason=other (400)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"other\",\n  \"description\": \"            \"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Whitespace description when reason=other returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.2 - Student 1 Creates Question Report With attemptId (201 Created - UC29)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"other\",\n  \"description\": \"   File âm thanh của câu hỏi số 1 bị rè ở cuối câu.   \",\n  \"attemptId\": \"{{attemptId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Create Question Report returns 201 Created with trimmed description', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('pending');",
+                  "    pm.expect(res.description).to.eql('File âm thanh của câu hỏi số 1 bị rè ở cuối câu.');",
+                  "    pm.collectionVariables.set('report1Id', res.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.3 - Guard: Duplicate Open Report Blocked by Partial Unique Index (409 ERR_DUPLICATE_OPEN_REPORT)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"broken_media\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Duplicate open report returns 409 ERR_DUPLICATE_OPEN_REPORT', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_DUPLICATE_OPEN_REPORT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.4 - Student 2 Also Reports Same Question (For Bulk Resolution Test)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"broken_media\",\n  \"description\": \"Audio bị lỗi không nghe rõ.\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student 2 report on same question returns 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.5 - Guard: Student Forbidden From Management List (403 Forbidden)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/question-reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student accessing GET /question-reports returns 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.6 - Teacher Lists Question Reports (UC49)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "url": "{{baseUrl}}/question-reports?questionId={{q1Id}}&status=pending"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teacher GET /question-reports returns 200 OK with 2 pending reports', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.total).to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.7 - Teacher Views Question Report Detail & Question Context (UC49)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teacher GET /question-reports/:id returns 200 OK with Rule #1002 nullable content', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.id).to.eql(pm.collectionVariables.get('report1Id'));",
+                  "    pm.expect(res.question.id).to.eql(pm.collectionVariables.get('q1Id'));",
+                  "    pm.expect(res.question.content).to.be.null;",
+                  "    pm.expect(res.question.options).to.have.lengthOf(4);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.8 - Teacher Transitions Report to in_review (Keeps resolvedAt=null)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_review\"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Transition to in_review returns 200 OK with resolvedById=null and resolvedAt=null', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('in_review');",
+                  "    pm.expect(res.resolvedById).to.be.null;",
+                  "    pm.expect(res.resolvedAt).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.9 - Guard: Duplicate in_review Transition Returns 400 ERR_INVALID_REPORT_STATUS_TRANSITION",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_review\"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Repeated in_review transition returns 400 ERR_INVALID_REPORT_STATUS_TRANSITION', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_INVALID_REPORT_STATUS_TRANSITION');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.10 - Teacher Resolves Report With resolveAllForQuestion=true (Bulk Close)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolutionNote\": \"   Đã kiểm tra và cập nhật lại file audio chuẩn cho câu số 1.   \",\n  \"resolveAllForQuestion\": true\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Resolve with resolveAllForQuestion=true closes sibling report (bulkResolvedCount=1)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('resolved');",
+                  "    pm.expect(res.resolutionNote).to.eql('Đã kiểm tra và cập nhật lại file audio chuẩn cho câu số 1.');",
+                  "    pm.expect(res.bulkResolvedCount).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.11 - Guard: Resolving Already Closed Report Returns 400 ERR_REPORT_ALREADY_CLOSED",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"resolutionNote\": \"Thử cập nhật lại báo cáo đã đóng.\"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Resolving closed report returns 400 ERR_REPORT_ALREADY_CLOSED', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_REPORT_ALREADY_CLOSED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.12 - Student 1 Checks Feedback Loop (GET /question-reports/my) & Submits New Report After Closure",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "url": "{{baseUrl}}/question-reports/my?page=1&limit=10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('GET /question-reports/my returns resolved report and hides resolvedBy/resolvedById', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.total).to.eql(1);",
+                  "    pm.expect(res.items[0].status).to.eql('resolved');",
+                  "    pm.expect(res.items[0].resolutionNote).to.eql('Đã kiểm tra và cập nhật lại file audio chuẩn cho câu số 1.');",
+                  "    pm.expect(res.items[0]).to.not.have.property('resolvedBy');",
+                  "    pm.expect(res.items[0]).to.not.have.property('resolvedById');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.13 - Student 1 Can Create New Report On Same Question After Previous Report Closed (201 Created)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"typo_error\",\n  \"description\": \"Phát hiện thêm lỗi chính tả nhỏ trong giải thích.\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Creating new report after previous report was resolved returns 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().status).to.eql('pending');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

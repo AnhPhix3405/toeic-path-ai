@@ -15,6 +15,8 @@ import { ClassificationCatalogController } from '../../../modules/questions/clas
 import { ClassificationCatalogService } from '../../../modules/questions/classification-catalog.service';
 import { QuestionGroupsController } from '../../../modules/question-groups/question-groups.controller';
 import { QuestionGroupsService } from '../../../modules/question-groups/question-groups.service';
+import { QuestionReportsController } from '../../../modules/question-reports/controllers/question-reports.controller';
+import { QuestionReportsService } from '../../../modules/question-reports/services/question-reports.service';
 import { RolesGuard } from '../../guards/roles.guard';
 import { PolicyThrottlerGuard } from '../../rate-limit/guards/policy-throttler.guard';
 import { JwtAuthGuard } from '../../../modules/auth/guards/jwt-auth.guard';
@@ -32,6 +34,7 @@ describe('OpenAPI Swagger Parity & Integrity (Sprint 4)', () => {
         QuestionsController,
         ClassificationCatalogController,
         QuestionGroupsController,
+        QuestionReportsController,
       ],
       providers: [
         { provide: MediaService, useValue: {} },
@@ -42,6 +45,7 @@ describe('OpenAPI Swagger Parity & Integrity (Sprint 4)', () => {
         { provide: QuestionsService, useValue: {} },
         { provide: ClassificationCatalogService, useValue: {} },
         { provide: QuestionGroupsService, useValue: {} },
+        { provide: QuestionReportsService, useValue: {} },
       ],
     })
       .overrideGuard(PolicyThrottlerGuard)
@@ -136,6 +140,13 @@ describe('OpenAPI Swagger Parity & Integrity (Sprint 4)', () => {
     expect(paths).toContain('/api/v1/questions/reviews/{id}/reject');
     expect(paths).toContain('/api/v1/questions/reviews/{id}/quick-fix');
     expect(paths).toContain('/api/v1/questions/reviews/batch-approve');
+
+    // Question Reports (UC29 & UC49 - Sprint 7)
+    expect(paths).toContain('/api/v1/questions/{questionId}/reports');
+    expect(paths).toContain('/api/v1/question-reports/my');
+    expect(paths).toContain('/api/v1/question-reports');
+    expect(paths).toContain('/api/v1/question-reports/{id}');
+    expect(paths).toContain('/api/v1/question-reports/{id}/resolve');
   });
 
   it('should have Bearer authentication security scheme configured', () => {
