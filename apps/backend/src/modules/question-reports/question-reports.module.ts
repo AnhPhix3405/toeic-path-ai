@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { QuestionReport } from './entities/question-report.entity';
-import { Question } from '../questions/entities/question.entity';
-import { QuestionGroup } from '../question-groups/entities/question-group.entity';
-import { ExamAttempt } from '../exam-attempts/entities/exam-attempt.entity';
 import { ExamAttemptSnapshot } from '../exam-attempts/entities/exam-attempt-snapshot.entity';
+import { ExamAttempt } from '../exam-attempts/entities/exam-attempt.entity';
+import { QuestionGroup } from '../question-groups/entities/question-group.entity';
+import { Question } from '../questions/entities/question.entity';
+import { QuestionReportsController } from './controllers/question-reports.controller';
+import { QuestionReport } from './entities/question-report.entity';
+import { QuestionReportsService } from './services/question-reports.service';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { ExamAttemptSnapshot } from '../exam-attempts/entities/exam-attempt-snap
       ExamAttemptSnapshot,
     ]),
   ],
-  exports: [TypeOrmModule],
+  controllers: [QuestionReportsController],
+  providers: [QuestionReportsService],
+  exports: [TypeOrmModule, QuestionReportsService],
 })
 export class QuestionReportsModule {}
