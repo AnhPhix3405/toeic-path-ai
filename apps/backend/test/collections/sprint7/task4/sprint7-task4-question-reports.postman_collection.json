@@ -1,0 +1,634 @@
+{
+  "info": {
+    "_postman_id": "c7e40000-0000-4000-8000-000000000004",
+    "name": "TOEIC Path AI - Sprint 7 Task 4 Question Reporting & Teacher Moderation Workflow Collection",
+    "description": "Bộ Postman Automated Test Collection chuyên sâu cho Sprint 7 Task 4 (UC29: Học viên báo cáo câu hỏi lỗi & Feedback loop GET /question-reports/my, UC49: Giáo viên/Admin quản lý, xem chi tiết ngữ cảnh QuestionGroup & xử lý đơn lẻ/đóng hàng loạt báo cáo). Thiết kế theo chuẩn Chuan_Testing.md (EP, BVA, Decision Table, State Transition; >= 58% Negative Cases) nhằm chống spam báo cáo trùng, bảo vệ SLA trạng thái in_review, chống lách chuỗi khoảng trắng và bảo vệ quyền riêng tư giảng viên.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "student1Email", "value": "spr7.task4.student1@example.com", "type": "string" },
+    { "key": "student2Email", "value": "spr7.task4.student2@example.com", "type": "string" },
+    { "key": "teacherEmail", "value": "spr7.teacher@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "student1Token", "value": "", "type": "string" },
+    { "key": "student2Token", "value": "", "type": "string" },
+    { "key": "teacherToken", "value": "", "type": "string" },
+    { "key": "fullExamId", "value": "d0000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "q1Id", "value": "d0000000-0000-4000-8000-000000000011", "type": "string" },
+    { "key": "q2Id", "value": "d0000000-0000-4000-8000-000000000012", "type": "string" },
+    { "key": "outsideQuestionId", "value": "d0000000-0000-4000-8000-000000000019", "type": "string" },
+    { "key": "inProgressAttemptId", "value": "", "type": "string" },
+    { "key": "submittedAttemptId", "value": "", "type": "string" },
+    { "key": "report1Id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Actor Setup",
+      "item": [
+        {
+          "name": "00.1 - Login Task 4 Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student1Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Task 4 Student 1 returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('student1Token', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Task 4 Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Task 4 Student 2 returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('student2Token', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Teacher returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('teacherToken', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Report Creation Boundaries, Attempt Context Guards & Anti-Spam Index (UC29 - BVA, EP, ST)",
+      "item": [
+        {
+          "name": "TC-T4-01 [Negative - BVA] Reject description With 9 Trimmed Chars When reason=other (Just Below Min 10)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"other\",\n  \"description\": \"   123456789   \"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-01] 9-character trimmed description when reason=other returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-02 [Negative - EP] Reject Whitespace-Only description When reason=other (PMR 031)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"other\",\n  \"description\": \"               \"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-02] Whitespace-only description when reason=other returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-03a [Setup] Start Exam Attempt for Student 1 (in_progress)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start attempt for Student 1 returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('inProgressAttemptId', pm.response.json().attemptId);",
+                  "    pm.collectionVariables.set('submittedAttemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-03b [Negative - ST] Block Report With Unsubmitted attemptId (400 ERR_ATTEMPT_NOT_SUBMITTED)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"wrong_answer\",\n  \"attemptId\": \"{{inProgressAttemptId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-03b] Reporting with unsubmitted attemptId returns 400 ERR_ATTEMPT_NOT_SUBMITTED', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_ATTEMPT_NOT_SUBMITTED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-03c [Setup] Submit Attempt for Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{submittedAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Submit attempt for Student 1 returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-03d [Negative - Security] Block Student 2 From Reporting Using Student 1 attemptId (403 ERR_FORBIDDEN_ATTEMPT_ACCESS)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"wrong_answer\",\n  \"attemptId\": \"{{submittedAttemptId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q1Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-03d] Reporting with another student attemptId returns 403 ERR_FORBIDDEN_ATTEMPT_ACCESS', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-03e [Negative - EP] Block Report When Question Is Not In Attempt Snapshot (400 ERR_QUESTION_NOT_IN_ATTEMPT)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"wrong_answer\",\n  \"attemptId\": \"{{submittedAttemptId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{outsideQuestionId}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-03e] Question not in attempt snapshot returns 400 ERR_QUESTION_NOT_IN_ATTEMPT', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_QUESTION_NOT_IN_ATTEMPT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-04 [Positive - BVA] Create Report At Exact Lower Boundary (10 Chars After Trim) With Valid attemptId (201 Created)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"other\",\n  \"description\": \"  1234567890  \",\n  \"attemptId\": \"{{submittedAttemptId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q2Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-04] 10-character trimmed description at lower boundary returns 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('pending');",
+                  "    pm.expect(res.description).to.eql('1234567890');",
+                  "    pm.collectionVariables.set('report1Id', res.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-05 [Negative - Anti-Spam Index] Duplicate Open Report Blocked By Partial Unique Index (409 ERR_DUPLICATE_OPEN_REPORT)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"typo_error\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q2Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-05] Duplicate open report on same question returns 409 ERR_DUPLICATE_OPEN_REPORT', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_DUPLICATE_OPEN_REPORT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - RBAC Guards, Moderation State Machine, Bulk Resolution & Student Feedback Loop (UC29 & UC49 - ST, DT)",
+      "item": [
+        {
+          "name": "TC-T4-06 [Negative - RBAC] Student Forbidden From Resolving Question Report (403 Forbidden)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolutionNote\": \"Student trying to resolve own report.\"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-06] Student calling PATCH /question-reports/:id/resolve returns 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-07 [Negative - EP/BVA] Teacher Rejects status=pending Or Short resolutionNote (< 10 Chars -> 400)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolutionNote\": \"  123456789  \"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-07] 9-character trimmed resolutionNote when status=resolved returns 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-08a [Positive - Detail Context] Teacher Views Report Detail With QuestionGroup Context (Part 3)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{teacherToken}}" }],
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-08a] GET /question-reports/:id includes questionGroup context and transcript for Part 3', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.question.questionGroup).to.be.an('object');",
+                  "    pm.expect(res.question.questionGroup.title).to.eql('TEST_POSTMAN_SPR7_Group_Part_3');",
+                  "    pm.expect(res.question.questionGroup.transcript).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-08b [Positive - ST] Teacher Transitions Report pending -> in_review Keeping resolvedById=null & resolvedAt=null",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_review\"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-08b] Transition to in_review keeps resolvedById=null and resolvedAt=null (SLA accuracy)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('in_review');",
+                  "    pm.expect(res.resolvedById).to.be.null;",
+                  "    pm.expect(res.resolvedAt).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-09 [Negative - ST] Teacher Blocked From Repeating in_review Transition (400 ERR_INVALID_REPORT_STATUS_TRANSITION)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_review\"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-09] Repeated in_review transition returns 400 ERR_INVALID_REPORT_STATUS_TRANSITION', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_INVALID_REPORT_STATUS_TRANSITION');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-10a [Setup] Student 2 Also Reports Same Question Q2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"unclear_explanation\",\n  \"description\": \"Giải thích của câu Part 3 chưa rõ nghĩa.\"\n}"
+            },
+            "url": "{{baseUrl}}/questions/{{q2Id}}/reports"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student 2 report on Q2 returns 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-10b [Positive - DT/Bulk] Teacher Resolves With resolveAllForQuestion=true Closing Both Reports Atomically",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolutionNote\": \"   Đã bổ sung lời thoại và giải thích chi tiết cho câu Part 3.   \",\n  \"resolveAllForQuestion\": true\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-10b] Bulk resolve closes sibling open report (bulkResolvedCount=1) and records resolvedAt', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.status).to.eql('resolved');",
+                  "    pm.expect(res.resolutionNote).to.eql('Đã bổ sung lời thoại và giải thích chi tiết cho câu Part 3.');",
+                  "    pm.expect(res.bulkResolvedCount).to.eql(1);",
+                  "    pm.expect(res.resolvedAt).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-11 [Negative - ST] Teacher Blocked From Modifying Already Closed Report (400 ERR_REPORT_ALREADY_CLOSED)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"resolutionNote\": \"Cố tình ghi đè báo cáo đã đóng.\"\n}"
+            },
+            "url": "{{baseUrl}}/question-reports/{{report1Id}}/resolve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-11] Resolving already closed report returns 400 ERR_REPORT_ALREADY_CLOSED', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_REPORT_ALREADY_CLOSED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T4-12 [Positive - Privacy & Re-Report] Student 2 Sees Bulk-Resolved Feedback (Hiding resolvedBy) & Can Submit New Report",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/question-reports/my?page=1&limit=10&status=resolved"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T4-12] Student 2 sees sibling report resolved with resolutionNote and hidden resolvedBy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.total).to.eql(1);",
+                  "    pm.expect(res.items[0].status).to.eql('resolved');",
+                  "    pm.expect(res.items[0].resolutionNote).to.eql('Đã bổ sung lời thoại và giải thích chi tiết cho câu Part 3.');",
+                  "    pm.expect(res.items[0]).to.not.have.property('resolvedBy');",
+                  "    pm.expect(res.items[0]).to.not.have.property('resolvedById');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

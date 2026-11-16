@@ -1,0 +1,561 @@
+{
+  "info": {
+    "_postman_id": "c7e30000-0000-4000-8000-000000000003",
+    "name": "TOEIC Path AI - Sprint 7 Task 3 Result Summary, Attempt History & Detailed Answer Review Collection",
+    "description": "Bộ Postman Automated Test Collection chuyên sâu cho Sprint 7 Task 3 (UC26: Xem kết quả tổng quan & phân tích Part/Skill, UC27: Xem lịch sử làm bài phân trang phẳng, UC28: Xem đáp án, lời giải & lời thoại chi tiết). Thiết kế theo chuẩn Chuan_Testing.md (EP, BVA, Decision Table, State Transition; >= 58% Negative Cases) nhằm bảo vệ Zero Answer Leakage, ranh giới bộ lọc wrong vs skipped, deduplicate questionGroups sau khi lọc và Rule #1002.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "student1Email", "value": "spr7.task3.student1@example.com", "type": "string" },
+    { "key": "student2Email", "value": "spr7.task3.student2@example.com", "type": "string" },
+    { "key": "adminEmail", "value": "spr7.admin@example.com", "type": "string" },
+    { "key": "testPassword", "value": "StrongPassword123!", "type": "string" },
+    { "key": "student1Token", "value": "", "type": "string" },
+    { "key": "student2Token", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "fullExamId", "value": "d0000000-0000-4000-8000-000000000001", "type": "string" },
+    { "key": "q1Id", "value": "d0000000-0000-4000-8000-000000000011", "type": "string" },
+    { "key": "q1OptCorrect", "value": "d0000000-0000-4000-8000-000000000111", "type": "string" },
+    { "key": "q2Id", "value": "d0000000-0000-4000-8000-000000000012", "type": "string" },
+    { "key": "q2OptWrong", "value": "d0000000-0000-4000-8000-000000000122", "type": "string" },
+    { "key": "q3Id", "value": "d0000000-0000-4000-8000-000000000013", "type": "string" },
+    { "key": "attemptId", "value": "", "type": "string" },
+    { "key": "partPracticeAttemptId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Authentication & Actor Setup",
+      "item": [
+        {
+          "name": "00.1 - Login Task 3 Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student1Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Task 3 Student 1 returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('student1Token', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Task 3 Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Task 3 Student 2 returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('student2Token', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login Admin returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set('adminToken', pm.response.json().accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Zero Answer Leakage & Access Control Guardrails (UC26 & UC28 - ST, Security)",
+      "item": [
+        {
+          "name": "TC-T3-00 [Setup] Start Full Exam Attempt for Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"full_exam\"\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Full Exam attempt returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('attemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-01 [Negative - ST/Security] Block GET /result While Attempt Is in_progress (400 ERR_ATTEMPT_NOT_SUBMITTED)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-01] GET /result while in_progress returns 400 ERR_ATTEMPT_NOT_SUBMITTED', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_ATTEMPT_NOT_SUBMITTED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-02 [Negative - ST/Security] Block GET /review While Attempt Is in_progress (400 ERR_ATTEMPT_NOT_SUBMITTED)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/review"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-02] GET /review while in_progress returns 400 ERR_ATTEMPT_NOT_SUBMITTED (Zero Answer Leakage)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_ATTEMPT_NOT_SUBMITTED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-03a [Setup] Save Answers (Correct Q1, Wrong+Marked Q2, Review-Only Skipped Q3) & Submit",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student1Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": \"{{q1Id}}\",\n      \"selectedOptionId\": \"{{q1OptCorrect}}\",\n      \"isMarkedForReview\": false,\n      \"timeSpentSeconds\": 14\n    },\n    {\n      \"questionId\": \"{{q2Id}}\",\n      \"selectedOptionId\": \"{{q2OptWrong}}\",\n      \"isMarkedForReview\": true,\n      \"timeSpentSeconds\": 28\n    },\n    {\n      \"questionId\": \"{{q3Id}}\",\n      \"selectedOptionId\": null,\n      \"isMarkedForReview\": true,\n      \"timeSpentSeconds\": 6\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/answers/batch"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Batch save answers returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-03b [Setup] Submit Attempt for Student 1",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Submit attempt returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-03c [Negative - Security] Non-Owner Student Forbidden From Viewing Result & Review (403 ERR_FORBIDDEN_ATTEMPT_ACCESS)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-03c] Other student viewing /result returns 403 ERR_FORBIDDEN_ATTEMPT_ACCESS', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_FORBIDDEN_ATTEMPT_ACCESS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Result Summary, Admin Access & History Pagination/Date Boundaries (UC26 & UC27 - BVA, EP)",
+      "item": [
+        {
+          "name": "TC-T3-04 [Positive - Functional] Owner Views Full Result Summary With Sorted Part & Skill Breakdowns (UC26)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-04] GET /result returns complete context, sorted partBreakdown (1,3,5,7) and skillBreakdown', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.mode).to.eql('full_exam');",
+                  "    pm.expect(res.scoreConversionType).to.eql('DEFAULT_ETS');",
+                  "    pm.expect(res.partBreakdown.map(p => p.partNumber)).to.eql([1, 3, 5, 7]);",
+                  "    pm.expect(res.skillBreakdown).to.be.an('array').with.lengthOf(1);",
+                  "    pm.expect(res.skillBreakdown[0].skipped).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-05 [Positive - RBAC] Admin Can View Student Result Summary for Customer Support (UC26)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-05] Admin accessing student /result returns 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().attemptId).to.eql(pm.collectionVariables.get('attemptId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-06 [Negative - BVA] History Rejects Out-of-Bounds Pagination (page=0, limit=51 -> 400)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/history?page=0&limit=51"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-06] page=0 (below min 1) and limit=51 (above max 50) return 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-07 [Negative - BVA/EP] History Rejects Reversed Date Range fromDate > toDate (400 ERR_INVALID_DATE_RANGE)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/history?fromDate=2026-11-20&toDate=2026-11-10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-07] fromDate > toDate returns 400 ERR_INVALID_DATE_RANGE', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_INVALID_DATE_RANGE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-08 [Positive - BVA] History Accepts Upper Limit Boundary limit=50 & YYYY-MM-DD Date Normalization",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/history?page=1&limit=50&examId={{fullExamId}}&fromDate=2020-01-01&toDate=2099-12-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-08] GET /history at limit=50 returns flat envelope without JSONB columns', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.limit).to.eql(50);",
+                  "    pm.expect(res.total).to.be.at.least(1);",
+                  "    pm.expect(res.items[0]).to.have.property('durationSpentSeconds');",
+                  "    pm.expect(res.items[0]).to.have.property('isPassed');",
+                  "    pm.expect(res.items[0]).to.not.have.property('partBreakdown');",
+                  "    pm.expect(res.items[0]).to.not.have.property('skillBreakdown');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Answer Review Filter Semantics, Post-Filter Deduplication & Boundary Guards (UC28 - DT, BVA)",
+      "item": [
+        {
+          "name": "TC-T3-09a [Positive - DT] Review filter=wrong Excludes Review-Only Skipped Row & Deduplicates questionGroups After Filtering",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/review?filter=wrong"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-09a] filter=wrong returns only Q2 (not review-only Q3) and only Part 3 group', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.filterCounts).to.eql({ all: 4, correct: 1, wrong: 1, skipped: 2, marked: 2 });",
+                  "    pm.expect(res.questions).to.have.lengthOf(1);",
+                  "    pm.expect(res.questions[0].id).to.eql(pm.collectionVariables.get('q2Id'));",
+                  "    pm.expect(res.questionGroups).to.have.lengthOf(1);",
+                  "    pm.expect(res.questionGroups[0].title).to.eql('TEST_POSTMAN_SPR7_Group_Part_3');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-09b [Positive - DT] Review filter=skipped Includes Both Review-Only Row (Q3) and Untouched Row (Q4)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/review?filter=skipped"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-09b] filter=skipped returns both Q3 (review-only null option) and Q4 (untouched)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.questions).to.have.lengthOf(2);",
+                  "    pm.expect(res.questionGroups).to.have.lengthOf(1);",
+                  "    pm.expect(res.questionGroups[0].title).to.eql('TEST_POSTMAN_SPR7_Group_Part_7');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-10 [Positive - Rule #1002 & BVA] Review Part 1 Lower Boundary (partNumber=1) Preserves Nullable Content & Option Order A-D",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/review?partNumber=1&filter=all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-10] Part 1 review computes part-scoped filterCounts and preserves Rule #1002 null content', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.filterCounts).to.eql({ all: 1, correct: 1, wrong: 0, skipped: 0, marked: 0 });",
+                  "    pm.expect(res.questions[0].content).to.be.null;",
+                  "    pm.expect(res.questions[0].options.map(o => o.label)).to.eql(['A', 'B', 'C', 'D']);",
+                  "    pm.expect(res.questions[0].options[0].isCorrect).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-11 [Negative - BVA] Review Rejects partNumber=0 (Below Min 1) and partNumber=8 (Above Max 7)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student1Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{attemptId}}/review?partNumber=8&filter=invalid_filter"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-11] Out-of-bounds partNumber=8 and invalid filter return 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-12a [Setup] Start & Submit Part Practice Attempt (Part 5 Only) for Student 2",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{student2Token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{fullExamId}}\",\n  \"mode\": \"part_practice\",\n  \"selectedParts\": [5]\n}"
+            },
+            "url": "{{baseUrl}}/exam-attempts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Start Part Practice attempt returns 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set('partPracticeAttemptId', pm.response.json().attemptId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-12b [Setup] Submit Part Practice Attempt",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{partPracticeAttemptId}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Submit Part Practice attempt returns 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-T3-12c [Negative - EP] Review Rejects Part Not Selected in Part Practice (400 ERR_PART_NOT_IN_ATTEMPT)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{student2Token}}" }],
+            "url": "{{baseUrl}}/exam-attempts/{{partPracticeAttemptId}}/review?partNumber=7"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-T3-12c] Requesting Part 7 on Part 5 practice review returns 400 ERR_PART_NOT_IN_ATTEMPT', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_PART_NOT_IN_ATTEMPT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
