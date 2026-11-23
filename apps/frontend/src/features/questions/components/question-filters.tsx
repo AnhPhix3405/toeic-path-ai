@@ -2,24 +2,36 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, RotateCcw, Search, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  FileSpreadsheet,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  X,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQuestionFilterStore } from "@/stores/question-filter.store";
 import { useToeicParts } from "@/hooks/use-classification";
 import { QuestionDifficulty, QuestionStatus } from "@/types/question";
 
 export function QuestionFilters() {
   const store = useQuestionFilterStore();
+  const queryClient = useQueryClient();
   const { data: parts } = useToeicParts();
 
   // Local state for debounced search input
   const [localSearch, setLocalSearch] = useState(store.search);
-
-  useEffect(() => {
-    setLocalSearch(store.search);
-  }, [store.search]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -40,6 +52,15 @@ export function QuestionFilters() {
       store.skillIds.length > 0
   );
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["questions"] });
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 250);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
       <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
@@ -59,7 +80,7 @@ export function QuestionFilters() {
                 setLocalSearch("");
                 store.setSearch("");
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full cursor-pointer"
               aria-label="Xóa từ khóa"
             >
               <X className="w-3.5 h-3.5" />
@@ -68,7 +89,7 @@ export function QuestionFilters() {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex items-center gap-2 self-end lg:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
           {hasActiveFilters && (
             <Button
               type="button"
@@ -78,14 +99,45 @@ export function QuestionFilters() {
                 setLocalSearch("");
                 store.resetFilters();
               }}
-              className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
               Đặt lại bộ lọc
             </Button>
           )}
 
-          <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">
+          {/* Rule #1007: Refresh Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="rounded-xl cursor-pointer"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 mr-1.5 ${
+                isRefreshing ? "animate-spin text-indigo-600" : ""
+              }`}
+            />
+            Làm mới
+          </Button>
+
+          {/* UC14: Import Excel / ZIP link */}
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-xl border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+          >
+            <Link href="/questions/import">
+              <FileSpreadsheet className="w-4 h-4 mr-1.5" />
+              Import Excel / ZIP
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+          >
             <Link href="/questions/create">
               <Plus className="w-4 h-4 mr-1.5" />
               Tạo câu hỏi
@@ -100,7 +152,9 @@ export function QuestionFilters() {
         <div>
           <Select
             value={store.partId || "all"}
-            onValueChange={(val) => store.setPartId(val === "all" ? null : val)}
+            onValueChange={(val) =>
+              store.setPartId(val === "all" ? null : val)
+            }
           >
             <SelectTrigger className="h-9 rounded-xl text-xs">
               <SelectValue placeholder="Phần thi (Part)" />
@@ -121,7 +175,9 @@ export function QuestionFilters() {
           <Select
             value={store.difficulty || "all"}
             onValueChange={(val) =>
-              store.setDifficulty(val === "all" ? null : (val as QuestionDifficulty))
+              store.setDifficulty(
+                val === "all" ? null : (val as QuestionDifficulty)
+              )
             }
           >
             <SelectTrigger className="h-9 rounded-xl text-xs">
