@@ -30,11 +30,28 @@ export interface QuestionOption {
   position: number;
 }
 
+export interface QuestionCreatorSummary {
+  id: string;
+  fullName?: string;
+  email?: string;
+}
+
+export interface QuestionGroupSummary {
+  id: string;
+  title: string | null;
+  context: string;
+}
+
 export interface Question {
   id: string;
   content: string;
   questionType: QuestionType;
   status: QuestionStatus;
+  version?: number;
+  createdBy?: string;
+  creator?: QuestionCreatorSummary | null;
+  questionGroupId?: string | null;
+  questionGroup?: QuestionGroupSummary | null;
   groupOrder: number | null;
   explanation: string | null;
   options: QuestionOption[];

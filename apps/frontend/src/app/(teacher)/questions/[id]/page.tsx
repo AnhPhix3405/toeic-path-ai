@@ -4,21 +4,29 @@ import React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowLeft,
   Calendar,
   CheckCircle2,
   Edit2,
-  FileQuestion,
-  Layers,
+  FileDiff,
+  History,
   Loader2,
   Sparkles,
+  XCircle,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuestionStatusBadge } from "@/features/questions/components/question-status-badge";
 import { QuestionDifficultyBadge } from "@/features/questions/components/question-difficulty-badge";
+import { QuestionHistoryDiffViewer } from "@/features/questions/components/reviews/question-history-diff-viewer";
+import { QuestionReviewTimeline } from "@/features/questions/components/reviews/question-review-timeline";
 import { useQuestion } from "@/hooks/use-questions";
+import {
+  useQuestionHistories,
+  useQuestionReviewLogs,
+} from "@/hooks/use-question-reviews";
 
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
@@ -31,7 +39,18 @@ export default function QuestionDetailPage() {
       ? params.id[0]
       : null;
 
-  const { data: question, isLoading, isPending, error, refetch } = useQuestion(questionId);
+  const {
+    data: question,
+    isLoading,
+    isPending,
+    error,
+    refetch,
+  } = useQuestion(questionId);
+
+  const { data: reviewLogs, isLoading: isLogsLoading } =
+    useQuestionReviewLogs(questionId);
+  const { data: histories, isLoading: isHistoriesLoading } =
+    useQuestionHistories(questionId);
 
   if (!questionId || isLoading || isPending) {
     return (
@@ -45,15 +64,26 @@ export default function QuestionDetailPage() {
   if (error || !question) {
     return (
       <div className="p-8 text-center bg-rose-50 dark:bg-rose-950/20 rounded-2xl border border-rose-200 dark:border-rose-900/40 max-w-lg mx-auto my-12 space-y-4">
-        <p className="font-semibold text-rose-600 dark:text-rose-400">Không tìm thấy câu hỏi hoặc câu hỏi đã bị xóa.</p>
+        <p className="font-semibold text-rose-600 dark:text-rose-400">
+          Không tìm thấy câu hỏi hoặc câu hỏi đã bị xóa.
+        </p>
         <p className="text-xs text-slate-500 dark:text-slate-400">
           Mã định danh câu hỏi: <code className="font-mono">{questionId}</code>
         </p>
         <div className="flex items-center justify-center gap-3 pt-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="rounded-xl">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            className="rounded-xl"
+          >
             Thử tải lại
           </Button>
-          <Button asChild size="sm" className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button
+            asChild
+            size="sm"
+            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
             <Link href="/questions">
               <ArrowLeft className="w-4 h-4 mr-1.5" />
               Quay lại danh sách
@@ -63,6 +93,12 @@ export default function QuestionDetailPage() {
       </div>
     );
   }
+
+  const latestFeedbackLog = (reviewLogs || []).find(
+    (log) =>
+      (log.action === "revision_requested" || log.action === "rejected") &&
+      Boolean(log.feedback)
+  );
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -82,6 +118,11 @@ export default function QuestionDetailPage() {
                 Chi tiết câu hỏi
               </h1>
               <QuestionStatusBadge status={question.status} />
+              {question.version && (
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  v{question.version}
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-400 mt-0.5">ID: {question.id}</p>
           </div>
@@ -97,12 +138,59 @@ export default function QuestionDetailPage() {
         </div>
       </div>
 
+      {/* Reviewer Feedback Banner when question is revision_requested or rejected (Task 4 & PMR 005 #6) */}
+      {(question.status === "revision_requested" ||
+        question.status === "rejected") &&
+        latestFeedbackLog && (
+          <div
+            className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+              question.status === "revision_requested"
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200"
+                : "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200"
+            }`}
+          >
+            <div className="flex items-start gap-3 text-xs">
+              {question.status === "revision_requested" ? (
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+              <div className="space-y-1">
+                <p className="font-bold">
+                  {question.status === "revision_requested"
+                    ? "Yêu cầu chỉnh sửa từ Reviewer"
+                    : "Lý do từ chối từ Reviewer"}
+                  {latestFeedbackLog.reviewer?.fullName
+                    ? ` (${latestFeedbackLog.reviewer.fullName})`
+                    : ""}
+                  :
+                </p>
+                <p className="leading-relaxed">{latestFeedbackLog.feedback}</p>
+              </div>
+            </div>
+
+            <Button
+              asChild
+              size="sm"
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 self-end sm:self-center"
+            >
+              <Link href={`/questions/${question.id}/edit`}>
+                <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+                Chỉnh sửa theo yêu cầu
+              </Link>
+            </Button>
+          </div>
+        )}
+
       {/* Main Content Card */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-6">
         {/* Metadata Badges */}
         <div className="flex flex-wrap items-center gap-2 pb-4 border-b border-slate-100 dark:border-slate-800 text-xs">
           {question.part && (
-            <Badge variant="secondary" className="font-medium text-xs py-1 px-2.5">
+            <Badge
+              variant="secondary"
+              className="font-medium text-xs py-1 px-2.5"
+            >
               Part {question.part.partNumber}: {question.part.name}
             </Badge>
           )}
@@ -119,7 +207,11 @@ export default function QuestionDetailPage() {
             Nội dung câu hỏi
           </span>
           <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 leading-relaxed">
-            {question.content}
+            {question.content || (
+              <span className="italic text-sm font-normal text-slate-400">
+                (Câu hỏi Audio / Đoạn văn nhóm không có văn bản riêng)
+              </span>
+            )}
           </p>
         </div>
 
@@ -130,7 +222,10 @@ export default function QuestionDetailPage() {
           </span>
           <div className="grid grid-cols-1 gap-2.5">
             {question.options?.map((opt, idx) => {
-              const label = opt.label || optionLabels[idx] || String.fromCharCode(65 + idx);
+              const label =
+                opt.label ||
+                optionLabels[idx] ||
+                String.fromCharCode(65 + idx);
               const isCorrect = opt.isCorrect;
 
               return (
@@ -183,7 +278,9 @@ export default function QuestionDetailPage() {
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
             {question.topics && question.topics.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-slate-400">Chủ đề:</span>
+                <span className="text-xs font-semibold text-slate-400">
+                  Chủ đề:
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {question.topics.map((t) => (
                     <Badge key={t.id} variant="outline" className="text-xs">
@@ -196,7 +293,9 @@ export default function QuestionDetailPage() {
 
             {question.skills && question.skills.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-slate-400">Kỹ năng:</span>
+                <span className="text-xs font-semibold text-slate-400">
+                  Kỹ năng:
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {question.skills.map((s) => (
                     <Badge key={s.id} variant="outline" className="text-xs">
@@ -208,6 +307,35 @@ export default function QuestionDetailPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Audit Log Timeline & Version History Diff Viewer (Sprint 4 Task 4) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Nhật ký thẩm định ({reviewLogs?.length || 0})
+            </h2>
+          </div>
+          <QuestionReviewTimeline
+            logs={reviewLogs || []}
+            isLoading={isLogsLoading}
+          />
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <FileDiff className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Lịch sử thay đổi phiên bản ({histories?.length || 0})
+            </h2>
+          </div>
+          <QuestionHistoryDiffViewer
+            histories={histories || []}
+            isLoading={isHistoriesLoading}
+          />
+        </div>
       </div>
     </div>
   );
