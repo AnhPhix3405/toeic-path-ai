@@ -160,5 +160,17 @@ describe("QuestionBank Bulk Submit for Review (UC14-A5, PMR 004 #5) & List Rules
 
     fireEvent.click(limit10Btn);
     expect(useQuestionFilterStore.getState().limit).toBe(10);
+
+    const pageInput = screen.getByRole("spinbutton", {
+      name: /Nhập số trang cần xem/i,
+    }) as HTMLInputElement;
+    expect(pageInput).toBeInTheDocument();
+    expect(pageInput.value).toBe("1");
+
+    // Out-of-bounds input (999 when totalPages = 1) resets to "1" on blur (BUG-S4-UI-001)
+    fireEvent.change(pageInput, { target: { value: "999" } });
+    fireEvent.blur(pageInput);
+    expect(useQuestionFilterStore.getState().page).toBe(1);
+    expect(pageInput.value).toBe("1");
   });
 });

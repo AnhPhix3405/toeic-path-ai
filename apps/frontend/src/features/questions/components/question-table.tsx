@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -71,6 +71,29 @@ export function QuestionTable() {
   const questions = useMemo(() => data?.data || [], [data?.data]);
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
+
+  const [pageJumpInput, setPageJumpInput] = useState(String(store.page));
+  useEffect(() => {
+    setPageJumpInput(String(store.page));
+  }, [store.page]);
+
+  const handlePageJumpCommit = (rawVal: string) => {
+    const trimmed = rawVal.trim();
+    const val = Number(trimmed);
+    if (
+      trimmed !== "" &&
+      Number.isInteger(val) &&
+      val >= 1 &&
+      val <= totalPages
+    ) {
+      if (val !== store.page) {
+        store.setPage(val);
+      }
+      setPageJumpInput(String(val));
+    } else {
+      setPageJumpInput(String(store.page));
+    }
+  };
 
   const eligibleQuestionIds = useMemo(
     () =>
@@ -455,7 +478,44 @@ export function QuestionTable() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Rule #1006: Page number jump input */}
+            <div className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 mr-1">
+              <label htmlFor="questions-page-jump-input" className="whitespace-nowrap">
+                Đi tới trang:
+              </label>
+              <input
+                id="questions-page-jump-input"
+                aria-label="Nhập số trang cần xem"
+                type="number"
+                min={1}
+                max={totalPages}
+                value={pageJumpInput}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setPageJumpInput(raw);
+                  const val = Number(raw.trim());
+                  if (
+                    raw.trim() !== "" &&
+                    Number.isInteger(val) &&
+                    val >= 1 &&
+                    val <= totalPages &&
+                    val !== store.page
+                  ) {
+                    store.setPage(val);
+                  }
+                }}
+                onBlur={(e) => handlePageJumpCommit(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handlePageJumpCommit((e.target as HTMLInputElement).value);
+                  }
+                }}
+                className="w-14 h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-center text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
             <Button
               type="button"
               variant="outline"

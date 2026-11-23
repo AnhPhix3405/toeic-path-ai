@@ -110,4 +110,27 @@ describe("ImportJobHistoryTable (#1006 Pagination 10/20, #1007 Refresh, #1008 UR
       screen.getByText(/Ngày bắt đầu không được lớn hơn ngày kết thúc/i)
     ).toBeInTheDocument();
   });
+
+  it("BUG-S4-UI-001 (#1006): renders page number jump input (Đi tới trang) in ImportJobHistoryTable and handles valid/invalid bounds", () => {
+    render(<ImportJobHistoryTable onSelectJob={vi.fn()} />);
+
+    const pageInput = screen.getByRole("spinbutton", {
+      name: /Nhập số trang cần xem/i,
+    }) as HTMLInputElement;
+    expect(pageInput).toBeInTheDocument();
+    expect(pageInput.value).toBe("1");
+
+    // Valid jump to page 2 (totalPages = 2)
+    fireEvent.change(pageInput, { target: { value: "2" } });
+    expect(mockReplace).toHaveBeenCalledWith(
+      expect.stringContaining("page=2"),
+      { scroll: false }
+    );
+
+    // Invalid jump to page 0 resets on Enter
+    mockReplace.mockClear();
+    fireEvent.change(pageInput, { target: { value: "0" } });
+    fireEvent.keyDown(pageInput, { key: "Enter" });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
 });

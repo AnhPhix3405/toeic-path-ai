@@ -97,4 +97,46 @@ describe("QuestionHistoryDiffViewer & QuestionReviewTimeline (UC15-A3 & A4)", ()
       screen.getByText(/Câu hỏi chưa có lịch sử kiểm duyệt/i)
     ).toBeInTheDocument();
   });
+
+  it("BUG-S4-UI-003: filters out system metadata changes (version, status) and hides unchanged options when no business fields changed", () => {
+    render(
+      <QuestionHistoryDiffViewer
+        histories={[
+          {
+            id: "h-meta-only",
+            questionId: "q-1",
+            changedBy: "rev-1",
+            author: { id: "rev-1", fullName: "Reviewer Trần B" },
+            changeType: "status_changed",
+            createdAt: "2026-11-23T10:30:00.000Z",
+            snapshotBefore: {
+              content: "Same question text",
+              explanation: "Same explanation",
+              version: 1,
+              status: "draft",
+              options: [
+                { id: "o1", label: "A", content: "Option A unchanged", isCorrect: true },
+                { id: "o2", label: "B", content: "Option B unchanged", isCorrect: false },
+              ],
+            },
+            snapshotAfter: {
+              content: "Same question text",
+              explanation: "Same explanation",
+              version: 2,
+              status: "pending_review",
+              options: [
+                { id: "o1", label: "A", content: "Option A unchanged", isCorrect: true },
+                { id: "o2", label: "B", content: "Option B unchanged", isCorrect: false },
+              ],
+            },
+          },
+        ]}
+      />
+    );
+
+    expect(
+      screen.getByText(/Không có thay đổi về nội dung câu hỏi, phương án hoặc lời giải/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Option A unchanged")).not.toBeInTheDocument();
+  });
 });

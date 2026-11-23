@@ -93,6 +93,18 @@ export function validateQuickFixPayload(input: {
   };
 }
 
+export const IGNORED_DIFF_KEYS = new Set([
+  "id",
+  "questionId",
+  "createdAt",
+  "updatedAt",
+  "createdBy",
+  "version",
+  "status",
+  "media",
+  "group",
+]);
+
 export interface SnapshotOptionDiff {
   id: string;
   label: string;
@@ -106,6 +118,7 @@ export interface SnapshotOptionDiff {
 
 export interface SnapshotDiffSummary {
   isInitialCreation: boolean;
+  hasBusinessChanges: boolean;
   contentChanged: boolean;
   beforeContent: string | null;
   afterContent: string | null;
@@ -195,8 +208,18 @@ export function computeQuestionSnapshotDiff(
     }
   );
 
+  const hasOptionChanges = optionDiffs.some(
+    (opt) => opt.contentChanged || opt.correctChanged
+  );
+  const hasBusinessChanges =
+    isInitialCreation ||
+    contentChanged ||
+    explanationChanged ||
+    hasOptionChanges;
+
   return {
     isInitialCreation,
+    hasBusinessChanges,
     contentChanged,
     beforeContent,
     afterContent,

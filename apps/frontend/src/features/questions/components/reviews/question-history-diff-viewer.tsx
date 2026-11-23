@@ -182,8 +182,12 @@ export function QuestionHistoryDiffViewer({
                 </div>
               )}
 
-              {/* Options Diff */}
-              {diff.optionDiffs.length > 0 && (
+              {/* Options Diff - Only display when initial creation or at least one option changed (BUG-S4-UI-003) */}
+              {diff.optionDiffs.length > 0 &&
+                (diff.isInitialCreation ||
+                  diff.optionDiffs.some(
+                    (o) => o.contentChanged || o.correctChanged
+                  )) && (
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Phương án lựa chọn
@@ -246,6 +250,12 @@ export function QuestionHistoryDiffViewer({
                     })}
                   </div>
                 </div>
+              )}
+
+              {!diff.hasBusinessChanges && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+                  Không có thay đổi về nội dung câu hỏi, phương án hoặc lời giải (Chỉ cập nhật trạng thái / siêu dữ liệu hệ thống).
+                </p>
               )}
             </div>
           </div>

@@ -12,6 +12,9 @@ const axiosInstance: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
   withCredentials: true,
+  paramsSerializer: {
+    indexes: null,
+  },
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

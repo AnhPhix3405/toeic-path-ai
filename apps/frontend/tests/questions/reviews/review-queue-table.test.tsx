@@ -188,4 +188,38 @@ describe("ReviewQueueFilters & ReviewQueueTable (#1006, #1007, Maker-Checker Bat
     fireEvent.click(btn10);
     expect(onLimitChange).toHaveBeenCalledWith(10);
   });
+
+  it("BUG-S4-UI-001 (#1006): renders page number jump input (Đi tới trang), jumps to valid page, and resets on out-of-bounds page", () => {
+    const onPageChange = vi.fn();
+    render(
+      <ReviewQueueTable
+        questions={sampleQueueQuestions}
+        total={45}
+        page={1}
+        limit={20}
+        currentUserId="current-reviewer-id"
+        onSelectQuestion={vi.fn()}
+        onPageChange={onPageChange}
+        onLimitChange={vi.fn()}
+        onResetFilters={vi.fn()}
+      />
+    );
+
+    const pageInput = screen.getByRole("spinbutton", {
+      name: /Nhập số trang cần xem/i,
+    }) as HTMLInputElement;
+    expect(pageInput).toBeInTheDocument();
+    expect(pageInput.value).toBe("1");
+
+    // Valid page jump (page 2 of 3)
+    fireEvent.change(pageInput, { target: { value: "2" } });
+    expect(onPageChange).toHaveBeenCalledWith(2);
+
+    // Out-of-bounds page jump (999 > totalPages 3) resets on blur
+    onPageChange.mockClear();
+    fireEvent.change(pageInput, { target: { value: "999" } });
+    fireEvent.blur(pageInput);
+    expect(onPageChange).not.toHaveBeenCalled();
+    expect(pageInput.value).toBe("1");
+  });
 });

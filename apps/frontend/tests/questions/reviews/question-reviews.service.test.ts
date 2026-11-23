@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import apiClient from "@/services/api-client";
 import { questionReviewsService } from "@/services/question-reviews.service";
+import { questionsService } from "@/services/questions.service";
 import {
+  IGNORED_DIFF_KEYS,
   reviewFeedbackSchema,
   validateQuickFixPayload,
   computeQuestionSnapshotDiff,
@@ -298,5 +300,29 @@ describe("validateQuickFixPayload & reviewFeedbackSchema (#1002, #1009, PMR 005 
     expect(diff.optionDiffs[1].label).toBe("B");
     expect(diff.optionDiffs[1].contentChanged).toBe(true);
     expect(diff.optionDiffs[1].correctChanged).toBe(true);
+  });
+
+  it("BUG-S4-UI-002 & BUG-S4-UI-003: verifies Express 5 paramsSerializer on questionsService and IGNORED_DIFF_KEYS metadata guard", async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    } as never);
+
+    await questionsService.getQuestions({
+      topicIds: ["t-1"],
+      skillIds: ["s-1"],
+    });
+
+    expect(apiClient.get).toHaveBeenCalledWith("/questions", {
+      params: { topicIds: ["t-1"], skillIds: ["s-1"] },
+      paramsSerializer: { indexes: null },
+    });
+
+    expect(IGNORED_DIFF_KEYS.has("id")).toBe(true);
+    expect(IGNORED_DIFF_KEYS.has("updatedAt")).toBe(true);
+    expect(IGNORED_DIFF_KEYS.has("version")).toBe(true);
   });
 });
