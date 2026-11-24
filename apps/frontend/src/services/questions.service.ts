@@ -41,9 +41,6 @@ export const questionsService = {
   async getQuestions(params?: QueryQuestionsParams): Promise<PaginatedQuestions> {
     const response = await apiClient.get<PaginatedQuestions>("/questions", {
       params,
-      paramsSerializer: {
-        indexes: null,
-      },
     });
     return unwrapResponse<PaginatedQuestions>(response);
   },

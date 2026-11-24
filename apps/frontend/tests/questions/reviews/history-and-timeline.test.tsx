@@ -108,6 +108,7 @@ describe("QuestionHistoryDiffViewer & QuestionReviewTimeline (UC15-A3 & A4)", ()
             changedBy: "rev-1",
             author: { id: "rev-1", fullName: "Reviewer Trần B" },
             changeType: "status_changed",
+            comment: null,
             createdAt: "2026-11-23T10:30:00.000Z",
             snapshotBefore: {
               content: "Same question text",

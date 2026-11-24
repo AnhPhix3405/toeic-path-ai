@@ -32,6 +32,11 @@ const segmentLabels: Record<string, string> = {
   "audit-logs": "Nhật ký hệ thống",
   profile: "Hồ sơ cá nhân",
   settings: "Cài đặt",
+  manage: "Quản trị đề thi",
+  create: "Tạo mới",
+  edit: "Chỉnh sửa",
+  builder: "Cấu trúc đề thi",
+  import: "Import hàng loạt",
 };
 
 export function Breadcrumbs({ className }: { className?: string }) {

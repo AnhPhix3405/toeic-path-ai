@@ -20,7 +20,6 @@ const commonProtectedRoutes = [
 const studentRoutes = [
   "/dashboard",
   "/practice",
-  "/exams",
   "/learning-path",
   "/ai-tutor",
   "/results",
@@ -33,6 +32,8 @@ const teacherRoutes = [
   "/questions",
   "/question-groups",
   "/content-reviews",
+  "/exams/manage",
+  "/exams/create",
   "/students",
   "/ai-studio",
 ];
@@ -87,6 +88,15 @@ export function proxy(request: NextRequest) {
     // Student trying to access teacher or admin routes
     if (userRole === "student" && (isTeacherRoute || isAdminRoute)) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
+
+    // Teacher or Admin clicking /exams from Sidebar goes to /exams/manage unless explicitly previewing ?catalog=public
+    if (
+      (userRole === "teacher" || userRole === "admin") &&
+      pathname === "/exams" &&
+      request.nextUrl.searchParams.get("catalog") !== "public"
+    ) {
+      return NextResponse.redirect(new URL("/exams/manage", request.url));
     }
 
     // Teacher trying to access admin routes

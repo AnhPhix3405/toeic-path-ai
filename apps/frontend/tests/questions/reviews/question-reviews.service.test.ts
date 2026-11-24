@@ -318,7 +318,6 @@ describe("validateQuickFixPayload & reviewFeedbackSchema (#1002, #1009, PMR 005 
 
     expect(apiClient.get).toHaveBeenCalledWith("/questions", {
       params: { topicIds: ["t-1"], skillIds: ["s-1"] },
-      paramsSerializer: { indexes: null },
     });
 
     expect(IGNORED_DIFF_KEYS.has("id")).toBe(true);
