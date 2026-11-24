@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   CalendarClock,
   Clock,
@@ -149,21 +150,50 @@ export function ExamOverviewModal({
                 Đóng
               </Button>
 
-              <Button
-                type="button"
-                size="sm"
-                disabled={
-                  overview.isScheduled || overview.remainingAttempts === 0
+              {(() => {
+                const isOnlyPartPracticeAvailable =
+                  overview.remainingAttempts === 0 &&
+                  overview.allowPartPractice;
+                const isBlocked =
+                  overview.isScheduled ||
+                  (overview.remainingAttempts === 0 &&
+                    !overview.allowPartPractice);
+                const targetHref = isOnlyPartPracticeAvailable
+                  ? `/exams/${overview.id}/instructions?mode=part_practice`
+                  : `/exams/${overview.id}/instructions`;
+
+                if (isBlocked) {
+                  return (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled
+                      className="rounded-xl bg-indigo-600 text-white text-xs"
+                    >
+                      <Play className="w-3.5 h-3.5 mr-1.5" />
+                      {overview.isScheduled
+                        ? "Chưa đến giờ mở đề"
+                        : "Đã hết lượt thi"}
+                    </Button>
+                  );
                 }
-                className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs cursor-pointer"
-              >
-                <Play className="w-3.5 h-3.5 mr-1.5" />
-                {overview.isScheduled
-                  ? "Chưa đến giờ mở đề"
-                  : overview.remainingAttempts === 0
-                  ? "Đã hết lượt thi"
-                  : "Bắt đầu làm bài"}
-              </Button>
+
+                return (
+                  <Button
+                    asChild
+                    size="sm"
+                    onClick={onClose}
+                    className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs cursor-pointer"
+                  >
+                    <Link href={targetHref}>
+                      <Play className="w-3.5 h-3.5 mr-1.5" />
+                      {isOnlyPartPracticeAvailable
+                        ? "Luyện từng Part"
+                        : "Bắt đầu làm bài"}
+                    </Link>
+                  </Button>
+                );
+              })()}
             </DialogFooter>
           </>
         )}

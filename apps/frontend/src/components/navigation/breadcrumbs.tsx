@@ -37,8 +37,24 @@ const segmentLabels: Record<string, string> = {
   edit: "Chỉnh sửa",
   builder: "Cấu trúc đề thi",
   import: "Import hàng loạt",
+  instructions: "Hướng dẫn phòng thi",
+  "exam-attempts": "Phòng thi trực tuyến",
 };
 
+const UUID_SEGMENT_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function formatSegmentLabel(segment: string, prevSegment?: string): string {
+  if (segmentLabels[segment]) return segmentLabels[segment];
+  if (UUID_SEGMENT_REGEX.test(segment)) {
+    if (prevSegment === "exams") return "Chi tiết đề thi";
+    if (prevSegment === "exam-attempts") return "Phiên làm bài";
+    if (prevSegment === "questions") return "Chi tiết câu hỏi";
+    if (prevSegment === "question-groups") return "Chi tiết nhóm câu hỏi";
+    return "Chi tiết";
+  }
+  return decodeURIComponent(segment);
+}
 export function Breadcrumbs({ className }: { className?: string }) {
   const pathname = usePathname();
 
@@ -67,7 +83,7 @@ export function Breadcrumbs({ className }: { className?: string }) {
         {segments.map((segment, index) => {
           const isLast = index === segments.length - 1;
           const href = `/${segments.slice(0, index + 1).join("/")}`;
-          const label = segmentLabels[segment] || decodeURIComponent(segment);
+          const label = formatSegmentLabel(segment, segments[index - 1]);
 
           return (
             <React.Fragment key={href}>

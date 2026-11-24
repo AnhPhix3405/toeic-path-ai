@@ -15,7 +15,10 @@ const authRoutes = [
 const commonProtectedRoutes = [
   "/profile",
   "/settings",
+  "/exam-attempts",
 ];
+
+const examInstructionsRegex = /^\/exams\/[^/]+\/instructions(\/|$)/;
 
 const studentRoutes = [
   "/dashboard",
@@ -59,7 +62,9 @@ export function proxy(request: NextRequest) {
 
   const isAuthenticated = Boolean(authToken);
   const isAuthRoute = isPathMatch(pathname, authRoutes);
-  const isCommonRoute = isPathMatch(pathname, commonProtectedRoutes);
+  const isCommonRoute =
+    isPathMatch(pathname, commonProtectedRoutes) ||
+    examInstructionsRegex.test(pathname);
   const isStudentRoute = isPathMatch(pathname, studentRoutes);
   const isTeacherRoute = isPathMatch(pathname, teacherRoutes);
   const isAdminRoute = isPathMatch(pathname, adminRoutes);

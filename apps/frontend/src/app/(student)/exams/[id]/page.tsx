@@ -86,20 +86,45 @@ export default function ExamOverviewPage() {
             )}
           </div>
 
-          <Button
-            type="button"
-            disabled={
-              overview.isScheduled || overview.remainingAttempts === 0
+          {(() => {
+            const isOnlyPartPracticeAvailable =
+              overview.remainingAttempts === 0 && overview.allowPartPractice;
+            const isBlocked =
+              overview.isScheduled ||
+              (overview.remainingAttempts === 0 && !overview.allowPartPractice);
+            const targetHref = isOnlyPartPracticeAvailable
+              ? `/exams/${overview.id}/instructions?mode=part_practice`
+              : `/exams/${overview.id}/instructions`;
+
+            if (isBlocked) {
+              return (
+                <Button
+                  type="button"
+                  disabled
+                  className="rounded-xl bg-indigo-600 text-white shrink-0"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {overview.isScheduled
+                    ? "Chưa đến giờ mở đề"
+                    : "Đã hết lượt thi"}
+                </Button>
+              );
             }
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 cursor-pointer"
-          >
-            <Play className="w-4 h-4 mr-2" />
-            {overview.isScheduled
-              ? "Chưa đến giờ mở đề"
-              : overview.remainingAttempts === 0
-              ? "Đã hết lượt thi"
-              : "Bắt đầu làm bài"}
-          </Button>
+
+            return (
+              <Button
+                asChild
+                className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 cursor-pointer"
+              >
+                <Link href={targetHref}>
+                  <Play className="w-4 h-4 mr-2" />
+                  {isOnlyPartPracticeAvailable
+                    ? "Luyện từng Part"
+                    : "Bắt đầu làm bài"}
+                </Link>
+              </Button>
+            );
+          })()}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">

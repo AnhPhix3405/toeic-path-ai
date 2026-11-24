@@ -186,6 +186,7 @@ export function parseApiError(error: unknown): ApiError {
     }
 
     return {
+      ...(responseData && typeof responseData === "object" ? responseData : {}),
       message,
       statusCode,
       errorCode: (responseData?.errorCode as string) || error.code || `HTTP_${statusCode}`,
