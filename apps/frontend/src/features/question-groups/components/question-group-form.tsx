@@ -72,7 +72,7 @@ export function QuestionGroupForm({
           context: values.context.trim(),
         });
         toast.success("Tạo nhóm câu hỏi thành công!");
-        router.push(`/question-groups/${created.id}`);
+        router.push(`/question-groups/${created.groupCode || created.id}`);
       } else if (initialGroup) {
         await updateMutation.mutateAsync({
           id: initialGroup.id,
@@ -82,7 +82,9 @@ export function QuestionGroupForm({
           },
         });
         toast.success("Cập nhật nhóm câu hỏi thành công!");
-        router.push(`/question-groups/${initialGroup.id}`);
+        router.push(
+          `/question-groups/${initialGroup.groupCode || initialGroup.id}`
+        );
       }
     } catch (err: unknown) {
       const msg =

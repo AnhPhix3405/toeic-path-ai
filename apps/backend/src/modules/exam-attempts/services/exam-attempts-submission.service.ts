@@ -13,6 +13,7 @@ import { ExamAttempt } from '../entities/exam-attempt.entity';
 import { ExamAttemptStatus } from '../enums/exam-attempt-status.enum';
 import { SubmitExamAttemptResponseDto } from '../dto/response/submit-exam-attempt-response.dto';
 import { ExamAttemptsGradingService } from './exam-attempts-grading.service';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 export const GRACE_PERIOD_SECONDS = 30;
 export const AUTO_SUBMIT_BATCH_SIZE = 100;
@@ -32,7 +33,9 @@ export class ExamAttemptsSubmissionService {
 
   async submitAttempt(userId: string, attemptId: string): Promise<SubmitExamAttemptResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: { id: attemptId },
+      where: isUuidIdentifier(attemptId)
+        ? { id: attemptId }
+        : { attemptCode: attemptId.trim() },
     });
 
     if (!attempt) {
@@ -52,9 +55,9 @@ export class ExamAttemptsSubmissionService {
     this.ensureAttemptSubmittable(attempt);
 
     const gradedAttempt = await this.dataSource.transaction(async (manager) => {
-      // PMR 029: Khóa độc lập bảng exam_attempts (không join bảng exams)
+      // PMR 029: Khóa độc lập bảng exam_attempts (dùng canonical attempt.id)
       const lockedAttempt = await manager.findOne(ExamAttempt, {
-        where: { id: attemptId },
+        where: { id: attempt.id },
         lock: { mode: 'pessimistic_write' },
       });
 

@@ -77,7 +77,7 @@ export class QuestionsController {
   @Get(':id')
   @ThrottlePolicy('questionsSearch')
   @ApiFindQuestionDoc()
-  findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<QuestionResponseDto> {
+  findOne(@Param('id') id: string): Promise<QuestionResponseDto> {
     return this.questionsService.findOne(id);
   }
 

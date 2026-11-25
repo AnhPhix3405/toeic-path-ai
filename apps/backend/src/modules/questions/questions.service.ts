@@ -25,6 +25,7 @@ import { Topic } from './entities/topic.entity';
 import { Skill } from './entities/skill.entity';
 import type { UpdateQuestionClassificationDto } from './dto/request/update-question-classification.dto';
 import { QuestionRepository } from './repositories/question.repository';
+import { isUuidIdentifier, normalizeCodeIdentifier } from '../../common/utils/identifier.util';
 
 @Injectable()
 export class QuestionsService {
@@ -69,9 +70,12 @@ export class QuestionsService {
     return questions.map((question) => this.toResponse(question));
   }
 
-  async findOne(id: string): Promise<QuestionResponseDto> {
+  async findOne(identifier: string): Promise<QuestionResponseDto> {
+    const whereClause = isUuidIdentifier(identifier)
+      ? { id: identifier }
+      : { questionCode: normalizeCodeIdentifier(identifier) };
     const question = await this.questionsRepository.findOne({
-      where: { id },
+      where: whereClause,
       relations: { options: true, part: true, topics: true, skills: true },
       order: { options: { position: 'ASC' } },
     });
@@ -275,6 +279,7 @@ export class QuestionsService {
   private toResponse(question: Question): QuestionResponseDto {
     return {
       id: question.id,
+      questionCode: question.questionCode,
       content: question.content,
       questionType: question.questionType,
       status: question.status,

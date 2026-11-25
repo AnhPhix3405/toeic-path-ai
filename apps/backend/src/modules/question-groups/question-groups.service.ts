@@ -12,6 +12,7 @@ import type { CreateQuestionGroupDto } from './dto/request/create-question-group
 import type { QuestionGroupResponseDto } from './dto/response/question-group-response.dto';
 import type { UpdateQuestionGroupDto } from './dto/request/update-question-group.dto';
 import { QuestionGroup } from './entities/question-group.entity';
+import { isUuidIdentifier, normalizeCodeIdentifier } from '../../common/utils/identifier.util';
 
 @Injectable()
 export class QuestionGroupsService {
@@ -74,10 +75,15 @@ export class QuestionGroupsService {
     await this.findRequired(id);
   }
 
-  private async findRequired(id: string, withQuestions = false): Promise<QuestionGroup> {
-    const queryBuilder = this.questionGroupsRepository
-      .createQueryBuilder('questionGroup')
-      .where('questionGroup.id = :id', { id });
+  private async findRequired(identifier: string, withQuestions = false): Promise<QuestionGroup> {
+    const queryBuilder = this.questionGroupsRepository.createQueryBuilder('questionGroup');
+    if (isUuidIdentifier(identifier)) {
+      queryBuilder.where('questionGroup.id = :id', { id: identifier });
+    } else {
+      queryBuilder.where('questionGroup.groupCode = :groupCode', {
+        groupCode: normalizeCodeIdentifier(identifier),
+      });
+    }
     if (withQuestions) {
       queryBuilder
         .leftJoinAndSelect('questionGroup.questions', 'question')
@@ -103,6 +109,7 @@ export class QuestionGroupsService {
   ): QuestionGroupResponseDto {
     return {
       id: questionGroup.id,
+      groupCode: questionGroup.groupCode,
       title: questionGroup.title,
       context: questionGroup.context,
       createdAt: questionGroup.createdAt,
@@ -114,6 +121,7 @@ export class QuestionGroupsService {
   private toQuestionResponse(question: Question): QuestionResponseDto {
     return {
       id: question.id,
+      questionCode: question.questionCode,
       content: question.content,
       questionType: question.questionType,
       status: question.status,

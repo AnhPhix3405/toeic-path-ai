@@ -5,7 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Post,
   Put,
   Query,
@@ -108,7 +107,7 @@ export class ExamAttemptsController {
   @ApiAbandonAttemptDoc()
   async abandonAttempt(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
   ): Promise<AbandonAttemptResponseDto> {
     const isAdmin = user.role === UserRole.ADMIN;
     return this.examAttemptsService.abandonAttempt(user.id, id, isAdmin);
@@ -119,7 +118,7 @@ export class ExamAttemptsController {
   @ApiGetAttemptQuestionsDoc()
   async getAttemptQuestions(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Query() query: QueryAttemptQuestionsDto,
   ): Promise<ExamAttemptQuestionsResponseDto> {
     const isAdmin = user.role === UserRole.ADMIN;
@@ -131,7 +130,7 @@ export class ExamAttemptsController {
   @ApiGetAttemptResultDoc()
   async getAttemptResult(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
   ): Promise<ExamAttemptResultResponseDto> {
     const isAdmin = user.role === UserRole.ADMIN;
     return this.examAttemptsResultsService.getAttemptResult(user.id, id, isAdmin);
@@ -142,7 +141,7 @@ export class ExamAttemptsController {
   @ApiGetAttemptReviewDoc()
   async getAttemptReview(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Query() query: QueryAttemptReviewDto,
   ): Promise<ExamAttemptReviewResponseDto> {
     const isAdmin = user.role === UserRole.ADMIN;
@@ -154,7 +153,7 @@ export class ExamAttemptsController {
   @ApiGetAttemptOverviewDoc()
   async getAttemptOverview(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
   ): Promise<ExamAttemptOverviewResponseDto> {
     const isAdmin = user.role === UserRole.ADMIN;
     return this.examAttemptsDeliveryService.getAttemptOverview(user.id, id, isAdmin);
@@ -165,7 +164,7 @@ export class ExamAttemptsController {
   @ApiBatchSaveAnswersDoc()
   async batchSaveAnswers(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: BatchSaveAnswersDto,
   ): Promise<BatchSaveAnswersResponseDto> {
     return this.examAttemptsAnswersService.batchSaveAnswers(user.id, id, dto);
@@ -176,7 +175,7 @@ export class ExamAttemptsController {
   @ApiSaveAnswerDoc()
   async saveAnswer(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: SaveAnswerDto,
   ): Promise<SaveAnswerResponseDto> {
     return this.examAttemptsAnswersService.saveAnswer(user.id, id, dto);
@@ -188,7 +187,7 @@ export class ExamAttemptsController {
   @ApiSubmitAttemptDoc()
   async submitAttempt(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
   ): Promise<SubmitExamAttemptResponseDto> {
     return this.examAttemptsSubmissionService.submitAttempt(user.id, id);
   }

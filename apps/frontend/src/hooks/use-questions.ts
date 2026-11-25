@@ -68,9 +68,9 @@ export function useUpdateQuestion() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: UpdateQuestionDto }) =>
       questionsService.updateQuestion(id, dto),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["questions"] });
-      queryClient.invalidateQueries({ queryKey: ["question", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["question"] });
       toast.success("Cập nhật câu hỏi thành công");
     },
     onError: (err: unknown) => {
@@ -107,9 +107,9 @@ export function useUpdateQuestionClassification() {
       id: string;
       dto: UpdateQuestionClassificationDto;
     }) => questionsService.updateClassification(id, dto),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["questions"] });
-      queryClient.invalidateQueries({ queryKey: ["question", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["question"] });
       toast.success("Cập nhật phân loại thành công");
     },
   });

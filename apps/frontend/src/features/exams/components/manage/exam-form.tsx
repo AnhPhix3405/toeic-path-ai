@@ -23,6 +23,8 @@ export interface ExamFormProps {
   mode: "create" | "edit";
   initialExam?: ExamDetail | null;
   isSubmitting?: boolean;
+  serverTitleError?: string | null;
+  onClearServerTitleError?: () => void;
   onSubmit: (values: ExamFormValues) => Promise<void> | void;
   onCancel?: () => void;
 }
@@ -38,6 +40,8 @@ export function ExamForm({
   mode,
   initialExam,
   isSubmitting = false,
+  serverTitleError = null,
+  onClearServerTitleError,
   onSubmit,
   onCancel,
 }: ExamFormProps) {
@@ -140,19 +144,22 @@ export function ExamForm({
           <Input
             id="exam-title-input"
             value={values.title}
-            onChange={(e) =>
-              setValues((prev) => ({ ...prev, title: e.target.value }))
-            }
+            onChange={(e) => {
+              setValues((prev) => ({ ...prev, title: e.target.value }));
+              if (serverTitleError) {
+                onClearServerTitleError?.();
+              }
+            }}
             placeholder="Ví dụ: ETS TOEIC 2026 Test 01 - Full Mock Exam"
             className="rounded-xl"
           />
-          {fieldErrors.title && (
+          {(fieldErrors.title || serverTitleError) && (
             <p
               role="alert"
               className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1"
             >
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              {fieldErrors.title}
+              {fieldErrors.title || serverTitleError}
             </p>
           )}
         </div>

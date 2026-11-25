@@ -181,7 +181,7 @@ export default function ExamBuilderPage() {
             size="sm"
             className="rounded-xl text-xs"
           >
-            <Link href={`/exams/${structure.id}/edit`}>
+            <Link href={`/exams/${structure.slug || structure.id}/edit`}>
               <Edit2 className="w-3.5 h-3.5 mr-1.5" />
               Chỉnh sửa thông số đề
             </Link>

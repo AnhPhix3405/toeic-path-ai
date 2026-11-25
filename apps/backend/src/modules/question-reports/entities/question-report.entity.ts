@@ -26,6 +26,9 @@ export class QuestionReport {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'report_code', type: 'varchar', length: 20, unique: true, insert: false, update: false })
+  reportCode!: string;
+
   @Column({ name: 'question_id', type: 'uuid' })
   questionId!: string;
 

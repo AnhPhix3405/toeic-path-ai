@@ -78,14 +78,10 @@ export function useUpdateExam() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: UpdateExamDto }) =>
       examsService.updateExam(id, dto),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manage-exams"] });
-      queryClient.invalidateQueries({
-        queryKey: ["exam-manage-detail", variables.id],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["exam-structure", variables.id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["exam-manage-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["exam-structure"] });
       toast.success("Cập nhật cấu hình đề thi thành công");
     },
     onError: (err: unknown) => {

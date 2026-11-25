@@ -16,7 +16,7 @@ export class QuestionRepository extends Repository<Question> {
     if (dto.search) {
       const sanitized = dto.search.replace(/[%_\\]/g, '\\$&');
       qb.andWhere(
-        "(COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
+        "(COALESCE(q.questionCode, '') ILIKE :search OR COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
         { search: `%${sanitized}%` },
       );
     }
@@ -90,7 +90,7 @@ export class QuestionRepository extends Repository<Question> {
     if (dto.search) {
       const sanitized = dto.search.replace(/[%_\\]/g, '\\$&');
       qb.andWhere(
-        "(COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
+        "(COALESCE(q.questionCode, '') ILIKE :search OR COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
         { search: `%${sanitized}%` },
       );
     }

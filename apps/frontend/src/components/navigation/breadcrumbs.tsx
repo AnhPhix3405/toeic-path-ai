@@ -44,8 +44,13 @@ const segmentLabels: Record<string, string> = {
 const UUID_SEGMENT_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const SHORT_CODE_REGEX = /^(Q|QG|RP|IMP)-\d{5,}$/i;
+
 function formatSegmentLabel(segment: string, prevSegment?: string): string {
   if (segmentLabels[segment]) return segmentLabels[segment];
+  if (SHORT_CODE_REGEX.test(segment)) {
+    return segment.toUpperCase();
+  }
   if (UUID_SEGMENT_REGEX.test(segment)) {
     if (prevSegment === "exams") return "Chi tiết đề thi";
     if (prevSegment === "exam-attempts") return "Phiên làm bài";

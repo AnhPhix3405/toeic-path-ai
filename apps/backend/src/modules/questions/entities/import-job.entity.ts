@@ -19,6 +19,9 @@ export class ImportJob {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'job_code', type: 'varchar', length: 20, unique: true, insert: false, update: false })
+  jobCode!: string;
+
   @Column({ name: 'file_name', type: 'varchar', length: 255 })
   fileName!: string;
 

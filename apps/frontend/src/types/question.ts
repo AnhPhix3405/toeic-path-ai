@@ -38,12 +38,14 @@ export interface QuestionCreatorSummary {
 
 export interface QuestionGroupSummary {
   id: string;
+  groupCode?: string;
   title: string | null;
   context: string;
 }
 
 export interface Question {
   id: string;
+  questionCode?: string;
   content: string;
   questionType: QuestionType;
   status: QuestionStatus;
@@ -73,6 +75,7 @@ export interface PaginatedQuestions {
 
 export interface QuestionGroup {
   id: string;
+  groupCode?: string;
   title: string | null;
   context: string;
   createdAt: string;
@@ -93,13 +96,13 @@ export interface QueryQuestionsParams {
 }
 
 export interface CreateQuestionDto {
-  content: string;
+  content?: string | null;
   questionType: QuestionType;
   explanation?: string;
 }
 
 export interface UpdateQuestionDto {
-  content?: string;
+  content?: string | null;
   explanation?: string;
 }
 
@@ -116,13 +119,13 @@ export interface AssignQuestionGroupDto {
 }
 
 export interface CreateQuestionOptionDto {
-  content: string;
+  content?: string | null;
   isCorrect?: boolean;
   position: number;
 }
 
 export interface UpdateQuestionOptionDto {
-  content?: string;
+  content?: string | null;
   isCorrect?: boolean;
   position?: number;
 }
@@ -142,7 +145,7 @@ export interface UpdateQuestionGroupDto {
 }
 
 export interface CompositeQuestionInput {
-  content: string;
+  content?: string | null;
   questionType?: QuestionType;
   explanation?: string;
   partId: string;
@@ -150,7 +153,7 @@ export interface CompositeQuestionInput {
   topicIds?: string[];
   skillIds?: string[];
   options: {
-    content: string;
+    content?: string | null;
     isCorrect: boolean;
     position: number;
   }[];

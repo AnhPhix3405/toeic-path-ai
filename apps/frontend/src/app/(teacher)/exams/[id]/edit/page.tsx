@@ -32,6 +32,7 @@ export default function EditExamPage() {
   } = useExamManageDetail(examId);
   const updateMutation = useUpdateExam();
   const [isConflictOpen, setIsConflictOpen] = useState(false);
+  const [serverTitleError, setServerTitleError] = useState<string | null>(null);
 
   if (!examId || isLoading) {
     return (
@@ -56,11 +57,26 @@ export default function EditExamPage() {
   }
 
   const handleSubmit = async (values: ExamFormValues) => {
+    setServerTitleError(null);
     const dto = buildUpdateExamPayload(exam, values);
     try {
       await updateMutation.mutateAsync({ id: exam.id, dto });
       router.push("/exams/manage");
     } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "errorCode" in err &&
+        (err as { errorCode?: string }).errorCode ===
+          "ERR_EXAM_TITLE_ALREADY_EXISTS"
+      ) {
+        const message =
+          "message" in err && typeof (err as { message?: unknown }).message === "string"
+            ? (err as { message: string }).message
+            : "Tiêu đề đề thi đã tồn tại. Vui lòng chọn tiêu đề khác.";
+        setServerTitleError(message);
+        return;
+      }
       if (
         err &&
         typeof err === "object" &&
@@ -100,7 +116,7 @@ export default function EditExamPage() {
         </div>
 
         <Button asChild variant="outline" size="sm" className="rounded-xl text-xs">
-          <Link href={`/exams/${exam.id}/builder`}>
+          <Link href={`/exams/${exam.slug || exam.id}/builder`}>
             <Sliders className="w-3.5 h-3.5 mr-1.5" />
             Mở trình xây dựng cấu trúc (Builder)
           </Link>
@@ -111,6 +127,8 @@ export default function EditExamPage() {
         mode="edit"
         initialExam={exam}
         isSubmitting={updateMutation.isPending}
+        serverTitleError={serverTitleError}
+        onClearServerTitleError={() => setServerTitleError(null)}
         onSubmit={handleSubmit}
         onCancel={() => router.push("/exams/manage")}
       />

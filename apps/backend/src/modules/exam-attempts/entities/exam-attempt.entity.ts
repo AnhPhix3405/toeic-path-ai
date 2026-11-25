@@ -59,6 +59,9 @@ export class ExamAttempt {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'attempt_code', type: 'varchar', length: 20, unique: true })
+  attemptCode!: string;
+
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string;
 

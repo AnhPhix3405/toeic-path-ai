@@ -241,9 +241,13 @@ describe('QuestionsController', () => {
       .expect(403);
     currentRole = UserRole.TEACHER;
     await request(app.getHttpServer())
-      .get('/api/v1/questions/not-a-uuid')
+      .delete('/api/v1/questions/not-a-uuid')
       .set('Authorization', 'Bearer access-token')
       .expect(400);
+    await request(app.getHttpServer())
+      .get('/api/v1/questions/Q-00001')
+      .set('Authorization', 'Bearer access-token')
+      .expect(200);
     await request(app.getHttpServer())
       .post('/api/v1/questions')
       .set('Authorization', 'Bearer access-token')

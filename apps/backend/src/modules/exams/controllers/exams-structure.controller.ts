@@ -58,7 +58,7 @@ export class ExamsStructureController {
   @Get('structure')
   @ApiGetStructureDoc()
   async getStructure(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ExamStructureResponseDto> {
     return this.structureService.getStructure(id, user);

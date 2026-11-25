@@ -17,6 +17,8 @@ import { AbandonAttemptResponseDto } from '../dto/response/abandon-attempt-respo
 import { PartPracticeMode } from '../enums/part-practice-mode.enum';
 import { ExamAttemptStatus } from '../enums/exam-attempt-status.enum';
 import { SnapshotService } from './snapshot.service';
+import { generateAttemptCode } from '../../../common/utils/slug.util';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 @Injectable()
 export class ExamAttemptsService {
@@ -89,6 +91,7 @@ export class ExamAttemptsService {
         errorCode: 'ERR_ANOTHER_EXAM_IN_PROGRESS',
         message: 'Bạn đang có một bài thi dở dang ở đề thi khác',
         attemptId: activeAttempt.id,
+        attemptCode: activeAttempt.attemptCode,
         examTitle: activeAttempt.exam?.title ?? 'Đề thi khác',
         startedAt: activeAttempt.startedAt,
         remainingSeconds: Math.max(
@@ -160,6 +163,7 @@ export class ExamAttemptsService {
         const attempt = this.examAttemptRepository.create({
           userId,
           examId: exam.id,
+          attemptCode: generateAttemptCode(),
           status: ExamAttemptStatus.IN_PROGRESS,
           mode: dto.mode,
           selectedParts: dto.selectedParts ?? null,
@@ -212,6 +216,7 @@ export class ExamAttemptsService {
             errorCode: 'ERR_ANOTHER_EXAM_IN_PROGRESS',
             message: 'Bạn đang có một bài thi dở dang ở đề thi khác',
             attemptId: concurrentAttempt.id,
+            attemptCode: concurrentAttempt.attemptCode,
             examTitle: concurrentAttempt.exam?.title ?? 'Đề thi khác',
             startedAt: concurrentAttempt.startedAt,
             remainingSeconds: Math.max(
@@ -228,11 +233,13 @@ export class ExamAttemptsService {
 
   async abandonAttempt(
     userId: string,
-    attemptId: string,
+    attemptIdentifier: string,
     isAdmin: boolean = false,
   ): Promise<AbandonAttemptResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: { id: attemptId },
+      where: isUuidIdentifier(attemptIdentifier)
+        ? { id: attemptIdentifier }
+        : { attemptCode: attemptIdentifier.trim() },
     });
 
     if (!attempt) {
@@ -324,6 +331,7 @@ export class ExamAttemptsService {
 
     const summary = new ExamAttemptSummaryResponseDto();
     summary.attemptId = attempt.id;
+    summary.attemptCode = attempt.attemptCode;
     summary.examId = attempt.examId;
     summary.examTitle = attempt.exam?.title ?? 'Đề thi';
     summary.status = attempt.status;

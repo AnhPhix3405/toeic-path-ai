@@ -96,4 +96,58 @@ describe("SingleQuestionForm Component", () => {
       expect(screen.getByText("Nội dung câu hỏi phải có ít nhất 3 ký tự")).toBeDefined();
     });
   });
+
+  it("allows empty question content and empty option texts for Part 1 (#1002)", async () => {
+    const part1 = {
+      id: "22222222-2222-4222-a222-222222222222",
+      partNumber: 1,
+      name: "Photographs",
+      description: null,
+    };
+    vi.mocked(classificationHooks.useToeicParts).mockReturnValue({
+      data: [part1, ...mockParts],
+      isLoading: false,
+    } as unknown as ReturnType<typeof classificationHooks.useToeicParts>);
+
+    const draftPart1Question: Question = {
+      id: "q-p1",
+      questionCode: "Q-00001",
+      content: "",
+      questionType: "single_choice",
+      status: "draft",
+      groupOrder: null,
+      explanation: null,
+      options: [
+        { id: "o-1", label: "A", content: "", isCorrect: true, position: 1 },
+        { id: "o-2", label: "B", content: "", isCorrect: false, position: 2 },
+        { id: "o-3", label: "C", content: "", isCorrect: false, position: 3 },
+        { id: "o-4", label: "D", content: "", isCorrect: false, position: 4 },
+      ],
+      part: part1,
+      difficulty: "easy",
+      topics: [],
+      skills: [],
+      createdAt: "2026-03-01T00:00:00Z",
+      updatedAt: "2026-03-01T00:00:00Z",
+    };
+
+    vi.mocked(questionsService.updateQuestion).mockResolvedValue(draftPart1Question);
+    vi.mocked(questionsService.updateClassification).mockResolvedValue(draftPart1Question);
+    vi.mocked(questionsService.setCorrectAnswer).mockResolvedValue(draftPart1Question.options[0]);
+
+    renderWithQuery(<SingleQuestionForm mode="edit" initialQuestion={draftPart1Question} />);
+
+    expect(
+      screen.getByText(/Part 1: Không bắt buộc \(nội dung nằm trong Audio\)/i)
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByText("Cập nhật câu hỏi"));
+
+    await waitFor(() => {
+      expect(questionsService.updateQuestion).toHaveBeenCalledWith("q-p1", {
+        content: "",
+        explanation: undefined,
+      });
+    });
+  });
 });

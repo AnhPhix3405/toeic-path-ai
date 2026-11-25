@@ -51,7 +51,7 @@ export class ExamsController {
   @Get(':id/manage')
   @ApiGetExamManageDoc()
   async getManageDetail(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ExamDetailResponseDto> {
     return this.examsService.findManageDetail(id, user);

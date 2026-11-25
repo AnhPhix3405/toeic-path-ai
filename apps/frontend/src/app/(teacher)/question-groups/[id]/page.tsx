@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
+import { CodeBadge } from "@/components/common/code-badge";
 import { Button } from "@/components/ui/button";
 import { PassageViewer } from "@/features/question-groups/components/passage-viewer";
 import { ChildQuestionsManager } from "@/features/question-groups/components/child-questions-manager";
@@ -73,9 +74,14 @@ export default function QuestionGroupDetailPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
-              {group.title || "Nhóm bài đọc không tiêu đề"}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
+                {group.title || "Nhóm bài đọc không tiêu đề"}
+              </h1>
+              {group.groupCode && (
+                <CodeBadge code={group.groupCode} label="Mã nhóm" />
+              )}
+            </div>
             <p className="text-xs text-slate-400 mt-0.5">
               Gồm {childQuestions.length} câu hỏi con liên kết
             </p>
@@ -112,7 +118,9 @@ export default function QuestionGroupDetailPage() {
           </div>
 
           <Button asChild variant="outline" className="rounded-xl">
-            <Link href={`/question-groups/${group.id}/edit`}>
+            <Link
+              href={`/question-groups/${group.groupCode || group.id}/edit`}
+            >
               <Edit2 className="w-4 h-4 mr-1.5" />
               Sửa bài đọc
             </Link>

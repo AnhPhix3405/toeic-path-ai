@@ -85,7 +85,7 @@ describe('QuestionRepository', () => {
     });
 
     expect(qb.andWhere).toHaveBeenCalledWith(
-      "(COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
+      "(COALESCE(q.questionCode, '') ILIKE :search OR COALESCE(q.content, '') ILIKE :search OR COALESCE(q.explanation, '') ILIKE :search)",
       {
         search: '%discount 50\\% on item\\_price%',
       },

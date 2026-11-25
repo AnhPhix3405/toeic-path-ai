@@ -17,6 +17,7 @@ import {
   BatchSaveAnswersResponseDto,
   FailedBatchItemDto,
 } from '../dto/response/batch-save-answers-response.dto';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 interface SnapshotOption {
   id: string;
@@ -46,9 +47,11 @@ export class ExamAttemptsAnswersService {
    * Helper kiểm tra và xác thực tính hợp lệ của lượt thi khi lưu câu trả lời (PMR 023).
    * Tuyệt đối không cho phép Admin/Teacher can thiệp thay thí sinh.
    */
-  private async getValidAttemptForSave(attemptId: string, userId: string): Promise<ExamAttempt> {
+  private async getValidAttemptForSave(attemptIdentifier: string, userId: string): Promise<ExamAttempt> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: { id: attemptId },
+      where: isUuidIdentifier(attemptIdentifier)
+        ? { id: attemptIdentifier }
+        : { attemptCode: attemptIdentifier.trim() },
     });
 
     if (!attempt) {
@@ -118,10 +121,11 @@ export class ExamAttemptsAnswersService {
    */
   async saveAnswer(
     userId: string,
-    attemptId: string,
+    attemptIdentifier: string,
     dto: SaveAnswerDto,
   ): Promise<SaveAnswerResponseDto> {
-    const attempt = await this.getValidAttemptForSave(attemptId, userId);
+    const attempt = await this.getValidAttemptForSave(attemptIdentifier, userId);
+    const attemptId = attempt.id;
 
     // 1. Thẩm định câu hỏi và option đối chiếu Snapshot
     const questionMap = await this.getSnapshotQuestionMap(attemptId);
@@ -210,10 +214,11 @@ export class ExamAttemptsAnswersService {
    */
   async batchSaveAnswers(
     userId: string,
-    attemptId: string,
+    attemptIdentifier: string,
     dto: BatchSaveAnswersDto,
   ): Promise<BatchSaveAnswersResponseDto> {
-    const attempt = await this.getValidAttemptForSave(attemptId, userId);
+    const attempt = await this.getValidAttemptForSave(attemptIdentifier, userId);
+    const attemptId = attempt.id;
     const now = new Date();
 
     // 1. In-Memory Pre-Validation đối chiếu Snapshot

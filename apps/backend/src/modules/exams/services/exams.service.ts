@@ -19,6 +19,8 @@ import { ExamStatus } from '../enums/exam-status.enum';
 import { ScoreConversionType } from '../enums/score-conversion-type.enum';
 import { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
 import { UserRole } from '../../../common/enums/user-role.enum';
+import { slugifyVietnamese } from '../../../common/utils/slug.util';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 export const FULL_TEST_SECTIONS = [
   { partNumber: 1, targetQuestionsCount: 6, targetDurationMinutes: null },
@@ -50,60 +52,84 @@ export class ExamsService {
       });
     }
 
-    return this.dataSource.transaction(async (manager) => {
-      const exam = manager.create(Exam, {
-        title: dto.title,
-        description: dto.description ?? null,
-        type: dto.type,
-        durationMinutes: dto.durationMinutes,
-        maxAttempts: dto.maxAttempts ?? null,
-        passingScore: dto.passingScore ?? null,
-        openAt: dto.openAt ? new Date(dto.openAt) : null,
-        closeAt: dto.closeAt ? new Date(dto.closeAt) : null,
-        allowPartPractice: dto.allowPartPractice ?? true,
-        isShuffledQuestions: dto.isShuffledQuestions ?? false,
-        isShuffledOptions: dto.isShuffledOptions ?? false,
-        scoreConversionType: dto.scoreConversionType ?? ScoreConversionType.DEFAULT_ETS,
-        status: ExamStatus.DRAFT,
-        version: 1,
-        createdBy: user.id,
-        isDeleted: false,
-      });
+    await this.assertUniqueActiveTitle(dto.title);
 
-      const savedExam = await manager.save(Exam, exam);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const slug = await this.resolveUniqueSlug(dto.title, undefined, attempt);
 
-      let sections: ExamSection[] = [];
-      if (dto.type === ExamType.FULL_TEST) {
-        const parts = await manager.find(ToeicPart, { order: { partNumber: 'ASC' } });
-        if (parts.length < 7) {
-          throw new UnprocessableEntityException({
-            message: 'Ngân hàng dữ liệu TOEIC Parts chưa đủ 7 phần chuẩn để khởi tạo Full Test.',
-            code: 'ERR_TOEIC_PARTS_INCOMPLETE',
+      try {
+        return await this.dataSource.transaction(async (manager) => {
+          const exam = manager.create(Exam, {
+            title: dto.title.trim(),
+            slug,
+            description: dto.description ?? null,
+            type: dto.type,
+            durationMinutes: dto.durationMinutes,
+            maxAttempts: dto.maxAttempts ?? null,
+            passingScore: dto.passingScore ?? null,
+            openAt: dto.openAt ? new Date(dto.openAt) : null,
+            closeAt: dto.closeAt ? new Date(dto.closeAt) : null,
+            allowPartPractice: dto.allowPartPractice ?? true,
+            isShuffledQuestions: dto.isShuffledQuestions ?? false,
+            isShuffledOptions: dto.isShuffledOptions ?? false,
+            scoreConversionType: dto.scoreConversionType ?? ScoreConversionType.DEFAULT_ETS,
+            status: ExamStatus.DRAFT,
+            version: 1,
+            createdBy: user.id,
+            isDeleted: false,
           });
-        }
 
-        const partMap = new Map<number, ToeicPart>(parts.map((p) => [p.partNumber, p]));
-        sections = FULL_TEST_SECTIONS.map((standard) => {
-          const part = partMap.get(standard.partNumber)!;
-          return manager.create(ExamSection, {
-            examId: savedExam.id,
-            partId: part.id,
-            part,
-            targetQuestionsCount: standard.targetQuestionsCount,
-            targetDurationMinutes: standard.targetDurationMinutes,
-          });
+          const savedExam = await manager.save(Exam, exam);
+
+          let sections: ExamSection[] = [];
+          if (dto.type === ExamType.FULL_TEST) {
+            const parts = await manager.find(ToeicPart, { order: { partNumber: 'ASC' } });
+            if (parts.length < 7) {
+              throw new UnprocessableEntityException({
+                message: 'Ngân hàng dữ liệu TOEIC Parts chưa đủ 7 phần chuẩn để khởi tạo Full Test.',
+                code: 'ERR_TOEIC_PARTS_INCOMPLETE',
+              });
+            }
+
+            const partMap = new Map<number, ToeicPart>(parts.map((p) => [p.partNumber, p]));
+            sections = FULL_TEST_SECTIONS.map((standard) => {
+              const part = partMap.get(standard.partNumber)!;
+              return manager.create(ExamSection, {
+                examId: savedExam.id,
+                partId: part.id,
+                part,
+                targetQuestionsCount: standard.targetQuestionsCount,
+                targetDurationMinutes: standard.targetDurationMinutes,
+              });
+            });
+
+            await manager.save(ExamSection, sections);
+          }
+
+          return this.mapToDetailDto(savedExam, sections);
         });
-
-        await manager.save(ExamSection, sections);
+      } catch (error) {
+        if (this.isSlugUniqueViolation(error) && attempt < 2) {
+          continue;
+        }
+        this.rethrowKnownUniqueViolation(error);
+        throw error;
       }
+    }
 
-      return this.mapToDetailDto(savedExam, sections);
+    throw new ConflictException({
+      errorCode: 'ERR_EXAM_SLUG_CONFLICT',
+      message: 'Không thể khởi tạo đường dẫn (slug) duy nhất cho đề thi. Vui lòng thử lại.',
     });
   }
 
-  async findManageDetail(examId: string, user: AuthenticatedUser): Promise<ExamDetailResponseDto> {
+  async findManageDetail(identifier: string, user: AuthenticatedUser): Promise<ExamDetailResponseDto> {
+    const whereClause = isUuidIdentifier(identifier)
+      ? { id: identifier, isDeleted: false }
+      : { slug: identifier.trim().toLowerCase(), isDeleted: false };
+
     const exam = await this.examRepo.findOne({
-      where: { id: examId, isDeleted: false },
+      where: whereClause,
       relations: { sections: { part: true } },
     });
 
@@ -178,7 +204,19 @@ export class ExamsService {
       });
     }
 
-    if (dto.title !== undefined) exam.title = dto.title;
+    const titleChanged =
+      dto.title !== undefined && dto.title.trim().toLowerCase() !== exam.title.trim().toLowerCase();
+
+    if (dto.title !== undefined) {
+      if (titleChanged) {
+        await this.assertUniqueActiveTitle(dto.title, exam.id);
+      }
+      exam.title = dto.title.trim();
+      // Decision 1A: Only regenerate slug while exam is still in DRAFT; immutable once published/closed/archived
+      if (exam.status === ExamStatus.DRAFT && titleChanged) {
+        exam.slug = await this.resolveUniqueSlug(exam.title, exam.id);
+      }
+    }
     if (dto.description !== undefined) exam.description = dto.description ?? null;
 
     if (!isLocked) {
@@ -196,8 +234,13 @@ export class ExamsService {
     if (dto.closeAt !== undefined) exam.closeAt = effectiveCloseAt;
 
     exam.version = exam.version + 1;
-    const savedExam = await this.examRepo.save(exam);
-    return this.mapToDetailDto(savedExam, exam.sections);
+    try {
+      const savedExam = await this.examRepo.save(exam);
+      return this.mapToDetailDto(savedExam, exam.sections);
+    } catch (error) {
+      this.rethrowKnownUniqueViolation(error);
+      throw error;
+    }
   }
 
   async remove(
@@ -248,6 +291,83 @@ export class ExamsService {
     return Promise.resolve(0);
   }
 
+  protected async assertUniqueActiveTitle(title: string, excludeExamId?: string): Promise<void> {
+    if (typeof this.examRepo.createQueryBuilder !== 'function') {
+      return;
+    }
+    const qb = this.examRepo
+      .createQueryBuilder('exam')
+      .select('exam.id')
+      .where('LOWER(TRIM(exam.title)) = LOWER(TRIM(:title))', { title })
+      .andWhere('exam.isDeleted = false');
+
+    if (excludeExamId) {
+      qb.andWhere('exam.id != :excludeExamId', { excludeExamId });
+    }
+
+    const existing = await qb.getOne();
+    if (existing) {
+      throw new ConflictException({
+        errorCode: 'ERR_EXAM_TITLE_ALREADY_EXISTS',
+        code: 'ERR_EXAM_TITLE_ALREADY_EXISTS',
+        message: 'Tiêu đề đề thi đã tồn tại. Vui lòng chọn tiêu đề khác.',
+      });
+    }
+  }
+
+  protected async resolveUniqueSlug(
+    title: string,
+    excludeExamId?: string,
+    retryOffset = 0,
+  ): Promise<string> {
+    const base = slugifyVietnamese(title);
+    if (typeof this.examRepo.findOne !== 'function') {
+      return retryOffset > 0 ? `${base}-${retryOffset + 1}` : base;
+    }
+
+    let suffix = retryOffset > 0 ? retryOffset + 1 : 1;
+    while (suffix < 1000) {
+      const candidate = suffix === 1 ? base : `${base}-${suffix}`;
+      const existing = await this.examRepo.findOne({
+        where: { slug: candidate },
+        select: { id: true, slug: true },
+      });
+      if (!existing || existing.id === excludeExamId) {
+        return candidate;
+      }
+      suffix++;
+    }
+    return `${base}-${Date.now()}`;
+  }
+
+  private isSlugUniqueViolation(error: unknown): boolean {
+    const err = error as {
+      code?: string;
+      constraint?: string;
+      driverError?: { code?: string; constraint?: string };
+    } | null;
+    const pgCode = err?.driverError?.code ?? err?.code;
+    const constraint = err?.driverError?.constraint ?? err?.constraint;
+    return pgCode === '23505' && constraint === 'uq_exams_slug';
+  }
+
+  private rethrowKnownUniqueViolation(error: unknown): void {
+    const err = error as {
+      code?: string;
+      constraint?: string;
+      driverError?: { code?: string; constraint?: string };
+    } | null;
+    const pgCode = err?.driverError?.code ?? err?.code;
+    const constraint = err?.driverError?.constraint ?? err?.constraint;
+    if (pgCode === '23505' && constraint === 'uq_exams_active_title') {
+      throw new ConflictException({
+        errorCode: 'ERR_EXAM_TITLE_ALREADY_EXISTS',
+        code: 'ERR_EXAM_TITLE_ALREADY_EXISTS',
+        message: 'Tiêu đề đề thi đã tồn tại. Vui lòng chọn tiêu đề khác.',
+      });
+    }
+  }
+
   private mapToDetailDto(exam: Exam, sections?: ExamSection[]): ExamDetailResponseDto {
     const sortedSections = [...(sections ?? [])].sort((a, b) => {
       const pA = a.part?.partNumber ?? 0;
@@ -258,6 +378,7 @@ export class ExamsService {
     return {
       id: exam.id,
       title: exam.title,
+      slug: exam.slug,
       description: exam.description,
       type: exam.type,
       durationMinutes: exam.durationMinutes,

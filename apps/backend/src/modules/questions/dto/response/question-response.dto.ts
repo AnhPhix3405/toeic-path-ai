@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionStatus } from '../../enums/question-status.enum';
 import { QuestionType } from '../../enums/question-type.enum';
 import { QuestionOptionResponseDto } from './question-option-response.dto';
@@ -8,6 +8,9 @@ import { TaxonomyItemResponseDto, ToeicPartResponseDto } from './classification-
 export class QuestionResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
+
+  @ApiPropertyOptional({ example: 'Q-00001' })
+  questionCode?: string;
 
   @ApiProperty({ example: 'Where is the meeting being held?', nullable: true })
   content!: string | null;

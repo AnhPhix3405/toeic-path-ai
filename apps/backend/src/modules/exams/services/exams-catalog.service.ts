@@ -17,6 +17,7 @@ import {
 import { PaginatedExamsCatalogResponseDto } from '../dto/response/paginated-exams-catalog-response.dto';
 import { PaginatedManageExamsResponseDto } from '../dto/response/paginated-manage-exams-response.dto';
 import { ExamDetailResponseDto } from '../dto/response/exam-detail-response.dto';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 @Injectable()
 export class ExamsCatalogService {
@@ -49,7 +50,9 @@ export class ExamsCatalogService {
     }
 
     if (query.search && query.search.trim()) {
-      qb.andWhere('LOWER(exam.title) LIKE LOWER(:search)', { search: `%${query.search.trim()}%` });
+      qb.andWhere('(LOWER(exam.title) LIKE LOWER(:search) OR LOWER(exam.slug) LIKE LOWER(:search))', {
+        search: `%${query.search.trim()}%`,
+      });
     }
 
     // Tối ưu hóa đếm tổng số câu hỏi bằng subquery trực tiếp ở tầng SQL
@@ -81,6 +84,7 @@ export class ExamsCatalogService {
       return {
         id: exam.id,
         title: exam.title,
+        slug: exam.slug,
         description: exam.description,
         type: exam.type,
         durationMinutes: exam.durationMinutes,
@@ -136,7 +140,9 @@ export class ExamsCatalogService {
     }
 
     if (query.search && query.search.trim()) {
-      qb.andWhere('LOWER(exam.title) LIKE LOWER(:search)', { search: `%${query.search.trim()}%` });
+      qb.andWhere('(LOWER(exam.title) LIKE LOWER(:search) OR LOWER(exam.slug) LIKE LOWER(:search))', {
+        search: `%${query.search.trim()}%`,
+      });
     }
 
     qb.orderBy('exam.createdAt', 'DESC');
@@ -147,6 +153,7 @@ export class ExamsCatalogService {
     const items: ExamDetailResponseDto[] = exams.map((exam) => ({
       id: exam.id,
       title: exam.title,
+      slug: exam.slug,
       description: exam.description,
       type: exam.type,
       durationMinutes: exam.durationMinutes,
@@ -184,11 +191,15 @@ export class ExamsCatalogService {
    * Tuyệt đối không trả về câu hỏi, đáp án đúng hay lời giải thích.
    */
   async getExamOverview(
-    examId: string,
+    identifier: string,
     user?: AuthenticatedUser | null,
   ): Promise<ExamOverviewResponseDto> {
+    const whereClause = isUuidIdentifier(identifier)
+      ? { id: identifier, isDeleted: false }
+      : { slug: identifier.trim().toLowerCase(), isDeleted: false };
+
     const exam = await this.examRepo.findOne({
-      where: { id: examId, isDeleted: false },
+      where: whereClause,
     });
 
     if (!exam || exam.status !== ExamStatus.PUBLISHED) {
@@ -208,9 +219,9 @@ export class ExamsCatalogService {
 
     const isScheduled = exam.openAt ? new Date(exam.openAt).getTime() > now.getTime() : false;
 
-    // Load sections và part sắp xếp theo partNumber ASC
+    // Load sections và part sắp xếp theo partNumber ASC (dùng canonical exam.id)
     const sections = await this.examSectionRepo.find({
-      where: { examId },
+      where: { examId: exam.id },
       relations: { part: true },
     });
 
@@ -221,7 +232,7 @@ export class ExamsCatalogService {
       .createQueryBuilder('eq')
       .select('eq.examSectionId', 'sectionId')
       .addSelect('COUNT(eq.id)', 'count')
-      .where('eq.examId = :examId', { examId })
+      .where('eq.examId = :examId', { examId: exam.id })
       .groupBy('eq.examSectionId')
       .getRawMany<{ sectionId: string; count: string }>();
 
@@ -245,13 +256,13 @@ export class ExamsCatalogService {
     // Tính remainingAttempts
     let remainingAttempts: number | null = null;
     if (user && exam.maxAttempts !== null) {
-      // Trong Sprint 5, chưa có bảng exam_attempts (thuộc Sprint 6) nên số lượt còn lại = maxAttempts
       remainingAttempts = exam.maxAttempts;
     }
 
     return {
       id: exam.id,
       title: exam.title,
+      slug: exam.slug,
       description: exam.description,
       type: exam.type,
       durationMinutes: exam.durationMinutes,

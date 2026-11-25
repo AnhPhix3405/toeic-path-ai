@@ -42,6 +42,9 @@ export class ExamStructureResponseDto {
   @ApiProperty({ example: 'ETS TOEIC 2026 Test 01' })
   title!: string;
 
+  @ApiPropertyOptional({ example: 'ets-toeic-2026-test-01' })
+  slug?: string;
+
   @ApiProperty({ enum: ExamType, example: ExamType.FULL_TEST })
   type!: ExamType;
 

@@ -18,6 +18,7 @@ export interface ExamSectionItem {
 export interface ExamDetail {
   id: string;
   title: string;
+  slug?: string;
   description: string | null;
   type: ExamType;
   durationMinutes: number;
@@ -56,6 +57,7 @@ export interface ExamQuestionItem {
 export interface ExamStructure {
   id: string;
   title: string;
+  slug?: string;
   type: ExamType;
   status: ExamStatus;
   version: number;
@@ -79,6 +81,7 @@ export interface ExamPublishResult {
 export interface ExamCatalogItem {
   id: string;
   title: string;
+  slug?: string;
   description: string | null;
   type: ExamType;
   durationMinutes: number;
@@ -100,6 +103,7 @@ export interface ExamPartOverview {
 export interface ExamOverview {
   id: string;
   title: string;
+  slug?: string;
   description: string | null;
   type: ExamType;
   durationMinutes: number;

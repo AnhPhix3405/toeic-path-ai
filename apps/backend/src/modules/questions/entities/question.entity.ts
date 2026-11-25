@@ -29,6 +29,9 @@ export class Question {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'question_code', type: 'varchar', length: 20, unique: true, insert: false, update: false })
+  questionCode!: string;
+
   @Column({ type: 'text', nullable: true })
   content!: string | null;
 

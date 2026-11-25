@@ -49,9 +49,8 @@ export function useUpdateQuestionGroup() {
       id: string;
       dto: UpdateQuestionGroupDto;
     }) => questionGroupsService.updateQuestionGroup(id, dto),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["question-groups"] });
-      queryClient.invalidateQueries({ queryKey: ["question-groups", variables.id] });
       toast.success("Cập nhật nhóm câu hỏi thành công");
     },
     onError: (err: unknown) => {

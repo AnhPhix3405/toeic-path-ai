@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
@@ -16,11 +16,29 @@ import {
 export default function CreateExamPage() {
   const router = useRouter();
   const createMutation = useCreateExam();
+  const [serverTitleError, setServerTitleError] = useState<string | null>(null);
 
   const handleSubmit = async (values: ExamFormValues) => {
+    setServerTitleError(null);
     const dto = buildCreateExamPayload(values);
-    const created = await createMutation.mutateAsync(dto);
-    router.push(`/exams/${created.id}/builder`);
+    try {
+      const created = await createMutation.mutateAsync(dto);
+      router.push(`/exams/${created.slug || created.id}/builder`);
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "errorCode" in err &&
+        (err as { errorCode?: string }).errorCode ===
+          "ERR_EXAM_TITLE_ALREADY_EXISTS"
+      ) {
+        const message =
+          "message" in err && typeof (err as { message?: unknown }).message === "string"
+            ? (err as { message: string }).message
+            : "Tiêu đề đề thi đã tồn tại. Vui lòng chọn tiêu đề khác.";
+        setServerTitleError(message);
+      }
+    }
   };
 
   return (
@@ -52,6 +70,8 @@ export default function CreateExamPage() {
       <ExamForm
         mode="create"
         isSubmitting={createMutation.isPending}
+        serverTitleError={serverTitleError}
+        onClearServerTitleError={() => setServerTitleError(null)}
         onSubmit={handleSubmit}
         onCancel={() => router.push("/exams/manage")}
       />

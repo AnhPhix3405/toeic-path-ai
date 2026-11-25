@@ -35,6 +35,7 @@ import { QuestionStatusBadge } from "./question-status-badge";
 import { QuestionDifficultyBadge } from "./question-difficulty-badge";
 import { DeleteQuestionDialog } from "./delete-question-dialog";
 import { EmptyQuestionState } from "./empty-question-state";
+import { CodeBadge } from "@/components/common/code-badge";
 import { useDeleteQuestion, useQuestions } from "@/hooks/use-questions";
 import { useSubmitQuestionsForReview } from "@/hooks/use-questions-import";
 import { useQuestionFilterStore } from "@/stores/question-filter.store";
@@ -332,9 +333,17 @@ export function QuestionTable() {
 
                     {/* Content */}
                     <TableCell>
-                      <div className="max-w-[480px]">
+                      <div className="max-w-[480px] space-y-1">
+                        {question.questionCode && (
+                          <div>
+                            <CodeBadge
+                              code={question.questionCode}
+                              label="Mã câu hỏi"
+                            />
+                          </div>
+                        )}
                         <Link
-                          href={`/questions/${question.id}`}
+                          href={`/questions/${question.questionCode || question.id}`}
                           className="text-sm font-medium text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 line-clamp-2"
                         >
                           {question.content || (
@@ -391,14 +400,18 @@ export function QuestionTable() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
                           <DropdownMenuItem asChild>
-                            <Link href={`/questions/${question.id}`}>
+                            <Link
+                              href={`/questions/${question.questionCode || question.id}`}
+                            >
                               <Eye className="w-4 h-4 mr-2" />
                               Xem chi tiết
                             </Link>
                           </DropdownMenuItem>
 
                           <DropdownMenuItem asChild>
-                            <Link href={`/questions/${question.id}/edit`}>
+                            <Link
+                              href={`/questions/${question.questionCode || question.id}/edit`}
+                            >
                               <Edit2 className="w-4 h-4 mr-2" />
                               Chỉnh sửa
                             </Link>

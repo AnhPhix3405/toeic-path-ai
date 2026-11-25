@@ -31,6 +31,7 @@ import { ExamAttempt } from '../entities/exam-attempt.entity';
 import { AttemptReviewFilter } from '../enums/attempt-review-filter.enum';
 import { ExamAttemptStatus } from '../enums/exam-attempt-status.enum';
 import { PartPracticeMode } from '../enums/part-practice-mode.enum';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 interface SnapshotOption {
   id: string;
@@ -86,7 +87,9 @@ export class ExamAttemptsResultsService {
     isAdmin: boolean = false,
   ): Promise<ExamAttemptResultResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: { id: attemptId },
+      where: isUuidIdentifier(attemptId)
+        ? { id: attemptId }
+        : { attemptCode: attemptId.trim() },
     });
 
     this.ensureAttemptSubmittedAndGraded(attempt, userId, isAdmin);
@@ -170,6 +173,7 @@ export class ExamAttemptsResultsService {
       .leftJoin('attempt.exam', 'exam')
       .select([
         'attempt.id',
+        'attempt.attemptCode',
         'attempt.examId',
         'attempt.mode',
         'attempt.selectedParts',
@@ -213,6 +217,7 @@ export class ExamAttemptsResultsService {
 
     const items: ExamAttemptHistoryItemDto[] = attempts.map((attempt) => ({
       attemptId: attempt.id,
+      attemptCode: attempt.attemptCode,
       examId: attempt.examId,
       examTitle: attempt.exam?.title ?? 'Đề thi không xác định',
       mode: attempt.mode,
@@ -250,7 +255,9 @@ export class ExamAttemptsResultsService {
     isAdmin: boolean = false,
   ): Promise<ExamAttemptReviewResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: { id: attemptId },
+      where: isUuidIdentifier(attemptId)
+        ? { id: attemptId }
+        : { attemptCode: attemptId.trim() },
     });
 
     this.ensureAttemptSubmittedAndGraded(attempt, userId, isAdmin);

@@ -170,7 +170,9 @@ export function PublicExamCardGrid({
                   size="sm"
                   className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
                 >
-                  <Link href={`/exams/${exam.id}`}>Chi tiết đề thi</Link>
+                  <Link href={`/exams/${exam.slug || exam.id}`}>
+                    Chi tiết đề thi
+                  </Link>
                 </Button>
               </div>
             </div>

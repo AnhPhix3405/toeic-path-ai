@@ -36,6 +36,9 @@ export class ExamDetailResponseDto {
   @ApiProperty({ example: 'ETS TOEIC 2026 Test 01' })
   title!: string;
 
+  @ApiPropertyOptional({ example: 'ets-toeic-2026-test-01' })
+  slug?: string;
+
   @ApiPropertyOptional({ example: 'Đề thi thử TOEIC chuẩn format 2026', nullable: true })
   description!: string | null;
 

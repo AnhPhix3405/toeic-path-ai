@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExamAttemptStatus } from '../../enums/exam-attempt-status.enum';
 import { PartPracticeMode } from '../../enums/part-practice-mode.enum';
 
@@ -8,6 +8,12 @@ export class ExamAttemptHistoryItemDto {
     description: 'ID của lượt làm bài thi',
   })
   attemptId!: string;
+
+  @ApiPropertyOptional({
+    example: 'att_9xK2mP7qR4',
+    description: 'Mã ngắn chống IDOR của lượt thi hiển thị trên URL',
+  })
+  attemptCode?: string;
 
   @ApiProperty({
     example: '10000000-0000-4000-8000-000000000001',

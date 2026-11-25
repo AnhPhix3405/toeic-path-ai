@@ -4,7 +4,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -69,7 +68,7 @@ export class ExamsCatalogController {
   @UseGuards(OptionalJwtAuthGuard)
   @ApiExamOverviewDoc()
   async getExamOverview(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser() user?: AuthenticatedUser | null,
   ): Promise<ExamOverviewResponseDto> {
     return this.catalogService.getExamOverview(id, user);

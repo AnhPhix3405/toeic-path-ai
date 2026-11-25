@@ -28,6 +28,7 @@ import { ExamStatus } from '../enums/exam-status.enum';
 import { QuestionStatus } from '../../questions/enums/question-status.enum';
 import { AuthenticatedUser } from '../../../common/interfaces/authenticated-user.interface';
 import { UserRole } from '../../../common/enums/user-role.enum';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 @Injectable()
 export class ExamsStructureService {
@@ -651,13 +652,17 @@ export class ExamsStructureService {
    * Internal query method cho getStructure (có thể dùng trong hoặc ngoài transaction)
    */
   private async getStructureInternal(
-    examId: string,
+    examIdentifier: string,
     user: AuthenticatedUser,
     manager?: EntityManager,
   ): Promise<ExamStructureResponseDto> {
+    const whereClause = isUuidIdentifier(examIdentifier)
+      ? { id: examIdentifier, isDeleted: false }
+      : { slug: examIdentifier.trim().toLowerCase(), isDeleted: false };
+
     const exam = manager
       ? await manager.findOne(Exam, {
-          where: { id: examId, isDeleted: false },
+          where: whereClause,
           relations: {
             sections: { part: true },
             questions: {
@@ -669,7 +674,7 @@ export class ExamsStructureService {
           },
         })
       : await this.examRepo.findOne({
-          where: { id: examId, isDeleted: false },
+          where: whereClause,
           relations: {
             sections: { part: true },
             questions: {
@@ -734,6 +739,7 @@ export class ExamsStructureService {
     return {
       id: exam.id,
       title: exam.title,
+      slug: exam.slug,
       type: exam.type,
       status: exam.status,
       version: exam.version,

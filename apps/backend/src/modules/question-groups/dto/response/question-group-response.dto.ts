@@ -5,6 +5,9 @@ export class QuestionGroupResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
+  @ApiPropertyOptional({ example: 'QG-00001' })
+  groupCode?: string;
+
   @ApiPropertyOptional({ example: 'Questions 151-153', nullable: true })
   title!: string | null;
 

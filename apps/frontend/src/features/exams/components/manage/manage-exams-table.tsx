@@ -33,6 +33,7 @@ import {
   ExamStatusBadge,
   ExamTypeBadge,
 } from "@/features/exams/components/exam-badges";
+import { CodeBadge } from "@/components/common/code-badge";
 import { ExamDetail } from "@/types/exam";
 
 export interface ManageExamsTableProps {
@@ -174,13 +175,21 @@ export function ManageExamsTable({
                   className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
                 >
                   <TableCell>
-                    <div className="max-w-[380px] space-y-0.5">
+                    <div className="max-w-[380px] space-y-1">
                       <Link
-                        href={`/exams/${exam.id}/builder`}
+                        href={`/exams/${exam.slug || exam.id}/builder`}
                         className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 line-clamp-1"
                       >
                         {exam.title}
                       </Link>
+                      {exam.slug && (
+                        <div>
+                          <CodeBadge
+                            code={exam.slug}
+                            label="Slug đề thi"
+                          />
+                        </div>
+                      )}
                       {exam.description && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
                           {exam.description}
@@ -231,7 +240,7 @@ export function ManageExamsTable({
                         size="sm"
                         className="h-8 rounded-xl text-xs"
                       >
-                        <Link href={`/exams/${exam.id}/builder`}>
+                        <Link href={`/exams/${exam.slug || exam.id}/builder`}>
                           <Sliders className="w-3.5 h-3.5 mr-1.5" />
                           Cấu trúc đề
                         </Link>
@@ -251,13 +260,13 @@ export function ManageExamsTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem asChild>
-                            <Link href={`/exams/${exam.id}/builder`}>
+                            <Link href={`/exams/${exam.slug || exam.id}/builder`}>
                               <Sliders className="w-4 h-4 mr-2" />
                               Cấu trúc & Xuất bản
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/exams/${exam.id}/edit`}>
+                            <Link href={`/exams/${exam.slug || exam.id}/edit`}>
                               <Edit2 className="w-4 h-4 mr-2" />
                               Chỉnh sửa cấu hình
                             </Link>

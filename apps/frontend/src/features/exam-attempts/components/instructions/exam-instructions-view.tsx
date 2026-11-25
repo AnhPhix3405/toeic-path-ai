@@ -105,7 +105,9 @@ export function ExamInstructionsView({
       } else {
         toast.success("Khởi tạo phòng thi thành công. Chúc bạn làm bài tốt!");
       }
-      router.push(`/exam-attempts/${summary.attemptId}`);
+      router.push(
+        `/exam-attempts/${summary.attemptCode || summary.attemptId}`
+      );
     } catch (error) {
       const conflictData = extractAnotherExamConflict(error);
       if (conflictData) {
@@ -163,7 +165,7 @@ export function ExamInstructionsView({
           size="sm"
           className="rounded-xl text-xs"
         >
-          <Link href={`/exams/${overview.id}`}>
+          <Link href={`/exams/${overview.slug || overview.id}`}>
             <ArrowLeft className="w-4 h-4 mr-1.5" />
             Quay lại tổng quan đề thi
           </Link>
@@ -292,8 +294,9 @@ export function ExamInstructionsView({
         isAbandoning={isAbandoning}
         onClose={() => setConflict(null)}
         onResumeOldAttempt={(attemptId) => {
+          const target = conflict?.attemptCode || attemptId;
           setConflict(null);
-          router.push(`/exam-attempts/${attemptId}`);
+          router.push(`/exam-attempts/${target}`);
         }}
         onAbandonAndStartNew={handleAbandonAndRetry}
       />

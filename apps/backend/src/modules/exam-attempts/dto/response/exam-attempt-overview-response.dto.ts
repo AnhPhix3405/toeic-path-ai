@@ -23,6 +23,9 @@ export class ExamAttemptOverviewResponseDto {
   @ApiProperty({ example: '50000000-0000-4000-8000-000000000001' })
   id!: string;
 
+  @ApiPropertyOptional({ example: 'att_9xK2mP7qR4' })
+  attemptCode?: string;
+
   @ApiProperty({ example: '30000000-0000-4000-8000-000000000001' })
   examId!: string;
 

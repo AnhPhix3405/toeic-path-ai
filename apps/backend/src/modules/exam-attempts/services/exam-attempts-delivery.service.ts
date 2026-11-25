@@ -20,6 +20,7 @@ import {
   QuestionGroupDeliveryDto,
 } from '../dto/response/exam-attempt-questions-response.dto';
 import { PartPracticeMode } from '../enums/part-practice-mode.enum';
+import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 interface SnapshotOption {
   id: string;
@@ -69,7 +70,9 @@ export class ExamAttemptsDeliveryService {
     // 1. Tối ưu hóa hiệu năng & Chống Memory Leak (PMR 018):
     // Chỉ query các trường cần thiết từ exam_attempts, không eager load snapshot
     const attempt = await this.examAttemptRepository.findOne({
-      where: { id: attemptId },
+      where: isUuidIdentifier(attemptId)
+        ? { id: attemptId }
+        : { attemptCode: attemptId.trim() },
       relations: { exam: true },
     });
 
@@ -94,9 +97,9 @@ export class ExamAttemptsDeliveryService {
     );
     const isExpired = now.getTime() > attempt.expiresAt.getTime() + 30000;
 
-    // 3. Lấy các câu trả lời đã lưu từ exam_attempt_answers
+    // 3. Lấy các câu trả lời đã lưu từ exam_attempt_answers (dùng canonical attempt.id)
     const answers = await this.examAttemptAnswerRepository.find({
-      where: { attemptId },
+      where: { attemptId: attempt.id },
     });
 
     const answerMap = new Map<string, ExamAttemptAnswer>();
@@ -116,7 +119,7 @@ export class ExamAttemptsDeliveryService {
     // 4. PMR 022: Ma trận tiến độ (questionsProgress) đầy đủ 1..N
     // Truy vấn trực tiếp snapshot để lấy danh mục id, partNumber, orderIndex của toàn bộ câu hỏi
     const snapshot = await this.examAttemptSnapshotRepository.findOne({
-      where: { attemptId },
+      where: { attemptId: attempt.id },
       select: { id: true, shuffledQuestions: true },
     });
 
@@ -138,6 +141,7 @@ export class ExamAttemptsDeliveryService {
 
     const overview = new ExamAttemptOverviewResponseDto();
     overview.id = attempt.id;
+    overview.attemptCode = attempt.attemptCode;
     overview.examId = attempt.examId;
     overview.examTitle = attempt.exam?.title ?? 'Đề thi';
     overview.status = attempt.status;
@@ -163,7 +167,9 @@ export class ExamAttemptsDeliveryService {
     isAdmin: boolean = false,
   ): Promise<ExamAttemptQuestionsResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: { id: attemptId },
+      where: isUuidIdentifier(attemptId)
+        ? { id: attemptId }
+        : { attemptCode: attemptId.trim() },
     });
 
     if (!attempt) {
@@ -191,9 +197,9 @@ export class ExamAttemptsDeliveryService {
       }
     }
 
-    // PMR 022: Truy vấn snapshot trực tiếp qua Repository
+    // PMR 022: Truy vấn snapshot trực tiếp qua Repository (dùng canonical attempt.id)
     const snapshot = await this.examAttemptSnapshotRepository.findOne({
-      where: { attemptId },
+      where: { attemptId: attempt.id },
     });
 
     if (!snapshot) {
@@ -208,9 +214,9 @@ export class ExamAttemptsDeliveryService {
       (snapshot.shuffledQuestions || []) as unknown as SnapshotQuestion[]
     ).filter((q) => query.partNumber == null || q.partNumber === query.partNumber);
 
-    // Nạp lại các câu trả lời của lượt thi
+    // Nạp lại các câu trả lời của lượt thi (dùng canonical attempt.id)
     const savedAnswers = await this.examAttemptAnswerRepository.find({
-      where: { attemptId },
+      where: { attemptId: attempt.id },
     });
     const answerMap = new Map<string, ExamAttemptAnswer>();
     for (const ans of savedAnswers) {

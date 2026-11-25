@@ -158,9 +158,10 @@ export function ExamOverviewModal({
                   overview.isScheduled ||
                   (overview.remainingAttempts === 0 &&
                     !overview.allowPartPractice);
+                const examSlugOrId = overview.slug || overview.id;
                 const targetHref = isOnlyPartPracticeAvailable
-                  ? `/exams/${overview.id}/instructions?mode=part_practice`
-                  : `/exams/${overview.id}/instructions`;
+                  ? `/exams/${examSlugOrId}/instructions?mode=part_practice`
+                  : `/exams/${examSlugOrId}/instructions`;
 
                 if (isBlocked) {
                   return (

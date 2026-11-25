@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
+import { CodeBadge } from "@/components/common/code-badge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuestionStatusBadge } from "@/features/questions/components/question-status-badge";
@@ -47,10 +48,11 @@ export default function QuestionDetailPage() {
     refetch,
   } = useQuestion(questionId);
 
+  const canonicalQuestionId = question?.id ?? null;
   const { data: reviewLogs, isLoading: isLogsLoading } =
-    useQuestionReviewLogs(questionId);
+    useQuestionReviewLogs(canonicalQuestionId);
   const { data: histories, isLoading: isHistoriesLoading } =
-    useQuestionHistories(questionId);
+    useQuestionHistories(canonicalQuestionId);
 
   if (!questionId || isLoading || isPending) {
     return (
@@ -124,13 +126,21 @@ export default function QuestionDetailPage() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">ID: {question.id}</p>
+            <div className="mt-1 flex items-center gap-2">
+              {question.questionCode ? (
+                <CodeBadge code={question.questionCode} label="Mã câu hỏi" />
+              ) : (
+                <p className="text-xs text-slate-400">ID: {question.id}</p>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <Button asChild variant="outline" className="rounded-xl">
-            <Link href={`/questions/${question.id}/edit`}>
+            <Link
+              href={`/questions/${question.questionCode || question.id}/edit`}
+            >
               <Edit2 className="w-4 h-4 mr-1.5" />
               Chỉnh sửa
             </Link>
@@ -174,7 +184,9 @@ export default function QuestionDetailPage() {
               size="sm"
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 self-end sm:self-center"
             >
-              <Link href={`/questions/${question.id}/edit`}>
+              <Link
+                href={`/questions/${question.questionCode || question.id}/edit`}
+              >
                 <Edit2 className="w-3.5 h-3.5 mr-1.5" />
                 Chỉnh sửa theo yêu cầu
               </Link>

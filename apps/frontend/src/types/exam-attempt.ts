@@ -57,6 +57,7 @@ export interface BatchSaveAnswersDto {
 
 export interface ExamAttemptSummary {
   attemptId: string;
+  attemptCode?: string;
   examId: string;
   examTitle: string;
   status: ExamAttemptStatus;
@@ -86,6 +87,7 @@ export interface AttemptQuestionStatus {
 
 export interface ExamAttemptOverview {
   id: string;
+  attemptCode?: string;
   examId: string;
   examTitle: string;
   status: ExamAttemptStatus;
@@ -172,6 +174,7 @@ export interface AnotherExamInProgressErrorData {
   errorCode: "ERR_ANOTHER_EXAM_IN_PROGRESS";
   message: string;
   attemptId: string;
+  attemptCode?: string;
   examTitle: string;
   startedAt: string;
   remainingSeconds: number;

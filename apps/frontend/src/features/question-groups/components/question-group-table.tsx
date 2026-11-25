@@ -39,6 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useDeleteQuestionGroup, useQuestionGroups } from "@/hooks/use-question-groups";
+import { CodeBadge } from "@/components/common/code-badge";
 import { QuestionGroup } from "@/types/question";
 
 export function QuestionGroupTable() {
@@ -126,12 +127,19 @@ export function QuestionGroupTable() {
                 >
                   {/* Title */}
                   <TableCell className="font-medium text-slate-900 dark:text-slate-100">
-                    <Link
-                      href={`/question-groups/${group.id}`}
-                      className="hover:text-indigo-600 dark:hover:text-indigo-400 line-clamp-1"
-                    >
-                      {group.title || "Nhóm bài đọc không tiêu đề"}
-                    </Link>
+                    <div className="space-y-1">
+                      {group.groupCode && (
+                        <div>
+                          <CodeBadge code={group.groupCode} label="Mã nhóm" />
+                        </div>
+                      )}
+                      <Link
+                        href={`/question-groups/${group.groupCode || group.id}`}
+                        className="hover:text-indigo-600 dark:hover:text-indigo-400 line-clamp-1"
+                      >
+                        {group.title || "Nhóm bài đọc không tiêu đề"}
+                      </Link>
+                    </div>
                   </TableCell>
 
                   {/* Context snippet */}
@@ -172,14 +180,18 @@ export function QuestionGroupTable() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem asChild>
-                          <Link href={`/question-groups/${group.id}`}>
+                          <Link
+                            href={`/question-groups/${group.groupCode || group.id}`}
+                          >
                             <Eye className="w-4 h-4 mr-2" />
                             Xem chi tiết
                           </Link>
                         </DropdownMenuItem>
 
                         <DropdownMenuItem asChild>
-                          <Link href={`/question-groups/${group.id}/edit`}>
+                          <Link
+                            href={`/question-groups/${group.groupCode || group.id}/edit`}
+                          >
                             <Edit2 className="w-4 h-4 mr-2" />
                             Chỉnh sửa
                           </Link>

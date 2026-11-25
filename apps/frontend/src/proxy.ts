@@ -19,6 +19,7 @@ const commonProtectedRoutes = [
 ];
 
 const examInstructionsRegex = /^\/exams\/[^/]+\/instructions(\/|$)/;
+const examManageRegex = /^\/exams\/[^/]+\/(edit|builder)(\/|$)/;
 
 const studentRoutes = [
   "/dashboard",
@@ -66,7 +67,8 @@ export function proxy(request: NextRequest) {
     isPathMatch(pathname, commonProtectedRoutes) ||
     examInstructionsRegex.test(pathname);
   const isStudentRoute = isPathMatch(pathname, studentRoutes);
-  const isTeacherRoute = isPathMatch(pathname, teacherRoutes);
+  const isTeacherRoute =
+    isPathMatch(pathname, teacherRoutes) || examManageRegex.test(pathname);
   const isAdminRoute = isPathMatch(pathname, adminRoutes);
   const isProtectedRoute = isCommonRoute || isStudentRoute || isTeacherRoute || isAdminRoute;
 

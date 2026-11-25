@@ -137,7 +137,7 @@ export function ChildQuestionsManager({
                   </span>
                   <div className="flex-1 min-w-0">
                     <Link
-                      href={`/questions/${q.id}`}
+                      href={`/questions/${q.questionCode || q.id}`}
                       className="text-sm font-medium text-slate-900 dark:text-slate-100 hover:text-indigo-600 line-clamp-2"
                     >
                       {q.content}
@@ -156,7 +156,10 @@ export function ChildQuestionsManager({
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Button asChild variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
-                    <Link href={`/questions/${q.id}`} title="Xem chi tiết">
+                    <Link
+                      href={`/questions/${q.questionCode || q.id}`}
+                      title="Xem chi tiết"
+                    >
                       <ExternalLink className="w-4 h-4 text-slate-500" />
                     </Link>
                   </Button>

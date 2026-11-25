@@ -124,6 +124,8 @@ export function extractAnotherExamConflict(
         ? payload.message
         : "Bạn đang có một bài thi dở dang ở đề thi khác",
     attemptId: payload.attemptId,
+    attemptCode:
+      typeof payload.attemptCode === "string" ? payload.attemptCode : undefined,
     examTitle:
       typeof payload.examTitle === "string" ? payload.examTitle : "Đề thi khác",
     startedAt:

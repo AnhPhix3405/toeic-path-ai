@@ -60,7 +60,7 @@ export class QuestionGroupsController {
   @Get(':id')
   @ThrottlePolicy('questionsSearch')
   @ApiFindOneQuestionGroupDoc()
-  findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<QuestionGroupResponseDto> {
+  findOne(@Param('id') id: string): Promise<QuestionGroupResponseDto> {
     return this.questionGroupsService.findOne(id);
   }
 
