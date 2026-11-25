@@ -82,6 +82,21 @@ describe('ExamAttempts Answers DTOs Validation & Serialization (UC22)', () => {
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].property).toBe('timeSpentSeconds');
     });
+
+    it('should fail when isMarkedForReview is a non-boolean string even with enableImplicitConversion', async () => {
+      const dto = plainToInstance(
+        SaveAnswerDto,
+        {
+          questionId: '20000000-0000-4000-8000-000000000001',
+          isMarkedForReview: 'yes',
+        },
+        { enableImplicitConversion: true },
+      );
+
+      const errors = await validate(dto);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('isMarkedForReview');
+    });
   });
 
   describe('BatchSaveAnswersDto', () => {

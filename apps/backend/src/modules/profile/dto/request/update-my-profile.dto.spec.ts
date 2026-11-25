@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { Gender } from '../../../../common/enums/gender.enum';
@@ -18,12 +19,16 @@ describe('UpdateMyProfileDto', () => {
   it.each([
     [{ fullName: '   ' }],
     [{ fullName: null }],
+    [{ fullName: 'x'.repeat(151) }],
+    [{ fullName: 99999 as unknown as string }],
     [{ birthday: '2999-01-01' }],
     [{ birthday: '2026-02-30' }],
     [{ gender: 'invalid' }],
     [{ bio: 'x'.repeat(501) }],
   ])('rejects invalid profile input %#', async (input) => {
-    const errors = await validate(plainToInstance(UpdateMyProfileDto, input));
+    const errors = await validate(
+      plainToInstance(UpdateMyProfileDto, input, { enableImplicitConversion: true }),
+    );
     expect(errors.length).toBeGreaterThan(0);
   });
 });

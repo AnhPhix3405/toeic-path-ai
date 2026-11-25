@@ -37,7 +37,10 @@ function IsNotFutureDate(validationOptions?: ValidationOptions): PropertyDecorat
 
 export class UpdateMyProfileDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ obj }: { obj?: Record<string, unknown> }) => {
+    const raw = obj?.fullName;
+    return typeof raw === 'string' ? raw.trim() : raw;
+  })
   @IsString()
   @Length(1, 150)
   fullName?: string;

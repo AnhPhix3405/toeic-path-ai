@@ -3,11 +3,10 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
-  MinLength,
+  ValidateBy,
   ValidateIf,
 } from 'class-validator';
 import { QuestionReportStatus } from '../../enums/question-report-status.enum';
@@ -45,17 +44,24 @@ export class ResolveQuestionReportDto {
       (o.resolutionNote !== undefined && o.resolutionNote !== null && o.resolutionNote !== ''),
   )
   @IsString({ message: 'resolutionNote phải là chuỗi ký tự' })
-  @ValidateIf(
-    (o: ResolveQuestionReportDto) =>
-      o.status === QuestionReportStatus.RESOLVED || o.status === QuestionReportStatus.REJECTED,
-  )
-  @IsNotEmpty({
-    message: 'resolutionNote là bắt buộc khi chuyển sang trạng thái resolved hoặc rejected',
-  })
-  @MinLength(10, {
-    message: 'resolutionNote phải có ít nhất 10 ký tự',
-  })
   @MaxLength(1000, { message: 'resolutionNote không được vượt quá 1000 ký tự' })
+  @ValidateBy({
+    name: 'resolutionNoteRequiredForFinalStatus',
+    validator: {
+      validate(value: unknown, args) {
+        const obj = args?.object as ResolveQuestionReportDto | undefined;
+        if (
+          obj?.status !== QuestionReportStatus.RESOLVED &&
+          obj?.status !== QuestionReportStatus.REJECTED
+        ) {
+          return true;
+        }
+        return typeof value === 'string' && value.length >= 10;
+      },
+      defaultMessage: () =>
+        'resolutionNote là bắt buộc và phải có ít nhất 10 ký tự khi chuyển sang trạng thái resolved hoặc rejected',
+    },
+  })
   resolutionNote?: string;
 
   @ApiPropertyOptional({

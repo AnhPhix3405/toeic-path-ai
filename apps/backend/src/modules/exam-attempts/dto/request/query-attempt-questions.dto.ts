@@ -10,4 +10,15 @@ export class QueryAttemptQuestionsDto {
   @Min(1)
   @Max(7)
   partNumber?: number;
+
+  @ApiPropertyOptional({
+    description: 'Alias ngắn gọn của partNumber — lọc câu hỏi theo số thứ tự Part (1 đến 7)',
+    example: 5,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  part?: number;
 }

@@ -103,6 +103,13 @@ export class ExamsPublishingService {
         });
       }
     } else if (exam.type === ExamType.MINI_TEST) {
+      if (sections.length === 0 || questions.length === 0) {
+        throw new BadRequestException({
+          message:
+            'Đề thi Mini Test phải có ít nhất 1 phần thi (Section) và ít nhất 1 câu hỏi trước khi xuất bản.',
+          code: 'ERR_EXAM_INCOMPLETE_QUESTIONS',
+        });
+      }
       for (const sec of sections) {
         const partNum = sec.part?.partNumber;
         const actualInSec = questions.filter(
@@ -450,10 +457,15 @@ export class ExamsPublishingService {
     }
   }
 
-  protected getAttemptsCount(examId: string): Promise<number> {
-    void examId;
-    // Sprint 5 fallback; Sprint 6 will query exam_attempts table
-    return Promise.resolve(0);
+  protected async getAttemptsCount(examId: string): Promise<number> {
+    if (typeof this.examRepo.manager?.query !== 'function') {
+      return 0;
+    }
+    const rows = await this.examRepo.manager.query<Array<{ cnt: string | number }>>(
+      'SELECT COUNT(*)::int AS cnt FROM exam_attempts WHERE exam_id = $1',
+      [examId],
+    );
+    return Number(rows?.[0]?.cnt ?? 0);
   }
 
   private mapToResultDto(exam: Exam): ExamPublishResultResponseDto {

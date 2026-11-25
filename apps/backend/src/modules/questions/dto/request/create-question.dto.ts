@@ -5,7 +5,10 @@ import { QuestionType } from '../../enums/question-type.enum';
 
 export class CreateQuestionDto {
   @ApiPropertyOptional({ example: 'Where is the meeting being held?', nullable: true })
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ obj }: { obj?: Record<string, unknown> }) => {
+    const raw = obj?.content;
+    return typeof raw === 'string' ? raw.trim() : raw;
+  })
   @IsOptional()
   @IsString()
   content?: string | null;
@@ -15,7 +18,10 @@ export class CreateQuestionDto {
   questionType!: QuestionType;
 
   @ApiPropertyOptional({ example: 'Yesterday indicates the simple past tense.' })
-  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ obj }: { obj?: Record<string, unknown> }) => {
+    const raw = obj?.explanation;
+    return typeof raw === 'string' ? raw.trim() : raw;
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()

@@ -262,13 +262,15 @@ export class ExamAttemptsResultsService {
 
     this.ensureAttemptSubmittedAndGraded(attempt, userId, isAdmin);
 
+    const requestedPartNumber = query.partNumber ?? query.part;
+
     // PMR 027: Validate partNumber boundary in part_practice mode
-    if (attempt.mode === PartPracticeMode.PART_PRACTICE && query.partNumber != null) {
+    if (attempt.mode === PartPracticeMode.PART_PRACTICE && requestedPartNumber != null) {
       const selectedParts = attempt.selectedParts ?? [];
-      if (!selectedParts.includes(query.partNumber)) {
+      if (!selectedParts.includes(requestedPartNumber)) {
         throw new BadRequestException({
           errorCode: 'ERR_PART_NOT_IN_ATTEMPT',
-          message: `Part ${query.partNumber} không nằm trong danh sách các phần được chọn làm bài của lượt thi này`,
+          message: `Part ${requestedPartNumber} không nằm trong danh sách các phần được chọn làm bài của lượt thi này`,
         });
       }
     }
@@ -294,7 +296,7 @@ export class ExamAttemptsResultsService {
 
     // Step A (PMR 030): Filter by partNumber first to form partScopedQuestions
     const partScopedQuestions = allSnapshotQuestions.filter(
-      (q) => query.partNumber == null || q.partNumber === query.partNumber,
+      (q) => requestedPartNumber == null || q.partNumber === requestedPartNumber,
     );
 
     const savedAnswers = await this.examAttemptAnswerRepository.find({

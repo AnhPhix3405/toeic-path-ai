@@ -76,6 +76,7 @@ export class QuestionRepository extends Repository<Question> {
 
   async findReviewQueue(dto: {
     partId?: string;
+    difficulty?: string;
     topicIds?: string[];
     creatorId?: string;
     search?: string;
@@ -97,6 +98,10 @@ export class QuestionRepository extends Repository<Question> {
 
     if (dto.partId) {
       qb.andWhere('q.partId = :partId', { partId: dto.partId });
+    }
+
+    if (dto.difficulty) {
+      qb.andWhere('q.difficulty = :difficulty', { difficulty: dto.difficulty });
     }
 
     if (dto.creatorId) {

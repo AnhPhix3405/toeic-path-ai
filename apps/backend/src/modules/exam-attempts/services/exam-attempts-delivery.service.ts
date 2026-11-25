@@ -186,13 +186,15 @@ export class ExamAttemptsDeliveryService {
       });
     }
 
+    const requestedPartNumber = query.partNumber ?? query.part;
+
     // Kiểm tra biên (PMR 018): nếu mode = part_practice mà partNumber không có trong selectedParts
-    if (attempt.mode === PartPracticeMode.PART_PRACTICE && query.partNumber != null) {
+    if (attempt.mode === PartPracticeMode.PART_PRACTICE && requestedPartNumber != null) {
       const selectedParts = attempt.selectedParts || [];
-      if (!selectedParts.includes(query.partNumber)) {
+      if (!selectedParts.includes(requestedPartNumber)) {
         throw new BadRequestException({
           errorCode: 'ERR_PART_NOT_IN_ATTEMPT',
-          message: `Part ${query.partNumber} không nằm trong danh sách các phần được chọn làm bài của lượt thi này`,
+          message: `Part ${requestedPartNumber} không nằm trong danh sách các phần được chọn làm bài của lượt thi này`,
         });
       }
     }
@@ -212,7 +214,7 @@ export class ExamAttemptsDeliveryService {
     // Lọc theo partNumber nếu có
     const rawQuestions = (
       (snapshot.shuffledQuestions || []) as unknown as SnapshotQuestion[]
-    ).filter((q) => query.partNumber == null || q.partNumber === query.partNumber);
+    ).filter((q) => requestedPartNumber == null || q.partNumber === requestedPartNumber);
 
     // Nạp lại các câu trả lời của lượt thi (dùng canonical attempt.id)
     const savedAnswers = await this.examAttemptAnswerRepository.find({
@@ -262,7 +264,7 @@ export class ExamAttemptsDeliveryService {
 
     const response = new ExamAttemptQuestionsResponseDto();
     response.attemptId = attempt.id;
-    response.partNumber = query.partNumber ?? null;
+    response.partNumber = requestedPartNumber ?? null;
     response.totalQuestionsInPart = questions.length;
     response.questionGroups = Array.from(groupMap.values());
     response.questions = questions;

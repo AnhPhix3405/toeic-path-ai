@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
@@ -35,6 +35,7 @@ export class SaveAnswerDto {
     description: 'Cờ đánh dấu câu hỏi để xem lại sau',
     example: true,
   })
+  @Transform(({ obj, value }) => (obj && 'isMarkedForReview' in obj ? obj.isMarkedForReview : value))
   @IsOptional()
   @IsBoolean({ message: 'isMarkedForReview phải là kiểu boolean' })
   isMarkedForReview?: boolean;

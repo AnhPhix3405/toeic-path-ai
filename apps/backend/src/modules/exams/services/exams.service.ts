@@ -285,10 +285,15 @@ export class ExamsService {
     }
   }
 
-  protected getAttemptsCount(examId: string): Promise<number> {
-    void examId;
-    // Sprint 5 fallback; Sprint 6 will query exam_attempts table
-    return Promise.resolve(0);
+  protected async getAttemptsCount(examId: string): Promise<number> {
+    if (typeof this.examRepo.manager?.query !== 'function') {
+      return 0;
+    }
+    const rows = await this.examRepo.manager.query<Array<{ cnt: string | number }>>(
+      'SELECT COUNT(*)::int AS cnt FROM exam_attempts WHERE exam_id = $1',
+      [examId],
+    );
+    return Number(rows?.[0]?.cnt ?? 0);
   }
 
   protected async assertUniqueActiveTitle(title: string, excludeExamId?: string): Promise<void> {

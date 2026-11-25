@@ -2,12 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEnum,
-  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
-  MinLength,
+  ValidateBy,
   ValidateIf,
 } from 'class-validator';
 import { QuestionReportReason } from '../../enums/question-report-reason.enum';
@@ -35,12 +34,18 @@ export class CreateQuestionReportDto {
       (o.description !== undefined && o.description !== null && o.description !== ''),
   )
   @IsString({ message: 'description phải là chuỗi ký tự' })
-  @ValidateIf((o: CreateQuestionReportDto) => o.reason === QuestionReportReason.OTHER)
-  @IsNotEmpty({ message: 'description là bắt buộc khi chọn lý do khác (other)' })
-  @MinLength(10, {
-    message: 'description phải có ít nhất 10 ký tự khi chọn lý do khác (other)',
-  })
   @MaxLength(1000, { message: 'description không được vượt quá 1000 ký tự' })
+  @ValidateBy({
+    name: 'descriptionRequiredForOther',
+    validator: {
+      validate(value: unknown, args) {
+        const obj = args?.object as CreateQuestionReportDto | undefined;
+        if (obj?.reason !== QuestionReportReason.OTHER) return true;
+        return typeof value === 'string' && value.length >= 10;
+      },
+      defaultMessage: () => 'description phải có ít nhất 10 ký tự khi chọn lý do khác (other)',
+    },
+  })
   description?: string;
 
   @ApiPropertyOptional({

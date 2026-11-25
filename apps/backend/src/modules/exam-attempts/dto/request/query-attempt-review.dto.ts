@@ -16,6 +16,17 @@ export class QueryAttemptReviewDto {
   partNumber?: number;
 
   @ApiPropertyOptional({
+    example: 5,
+    description: 'Alias ngắn gọn của partNumber — số thứ tự Part TOEIC cần xem lại (từ 1 đến 7)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'part phải là số nguyên' })
+  @Min(1, { message: 'part phải từ 1 đến 7' })
+  @Max(7, { message: 'part phải từ 1 đến 7' })
+  part?: number;
+
+  @ApiPropertyOptional({
     enum: AttemptReviewFilter,
     default: AttemptReviewFilter.ALL,
     description: 'Bộ lọc trạng thái câu trả lời (all | correct | wrong | skipped | marked)',

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -39,6 +39,7 @@ export class BatchAnswerItemDto {
     description: 'Cờ đánh dấu câu hỏi để xem lại sau',
     example: false,
   })
+  @Transform(({ obj, value }) => (obj && 'isMarkedForReview' in obj ? obj.isMarkedForReview : value))
   @IsOptional()
   @IsBoolean({ message: 'isMarkedForReview phải là kiểu boolean' })
   isMarkedForReview?: boolean;

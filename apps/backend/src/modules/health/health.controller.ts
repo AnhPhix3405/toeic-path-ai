@@ -1,6 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '../../common/rate-limit/decorators/skip-throttle.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiHealthCheckDoc, ApiHealthProtectedDoc } from './docs/health.doc';
 
 @ApiTags('Health Check')
@@ -14,6 +15,7 @@ export class HealthController {
   }
 
   @Get('protected')
+  @UseGuards(JwtAuthGuard)
   @ApiHealthProtectedDoc()
   protectedRoute() {
     return { message: 'Authenticated!' };

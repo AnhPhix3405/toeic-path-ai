@@ -1,12 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { QuestionDifficulty } from '../../enums/question-difficulty.enum';
 
 export class QueryReviewQueueDto {
   @ApiPropertyOptional({ description: 'Filter by TOEIC Part UUID' })
   @IsOptional()
   @IsUUID('4')
   partId?: string;
+
+  @ApiPropertyOptional({ enum: QuestionDifficulty, description: 'Filter by question difficulty' })
+  @IsOptional()
+  @IsEnum(QuestionDifficulty)
+  difficulty?: QuestionDifficulty;
 
   @ApiPropertyOptional({ description: 'Filter by Topic UUIDs', type: [String] })
   @IsOptional()
