@@ -39,6 +39,9 @@ const segmentLabels: Record<string, string> = {
   import: "Import hàng loạt",
   instructions: "Hướng dẫn phòng thi",
   "exam-attempts": "Phòng thi trực tuyến",
+  result: "Báo cáo điểm số",
+  review: "Xem lại lời giải",
+  "question-reports": "Báo cáo câu hỏi lỗi",
 };
 
 const UUID_SEGMENT_REGEX =

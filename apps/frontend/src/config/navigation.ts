@@ -17,6 +17,7 @@ import {
   Home,
   Compass,
   Info,
+  Flag,
 } from "lucide-react";
 import { NavItem, NavSection, UserRole } from "@/types/navigation";
 
@@ -153,6 +154,11 @@ export const teacherNavSections: NavSection[] = [
         icon: CheckSquare,
         badge: "3",
         badgeVariant: "warning",
+      },
+      {
+        title: "Báo cáo câu hỏi lỗi",
+        href: "/question-reports",
+        icon: Flag,
       },
       {
         title: "AI Question Studio",

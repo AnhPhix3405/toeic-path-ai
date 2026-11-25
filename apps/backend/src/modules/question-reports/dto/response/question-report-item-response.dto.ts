@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionReportReason } from '../../enums/question-report-reason.enum';
 import { QuestionReportStatus } from '../../enums/question-report-status.enum';
 
@@ -6,8 +6,14 @@ export class MyQuestionReportItemDto {
   @ApiProperty({ example: '70000000-0000-4000-8000-000000000001' })
   id!: string;
 
+  @ApiPropertyOptional({ example: 'RP-00001', description: 'Mã ngắn định danh báo cáo câu hỏi' })
+  reportCode?: string;
+
   @ApiProperty({ example: '20000000-0000-4000-8000-000000000001' })
   questionId!: string;
+
+  @ApiPropertyOptional({ example: 'Q-00001', description: 'Mã ngắn định danh câu hỏi' })
+  questionCode?: string;
 
   @ApiProperty({
     type: String,

@@ -179,3 +179,172 @@ export interface AnotherExamInProgressErrorData {
   startedAt: string;
   remainingSeconds: number;
 }
+
+// =========================================================================
+// SPRINT 7: SUBMISSION, SCORE REPORT, REVIEW & HISTORY DTOs
+// =========================================================================
+
+export type ScoreConversionType = "DEFAULT_ETS" | "RAW_PERCENTAGE" | "CUSTOM";
+
+export type AttemptReviewFilter =
+  | "all"
+  | "correct"
+  | "wrong"
+  | "skipped"
+  | "marked";
+
+export interface SubmitExamAttemptResponse {
+  attemptId: string;
+  status: ExamAttemptStatus;
+  submittedAt: string;
+  durationSpentSeconds: number;
+  totalScore: number | null;
+  listeningScore: number | null;
+  readingScore: number | null;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  totalQuestions: number;
+  accuracyPercentage: number;
+  isPassed: boolean | null;
+}
+
+export interface PartBreakdownItem {
+  partNumber: number;
+  total: number;
+  correct: number;
+  wrong: number;
+  skipped: number;
+  accuracy: number;
+  avgTimeSeconds: number;
+}
+
+export interface SkillBreakdownItem {
+  skillId: string;
+  skillCode: string;
+  skillName: string;
+  total: number;
+  correct: number;
+  wrong: number;
+  skipped: number;
+  accuracy: number;
+}
+
+export interface ExamAttemptResult {
+  attemptId: string;
+  examId: string;
+  examTitle: string;
+  mode: PartPracticeMode;
+  selectedParts: number[] | null;
+  scoreConversionType: ScoreConversionType;
+  status: ExamAttemptStatus;
+  startedAt: string;
+  submittedAt: string;
+  gradedAt: string;
+  durationSpentSeconds: number;
+  totalScore: number | null;
+  listeningScore: number | null;
+  readingScore: number | null;
+  passingScore: number | null;
+  isPassed: boolean | null;
+  totalQuestions: number;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  accuracyPercentage: number;
+  partBreakdown: PartBreakdownItem[];
+  skillBreakdown: SkillBreakdownItem[];
+}
+
+export interface QueryAttemptReviewParams {
+  partNumber?: number;
+  filter?: AttemptReviewFilter;
+}
+
+export interface ReviewFilterCounts {
+  all: number;
+  correct: number;
+  wrong: number;
+  skipped: number;
+  marked: number;
+}
+
+export interface QuestionOptionReview {
+  id: string;
+  label: string;
+  content?: string | null;
+  isCorrect: boolean;
+}
+
+export interface QuestionGroupReview {
+  id: string;
+  title?: string | null;
+  passageText?: string | null;
+  audioUrl?: string | null;
+  imageUrl?: string | null;
+  transcript?: string | null;
+}
+
+export interface QuestionReviewItem {
+  id: string;
+  partNumber: number;
+  orderIndex: number;
+  originalQuestionNumber?: number | null;
+  questionGroupId?: string | null;
+  content?: string | null;
+  audioUrl?: string | null;
+  imageUrl?: string | null;
+  transcript?: string | null;
+  options: QuestionOptionReview[];
+  selectedOptionId: string | null;
+  correctOptionId: string | null;
+  isCorrect: boolean;
+  isMarkedForReview: boolean;
+  timeSpentSeconds: number;
+  explanation?: string | null;
+}
+
+export interface ExamAttemptReviewResponse {
+  attemptId: string;
+  filterCounts: ReviewFilterCounts;
+  questionGroups: QuestionGroupReview[];
+  questions: QuestionReviewItem[];
+}
+
+export interface QueryAttemptHistoryParams {
+  page?: number;
+  limit?: number;
+  examId?: string;
+  mode?: PartPracticeMode;
+  status?: ExamAttemptStatus;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface ExamAttemptHistoryItem {
+  attemptId: string;
+  attemptCode?: string;
+  examId: string;
+  examTitle: string;
+  mode: PartPracticeMode;
+  selectedParts: number[] | null;
+  status: ExamAttemptStatus;
+  totalScore: number | null;
+  listeningScore: number | null;
+  readingScore: number | null;
+  correctCount: number | null;
+  totalQuestions: number;
+  accuracyPercentage: number | null;
+  durationSpentSeconds: number | null;
+  isPassed: boolean | null;
+  startedAt: string;
+  submittedAt: string | null;
+}
+
+export interface PaginatedExamAttemptHistory {
+  items: ExamAttemptHistoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}

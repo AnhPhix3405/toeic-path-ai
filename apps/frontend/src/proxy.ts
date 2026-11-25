@@ -35,6 +35,7 @@ const teacherRoutes = [
   "/teacher-dashboard",
   "/questions",
   "/question-groups",
+  "/question-reports",
   "/content-reviews",
   "/exams/manage",
   "/exams/create",

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useExamRoomStore } from "@/stores/exam-room.store";
 import { useExamAutosave } from "@/hooks/use-exam-autosave";
+import { examAttemptsService } from "@/services/exam-attempts.service";
+import { extractApiErrorMeta } from "@/lib/validations/exam-attempt.schema";
 import {
   ExamAttemptOverview,
   ExamAttemptQuestionsResponse,
@@ -21,6 +25,7 @@ import { ExamContextPane } from "./exam-context-pane";
 import { ExamQuestionCard } from "./exam-question-card";
 import { ExamQuestionPalette } from "./exam-question-palette";
 import { ExamExpiredOverlay } from "./exam-expired-overlay";
+import { SubmitAttemptModal } from "./submit-attempt-modal";
 
 export interface ExamRoomWorkspaceProps {
   overview: ExamAttemptOverview;
@@ -36,9 +41,14 @@ export function ExamRoomWorkspace({
   onSubmitExamAttempt,
 }: ExamRoomWorkspaceProps) {
   const attemptId = overview.id;
+  const router = useRouter();
   const [isPaletteDrawerOpen, setIsPaletteDrawerOpen] = useState(false);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const hydrateAttempt = useExamRoomStore((s) => s.hydrateAttempt);
+  const clearAttemptSession = useExamRoomStore((s) => s.clearAttemptSession);
   const setActiveOrderIndex = useExamRoomStore((s) => s.setActiveOrderIndex);
   const setActivePart = useExamRoomStore((s) => s.setActivePart);
   const lockExpired = useExamRoomStore((s) => s.lockExpired);
@@ -156,6 +166,66 @@ export function ExamRoomWorkspace({
     [attemptId, delivery.questions, setActiveOrderIndex, setActivePart]
   );
 
+  const markedCount = useMemo(() => {
+    let count = 0;
+    for (const q of delivery.questions) {
+      if (answersMap[q.id]?.isMarkedForReview) {
+        count++;
+      }
+    }
+    return count;
+  }, [delivery.questions, answersMap]);
+
+  const handleConfirmSubmit = useCallback(async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
+    const targetResultPath = `/exam-attempts/${
+      overview.attemptCode || overview.id
+    }/result`;
+
+    try {
+      if (pendingCount > 0) {
+        try {
+          await flushPendingBatch({ manual: true, allowWhenLocked: true });
+        } catch {
+          // Best-effort offline flush before submit
+        }
+      }
+
+      await examAttemptsService.submitAttempt(overview.id);
+      clearAttemptSession(overview.id);
+      setIsSubmitModalOpen(false);
+      toast.success("Nộp bài thành công! Đang mở báo cáo điểm số...");
+      router.replace(targetResultPath);
+    } catch (err: unknown) {
+      const meta = extractApiErrorMeta(err);
+      // PMR 033 #1: Treat 409 ERR_ATTEMPT_ALREADY_SUBMITTED (Cronjob UC24 race) as already submitted
+      if (
+        meta.status === 409 &&
+        meta.errorCode === "ERR_ATTEMPT_ALREADY_SUBMITTED"
+      ) {
+        clearAttemptSession(overview.id);
+        setIsSubmitModalOpen(false);
+        toast.info("Bài thi đã được hệ thống tự động chốt điểm.");
+        router.replace(targetResultPath);
+        return;
+      }
+      toast.error(meta.message || "Không thể nộp bài thi. Vui lòng thử lại.");
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
+  }, [
+    overview.id,
+    overview.attemptCode,
+    pendingCount,
+    flushPendingBatch,
+    clearAttemptSession,
+    router,
+  ]);
+
   const handleExpire = useCallback(() => {
     lockExpired(attemptId);
     void flushOnExpire();
@@ -268,6 +338,8 @@ export function ExamRoomWorkspace({
         onManualSync={() => void flushPendingBatch({ manual: true })}
         onOpenPaletteDrawer={() => setIsPaletteDrawerOpen(true)}
         onExpire={handleExpire}
+        onRequestSubmit={() => setIsSubmitModalOpen(true)}
+        isSubmitting={isSubmitting}
       />
 
       {/* Part Tabs Bar */}
@@ -407,14 +479,28 @@ export function ExamRoomWorkspace({
       {/* Deterministic Expiration Lock Overlay */}
       <ExamExpiredOverlay
         isOpen={isLockedExpired}
-        isSyncing={syncStatus === "syncing"}
+        isSyncing={syncStatus === "syncing" || isSubmitting}
         pendingCount={pendingCount}
         answeredCount={answeredCount}
         totalQuestions={delivery.questions.length}
         onRetrySync={() =>
           void flushPendingBatch({ manual: true, allowWhenLocked: true })
         }
-        onSubmitExamAttempt={onSubmitExamAttempt}
+        onSubmitExamAttempt={
+          onSubmitExamAttempt ?? (() => void handleConfirmSubmit())
+        }
+      />
+
+      {/* Submit Confirmation Modal */}
+      <SubmitAttemptModal
+        isOpen={isSubmitModalOpen}
+        totalQuestions={delivery.questions.length}
+        answeredCount={answeredCount}
+        markedCount={markedCount}
+        pendingOfflineCount={pendingCount}
+        isSubmitting={isSubmitting}
+        onClose={() => setIsSubmitModalOpen(false)}
+        onConfirmSubmit={() => void handleConfirmSubmit()}
       />
     </div>
   );

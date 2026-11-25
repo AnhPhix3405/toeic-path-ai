@@ -124,7 +124,12 @@ export class QuestionReportsService {
 
     try {
       const saved = await this.questionReportRepository.save(report);
-      return this.mapToMyReportItemDto(saved);
+      const reloaded =
+        (await this.questionReportRepository.findOne({
+          where: { id: saved.id },
+          relations: { question: true },
+        })) ?? saved;
+      return this.mapToMyReportItemDto(reloaded);
     } catch (error: unknown) {
       if (this.isPostgresUniqueViolation(error)) {
         throw new ConflictException({
@@ -152,6 +157,7 @@ export class QuestionReportsService {
 
     const [reports, total] = await this.questionReportRepository.findAndCount({
       where,
+      relations: { question: true },
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -200,7 +206,9 @@ export class QuestionReportsService {
 
     const items: AdminQuestionReportItemDto[] = reports.map((report) => ({
       id: report.id,
+      reportCode: report.reportCode,
       questionId: report.questionId,
+      questionCode: report.question?.questionCode,
       reporterId: report.reporterId,
       reporterEmail: report.reporter?.email ?? null,
       attemptId: report.attemptId ?? null,
@@ -288,6 +296,7 @@ export class QuestionReportsService {
 
     const questionDto = new QuestionReportQuestionContextDto();
     questionDto.id = q?.id ?? report.questionId;
+    questionDto.questionCode = q?.questionCode;
     questionDto.partNumber = partNumber;
     questionDto.questionType = q?.questionType;
     questionDto.status = q?.status;
@@ -300,7 +309,9 @@ export class QuestionReportsService {
 
     const detail = new QuestionReportDetailResponseDto();
     detail.id = report.id;
+    detail.reportCode = report.reportCode;
     detail.questionId = report.questionId;
+    detail.questionCode = q?.questionCode;
     detail.reporterId = report.reporterId;
     detail.reporterEmail = report.reporter?.email ?? null;
     detail.attemptId = report.attemptId ?? null;
@@ -468,7 +479,9 @@ export class QuestionReportsService {
     // PMR 025 & PMR 028: Strictly omit resolvedBy / resolvedById for student privacy
     const dto = new MyQuestionReportItemDto();
     dto.id = report.id;
+    dto.reportCode = report.reportCode;
     dto.questionId = report.questionId;
+    dto.questionCode = report.question?.questionCode;
     dto.attemptId = report.attemptId ?? null;
     dto.reason = report.reason;
     dto.description = report.description ?? null;

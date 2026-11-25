@@ -3,7 +3,9 @@ import { examAttemptsService } from "@/services/exam-attempts.service";
 import {
   BatchSaveAnswersDto,
   CreateExamAttemptDto,
+  QueryAttemptHistoryParams,
   QueryAttemptQuestionsParams,
+  QueryAttemptReviewParams,
   SaveAnswerDto,
 } from "@/types/exam-attempt";
 
@@ -13,6 +15,12 @@ export const examAttemptKeys = {
     [...examAttemptKeys.all, "overview", attemptId] as const,
   questions: (attemptId: string, params?: QueryAttemptQuestionsParams) =>
     [...examAttemptKeys.all, "questions", attemptId, params ?? {}] as const,
+  result: (attemptId: string) =>
+    [...examAttemptKeys.all, "result", attemptId] as const,
+  review: (attemptId: string, params?: QueryAttemptReviewParams) =>
+    [...examAttemptKeys.all, "review", attemptId, params ?? {}] as const,
+  history: (params?: QueryAttemptHistoryParams) =>
+    [...examAttemptKeys.all, "history", params ?? {}] as const,
 };
 
 export function useAttemptOverview(attemptId: string | null) {
@@ -97,5 +105,64 @@ export function useBatchSaveAnswers(attemptId: string) {
   return useMutation({
     mutationFn: (dto: BatchSaveAnswersDto) =>
       examAttemptsService.batchSaveAnswers(attemptId, dto),
+  });
+}
+
+export function useSubmitExamAttempt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (attemptId: string) =>
+      examAttemptsService.submitAttempt(attemptId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: examAttemptKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["exam-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["public-exams"] });
+    },
+  });
+}
+
+export function useAttemptResult(attemptId: string | null) {
+  return useQuery({
+    queryKey: examAttemptKeys.result(attemptId ?? ""),
+    queryFn: () => examAttemptsService.getAttemptResult(attemptId!),
+    enabled: Boolean(attemptId),
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      const status = (error as { response?: { status?: number }; statusCode?: number })
+        ?.response?.status ?? (error as { statusCode?: number })?.statusCode;
+      if (status === 400 || status === 403 || status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+}
+
+export function useAttemptReview(
+  attemptId: string | null,
+  params?: QueryAttemptReviewParams
+) {
+  return useQuery({
+    queryKey: examAttemptKeys.review(attemptId ?? "", params),
+    queryFn: () => examAttemptsService.getAttemptReview(attemptId!, params),
+    enabled: Boolean(attemptId),
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      const status = (error as { response?: { status?: number }; statusCode?: number })
+        ?.response?.status ?? (error as { statusCode?: number })?.statusCode;
+      if (status === 400 || status === 403 || status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+}
+
+export function useAttemptHistory(params?: QueryAttemptHistoryParams) {
+  return useQuery({
+    queryKey: examAttemptKeys.history(params),
+    queryFn: () => examAttemptsService.getAttemptHistory(params),
+    placeholderData: (prev) => prev,
   });
 }

@@ -6,10 +6,16 @@ import {
   CreateExamAttemptDto,
   ExamAttemptOverview,
   ExamAttemptQuestionsResponse,
+  ExamAttemptResult,
+  ExamAttemptReviewResponse,
   ExamAttemptSummary,
+  PaginatedExamAttemptHistory,
+  QueryAttemptHistoryParams,
   QueryAttemptQuestionsParams,
+  QueryAttemptReviewParams,
   SaveAnswerDto,
   SaveAnswerResponse,
+  SubmitExamAttemptResponse,
 } from "@/types/exam-attempt";
 
 function unwrapResponse<T>(res: unknown): T {
@@ -108,5 +114,52 @@ export const examAttemptsService = {
       dto
     );
     return unwrapResponse<BatchSaveAnswersResponse>(response);
+  },
+
+  /**
+   * 7. POST /api/v1/exam-attempts/:id/submit (UC23 & UC25)
+   */
+  async submitAttempt(attemptId: string): Promise<SubmitExamAttemptResponse> {
+    const response = await apiClient.post<SubmitExamAttemptResponse>(
+      `/exam-attempts/${attemptId}/submit`
+    );
+    return unwrapResponse<SubmitExamAttemptResponse>(response);
+  },
+
+  /**
+   * 8. GET /api/v1/exam-attempts/:id/result (UC26)
+   */
+  async getAttemptResult(attemptId: string): Promise<ExamAttemptResult> {
+    const response = await apiClient.get<ExamAttemptResult>(
+      `/exam-attempts/${attemptId}/result`
+    );
+    return unwrapResponse<ExamAttemptResult>(response);
+  },
+
+  /**
+   * 9. GET /api/v1/exam-attempts/:id/review (UC27 & UC28)
+   */
+  async getAttemptReview(
+    attemptId: string,
+    params?: QueryAttemptReviewParams
+  ): Promise<ExamAttemptReviewResponse> {
+    const response = await apiClient.get<ExamAttemptReviewResponse>(
+      `/exam-attempts/${attemptId}/review`,
+      { params }
+    );
+    return unwrapResponse<ExamAttemptReviewResponse>(response);
+  },
+
+  /**
+   * 10. GET /api/v1/exam-attempts/history (UC27)
+   */
+  async getAttemptHistory(
+    params?: QueryAttemptHistoryParams
+  ): Promise<PaginatedExamAttemptHistory> {
+    const response = await apiClient.get<PaginatedExamAttemptHistory>(
+      "/exam-attempts/history",
+      { params }
+    );
+    return unwrapResponse<PaginatedExamAttemptHistory>(response);
   },
 };

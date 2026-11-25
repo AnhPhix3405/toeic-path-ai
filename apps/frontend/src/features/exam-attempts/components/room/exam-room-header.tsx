@@ -7,6 +7,7 @@ import {
   LogOut,
   Maximize2,
   Minimize2,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExamSyncStatus } from "@/types/exam-attempt";
@@ -26,6 +27,8 @@ export interface ExamRoomHeaderProps {
   onManualSync: () => void;
   onOpenPaletteDrawer: () => void;
   onExpire: () => void;
+  onRequestSubmit?: () => void;
+  isSubmitting?: boolean;
 }
 
 export function ExamRoomHeader({
@@ -41,6 +44,8 @@ export function ExamRoomHeader({
   onManualSync,
   onOpenPaletteDrawer,
   onExpire,
+  onRequestSubmit,
+  isSubmitting = false,
 }: ExamRoomHeaderProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -124,6 +129,19 @@ export function ExamRoomHeader({
               <Maximize2 className="w-4 h-4" />
             )}
           </Button>
+
+          {onRequestSubmit && (
+            <Button
+              type="button"
+              size="sm"
+              disabled={isSubmitting || isForceExpired}
+              onClick={onRequestSubmit}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Nộp bài</span>
+            </Button>
+          )}
 
           <Button
             asChild

@@ -100,12 +100,46 @@ export default function ExamAttemptRoomPage() {
               {overview.totalQuestions} câu hỏi.
             </p>
           </div>
-          <Button
-            asChild
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
-          >
-            <Link href="/exams">Quay lại Thư viện đề thi</Link>
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {(overview.status === "submitted" ||
+              overview.status === "timed_out") && (
+              <>
+                <Button
+                  asChild
+                  className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+                >
+                  <Link
+                    href={`/exam-attempts/${overview.attemptCode || overview.id}/result`}
+                  >
+                    Xem báo cáo điểm số
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-xl text-xs"
+                >
+                  <Link
+                    href={`/exam-attempts/${overview.attemptCode || overview.id}/review`}
+                  >
+                    Xem lại lời giải
+                  </Link>
+                </Button>
+              </>
+            )}
+            <Button
+              asChild
+              variant={
+                overview.status === "submitted" ||
+                overview.status === "timed_out"
+                  ? "ghost"
+                  : "default"
+              }
+              className="rounded-xl text-xs"
+            >
+              <Link href="/exams">Quay lại Thư viện đề thi</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );

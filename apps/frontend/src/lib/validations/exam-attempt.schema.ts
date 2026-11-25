@@ -223,3 +223,35 @@ export function estimatePartPracticeMinutes(
 
   return Math.ceil(totalSeconds / 60);
 }
+
+export const attemptHistoryFilterSchema = z
+  .object({
+    fromDate: z.string().optional(),
+    toDate: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.fromDate && data.toDate && data.fromDate > data.toDate) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["toDate"],
+        message: "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.",
+      });
+    }
+  });
+
+export function formatDurationSpent(seconds?: number | null): string {
+  if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) {
+    return "—";
+  }
+  const safe = Math.max(0, Math.floor(seconds));
+  const hrs = Math.floor(safe / 3600);
+  const mins = Math.floor((safe % 3600) / 60);
+  const secs = safe % 60;
+  if (hrs > 0) {
+    return `${hrs} giờ ${mins} phút ${secs} giây`;
+  }
+  if (mins > 0) {
+    return `${mins} phút ${secs} giây`;
+  }
+  return `${secs} giây`;
+}
