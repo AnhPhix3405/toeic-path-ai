@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   BookOpen,
@@ -12,7 +13,11 @@ import {
   Loader2,
   MoreHorizontal,
   Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
   Trash2,
+  X,
 } from "lucide-react";
 import {
   Table,
@@ -23,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -43,10 +49,44 @@ import { CodeBadge } from "@/components/common/code-badge";
 import { QuestionGroup } from "@/types/question";
 
 export function QuestionGroupTable() {
-  const { data: groups, isLoading } = useQuestionGroups();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams.get("search") ?? "";
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const { data: groups, isLoading, isFetching, refetch } = useQuestionGroups();
   const deleteMutation = useDeleteQuestionGroup();
 
   const [groupToDelete, setGroupToDelete] = useState<QuestionGroup | null>(null);
+
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      if (trimmed === urlSearch) return;
+      const params = new URLSearchParams(searchParams.toString());
+      if (trimmed) {
+        params.set("search", trimmed);
+      } else {
+        params.delete("search");
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, urlSearch, searchParams, router, pathname]);
+
+  const handleResetFilters = () => {
+    setSearchInput("");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 
   const handleDeleteConfirm = async () => {
     if (!groupToDelete) return;
@@ -54,47 +94,140 @@ export function QuestionGroupTable() {
     setGroupToDelete(null);
   };
 
+  const allGroups = useMemo(() => groups || [], [groups]);
+  const activeQuery = (searchInput.trim() || urlSearch.trim()).toLowerCase();
+  const groupList = useMemo(() => {
+    if (!activeQuery) return allGroups;
+    return allGroups.filter((g) => {
+      const code = (g.groupCode || "").toLowerCase();
+      const title = (g.title || "").toLowerCase();
+      const ctx = (g.context || "").toLowerCase();
+      return (
+        code.includes(activeQuery) ||
+        title.includes(activeQuery) ||
+        ctx.includes(activeQuery)
+      );
+    });
+  }, [allGroups, activeQuery]);
+
+  const toolbar = (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="relative flex-1 max-w-md">
+        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Input
+          type="search"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Tìm theo mã nhóm (QG-...), tiêu đề hoặc đoạn văn..."
+          aria-label="Tìm kiếm nhóm câu hỏi"
+          className="pl-9 pr-8 h-9 rounded-xl text-sm"
+        />
+        {searchInput && (
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            aria-label="Xóa từ khóa tìm kiếm"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        {activeQuery && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleResetFilters}
+            className="h-9 rounded-xl text-xs text-slate-600 dark:text-slate-300"
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            Đặt lại bộ lọc
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+          aria-label="Làm mới danh sách nhóm câu hỏi"
+          className="h-9 rounded-xl text-xs"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 mr-1.5 ${isFetching ? "animate-spin" : ""}`}
+          />
+          Làm mới
+        </Button>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="space-y-3 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="flex gap-4 items-center py-2">
-            <Skeleton className="h-8 w-48 rounded-lg" />
-            <Skeleton className="h-8 flex-1 rounded-lg" />
-            <Skeleton className="h-8 w-24 rounded-lg" />
-            <Skeleton className="h-8 w-16 rounded-lg" />
-          </div>
-        ))}
+      <div className="space-y-4">
+        {toolbar}
+        <div className="space-y-3 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex gap-4 items-center py-2">
+              <Skeleton className="h-8 w-48 rounded-lg" />
+              <Skeleton className="h-8 flex-1 rounded-lg" />
+              <Skeleton className="h-8 w-24 rounded-lg" />
+              <Skeleton className="h-8 w-16 rounded-lg" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
-  const groupList = groups || [];
-
   if (groupList.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20">
-        <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 ring-8 ring-indigo-50/50 dark:ring-indigo-950/20">
-          <BookOpen className="w-7 h-7" />
+      <div className="space-y-4">
+        {toolbar}
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 ring-8 ring-indigo-50/50 dark:ring-indigo-950/20">
+            <BookOpen className="w-7 h-7" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
+            {activeQuery
+              ? "Không tìm thấy nhóm câu hỏi phù hợp"
+              : "Chưa có nhóm câu hỏi nào"}
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6">
+            {activeQuery
+              ? `Không có nhóm bài đọc nào khớp với từ khóa "${searchInput.trim() || urlSearch}". Thử từ khóa khác hoặc đặt lại bộ lọc.`
+              : "Tạo nhóm câu hỏi để quản lý các bài đọc, bài hội thoại và chuỗi câu hỏi con trong Part 3, 4, 6 và 7."}
+          </p>
+          {activeQuery ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetFilters}
+              className="rounded-xl"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Đặt lại bộ lọc
+            </Button>
+          ) : (
+            <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">
+              <Link href="/question-groups/create">
+                <Plus className="w-4 h-4 mr-2" />
+                Tạo nhóm câu hỏi mới
+              </Link>
+            </Button>
+          )}
         </div>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
-          Chưa có nhóm câu hỏi nào
-        </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6">
-          Tạo nhóm câu hỏi để quản lý các bài đọc, bài hội thoại và chuỗi câu hỏi con trong Part 3, 4, 6 và 7.
-        </p>
-        <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">
-          <Link href="/question-groups/create">
-            <Plus className="w-4 h-4 mr-2" />
-            Tạo nhóm câu hỏi mới
-          </Link>
-        </Button>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div className="space-y-4">
+      {toolbar}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader className="bg-slate-50/70 dark:bg-slate-800/50">
@@ -255,6 +388,7 @@ export function QuestionGroupTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

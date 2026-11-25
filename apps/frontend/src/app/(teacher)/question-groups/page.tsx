@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
 import { BookOpen, Plus } from "lucide-react";
 import { Breadcrumbs } from "@/components/navigation/breadcrumbs";
@@ -37,7 +37,9 @@ export default function QuestionGroupsPage() {
       </div>
 
       {/* Groups Table */}
-      <QuestionGroupTable />
+      <Suspense fallback={null}>
+        <QuestionGroupTable />
+      </Suspense>
     </div>
   );
 }

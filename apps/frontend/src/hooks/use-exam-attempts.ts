@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { examAttemptsService } from "@/services/exam-attempts.service";
+import { extractApiErrorMeta } from "@/lib/validations/exam-attempt.schema";
 import {
   BatchSaveAnswersDto,
   CreateExamAttemptDto,
@@ -30,8 +31,11 @@ export function useAttemptOverview(attemptId: string | null) {
     enabled: Boolean(attemptId),
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      const status = (error as { response?: { status?: number } })?.response
-        ?.status;
+      const status =
+        extractApiErrorMeta(error).status ??
+        (error as { statusCode?: number; response?: { status?: number } })
+          ?.statusCode ??
+        (error as { response?: { status?: number } })?.response?.status;
       if (status === 403 || status === 404 || status === 400) {
         return false;
       }
