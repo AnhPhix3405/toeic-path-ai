@@ -72,7 +72,7 @@ describe('MediaService', () => {
     });
 
     it('xử lý chính xác cả khi backend trả về direct DTO không bọc data envelope', async () => {
-      vi.mocked(apiClient.post).mockResolvedValueOnce(mockPresignedResult as any);
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockPresignedResult as never);
 
       const dto: CreatePresignedUrlDto = {
         fileName: 'lesson2_1.jpg',

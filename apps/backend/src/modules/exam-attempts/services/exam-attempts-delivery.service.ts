@@ -70,9 +70,7 @@ export class ExamAttemptsDeliveryService {
     // 1. Tối ưu hóa hiệu năng & Chống Memory Leak (PMR 018):
     // Chỉ query các trường cần thiết từ exam_attempts, không eager load snapshot
     const attempt = await this.examAttemptRepository.findOne({
-      where: isUuidIdentifier(attemptId)
-        ? { id: attemptId }
-        : { attemptCode: attemptId.trim() },
+      where: isUuidIdentifier(attemptId) ? { id: attemptId } : { attemptCode: attemptId.trim() },
       relations: { exam: true },
     });
 
@@ -167,9 +165,7 @@ export class ExamAttemptsDeliveryService {
     isAdmin: boolean = false,
   ): Promise<ExamAttemptQuestionsResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: isUuidIdentifier(attemptId)
-        ? { id: attemptId }
-        : { attemptCode: attemptId.trim() },
+      where: isUuidIdentifier(attemptId) ? { id: attemptId } : { attemptCode: attemptId.trim() },
     });
 
     if (!attempt) {

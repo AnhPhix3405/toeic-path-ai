@@ -59,10 +59,12 @@ export function QuestionGroupTable() {
   const deleteMutation = useDeleteQuestionGroup();
 
   const [groupToDelete, setGroupToDelete] = useState<QuestionGroup | null>(null);
+  const [prevUrlSearch, setPrevUrlSearch] = useState(urlSearch);
 
-  useEffect(() => {
+  if (urlSearch !== prevUrlSearch) {
+    setPrevUrlSearch(urlSearch);
     setSearchInput(urlSearch);
-  }, [urlSearch]);
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {

@@ -33,10 +33,12 @@ export function ManageExamsFilters({
   onRefresh,
 }: ManageExamsFiltersProps) {
   const [localSearch, setLocalSearch] = useState(filter.search);
+  const [prevFilterSearch, setPrevFilterSearch] = useState(filter.search);
 
-  useEffect(() => {
+  if (filter.search !== prevFilterSearch) {
+    setPrevFilterSearch(filter.search);
     setLocalSearch(filter.search);
-  }, [filter.search]);
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {

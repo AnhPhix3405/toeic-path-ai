@@ -1,0 +1,88 @@
+name: CI — Frontend
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/ci-frontend.yml'
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-frontend:
+    name: Frontend Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect frontend changes
+        id: changes
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- apps/frontend .github/workflows/ci-frontend.yml)
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Frontend changes detected:"
+            echo "$CHANGED_FILES"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No frontend changes in this PR — skipping heavy CI steps."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.changes.outputs.should_run == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.should_run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.changes.outputs.should_run == 'true'
+        working-directory: apps/frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        if: steps.changes.outputs.should_run == 'true'
+        working-directory: apps/frontend
+        run: pnpm run lint
+
+      - name: TypeScript typecheck
+        if: steps.changes.outputs.should_run == 'true'
+        working-directory: apps/frontend
+        run: pnpm exec tsc --noEmit
+
+      - name: Unit tests
+        if: steps.changes.outputs.should_run == 'true'
+        working-directory: apps/frontend
+        run: pnpm run test
+
+      - name: Build production bundle
+        if: steps.changes.outputs.should_run == 'true'
+        working-directory: apps/frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://api.example.com/api/v1
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
+        run: pnpm run build

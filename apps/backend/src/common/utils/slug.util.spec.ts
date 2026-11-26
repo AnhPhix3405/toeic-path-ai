@@ -1,8 +1,4 @@
-import {
-  slugifyVietnamese,
-  formatPrefixedCode,
-  generateAttemptCode,
-} from './slug.util';
+import { slugifyVietnamese, formatPrefixedCode, generateAttemptCode } from './slug.util';
 import { isUuidIdentifier, normalizeCodeIdentifier } from './identifier.util';
 
 describe('slug.util & identifier.util (Review Focus 1 & PMR SEO-001 #1)', () => {

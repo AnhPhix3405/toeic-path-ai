@@ -87,9 +87,7 @@ export class ExamAttemptsResultsService {
     isAdmin: boolean = false,
   ): Promise<ExamAttemptResultResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: isUuidIdentifier(attemptId)
-        ? { id: attemptId }
-        : { attemptCode: attemptId.trim() },
+      where: isUuidIdentifier(attemptId) ? { id: attemptId } : { attemptCode: attemptId.trim() },
     });
 
     this.ensureAttemptSubmittedAndGraded(attempt, userId, isAdmin);
@@ -255,9 +253,7 @@ export class ExamAttemptsResultsService {
     isAdmin: boolean = false,
   ): Promise<ExamAttemptReviewResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: isUuidIdentifier(attemptId)
-        ? { id: attemptId }
-        : { attemptCode: attemptId.trim() },
+      where: isUuidIdentifier(attemptId) ? { id: attemptId } : { attemptCode: attemptId.trim() },
     });
 
     this.ensureAttemptSubmittedAndGraded(attempt, userId, isAdmin);

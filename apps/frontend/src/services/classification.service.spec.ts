@@ -19,7 +19,7 @@ describe("classificationService", () => {
       { id: "p-2", partNumber: 2, name: "Question-Response", description: null },
     ];
     // Backend returns the array directly
-    vi.mocked(apiClient.get).mockResolvedValueOnce(mockParts as any);
+    vi.mocked(apiClient.get).mockResolvedValueOnce(mockParts as never);
 
     const result = await classificationService.getToeicParts();
     expect(apiClient.get).toHaveBeenCalledWith("/toeic-parts");
@@ -31,14 +31,14 @@ describe("classificationService", () => {
     const mockParts = [
       { id: "p-1", partNumber: 1, name: "Photographs", description: null },
     ];
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockParts } as any);
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockParts } as never);
 
     const result = await classificationService.getToeicParts();
     expect(result).toEqual(mockParts);
   });
 
   it("returns empty array and never undefined when response is null or undefined", async () => {
-    vi.mocked(apiClient.get).mockResolvedValueOnce(null as any);
+    vi.mocked(apiClient.get).mockResolvedValueOnce(null as never);
     const result = await classificationService.getToeicParts();
     expect(result).toEqual([]);
     expect(result).not.toBeUndefined();
@@ -48,11 +48,11 @@ describe("classificationService", () => {
     const mockTopics = [{ id: "t-1", name: "Business", description: null }];
     const mockSkills = [{ id: "s-1", name: "Skimming", description: null }];
 
-    vi.mocked(apiClient.get).mockResolvedValueOnce(mockTopics as any);
+    vi.mocked(apiClient.get).mockResolvedValueOnce(mockTopics as never);
     const topics = await classificationService.getTopics();
     expect(topics).toEqual(mockTopics);
 
-    vi.mocked(apiClient.get).mockResolvedValueOnce(mockSkills as any);
+    vi.mocked(apiClient.get).mockResolvedValueOnce(mockSkills as never);
     const skills = await classificationService.getSkills();
     expect(skills).toEqual(mockSkills);
   });

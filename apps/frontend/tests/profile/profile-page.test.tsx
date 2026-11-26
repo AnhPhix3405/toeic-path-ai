@@ -36,17 +36,17 @@ describe("ProfilePage Integration Tests", () => {
     vi.mocked(useUploadAvatar).mockReturnValue({
       mutateAsync: vi.fn(),
       isPending: false,
-    } as any);
+    } as never);
 
     vi.mocked(useDeleteAvatar).mockReturnValue({
       mutateAsync: vi.fn(),
       isPending: false,
-    } as any);
+    } as never);
 
     vi.mocked(useUpdateProfile).mockReturnValue({
       mutateAsync: vi.fn(),
       isPending: false,
-    } as any);
+    } as never);
 
     useAuthStore.setState({
       user: {
@@ -71,7 +71,7 @@ describe("ProfilePage Integration Tests", () => {
       isError: false,
       error: null,
       refetch: mockRefetch,
-    } as any);
+    } as never);
 
     const { container } = render(<ProfilePage />);
 
@@ -86,7 +86,7 @@ describe("ProfilePage Integration Tests", () => {
       isError: true,
       error: new Error("Network connection lost"),
       refetch: mockRefetch,
-    } as any);
+    } as never);
 
     render(<ProfilePage />);
 
@@ -106,7 +106,7 @@ describe("ProfilePage Integration Tests", () => {
       isError: false,
       error: null,
       refetch: mockRefetch,
-    } as any);
+    } as never);
 
     render(<ProfilePage />);
 

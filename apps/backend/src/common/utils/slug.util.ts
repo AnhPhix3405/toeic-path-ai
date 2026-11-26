@@ -12,8 +12,7 @@ export const RESERVED_EXAM_SLUGS: ReadonlySet<string> = new Set([
   'import',
 ]);
 
-const BASE62_ALPHABET =
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const BASE62_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 /**
  * Normalizes Vietnamese & Unicode strings into SEO-friendly URL slugs.

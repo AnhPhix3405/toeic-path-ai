@@ -92,11 +92,13 @@ export function ImageLightbox({
     setIsDragging(false);
   };
 
-  useEffect(() => {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (!isOpen) {
       resetZoom();
     }
-  }, [isOpen]);
+  }
 
   if (hasError) {
     return (

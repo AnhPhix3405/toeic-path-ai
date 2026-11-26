@@ -66,9 +66,11 @@ export function ReviewQueueTable({
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const [pageJumpInput, setPageJumpInput] = useState(String(page));
-  useEffect(() => {
+  const [prevPage, setPrevPage] = useState(page);
+  if (page !== prevPage) {
+    setPrevPage(page);
     setPageJumpInput(String(page));
-  }, [page]);
+  }
 
   const handlePageJumpCommit = (rawVal: string) => {
     const trimmed = rawVal.trim();

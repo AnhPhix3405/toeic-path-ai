@@ -33,7 +33,7 @@ describe("profileService", () => {
 
   describe("getMyProfile", () => {
     it("fetches current user profile successfully (flat response)", async () => {
-      vi.mocked(apiClient.get).mockResolvedValueOnce(mockProfile as any);
+      vi.mocked(apiClient.get).mockResolvedValueOnce(mockProfile as never);
 
       const result = await profileService.getMyProfile();
       expect(apiClient.get).toHaveBeenCalledWith("/profile/me");
@@ -44,7 +44,7 @@ describe("profileService", () => {
       vi.mocked(apiClient.get).mockResolvedValueOnce({
         data: mockProfile,
         success: true,
-      } as any);
+      } as never);
 
       const result = await profileService.getMyProfile();
       expect(result).toEqual(mockProfile);
@@ -62,7 +62,7 @@ describe("profileService", () => {
         profile: { ...mockProfile.profile, ...updateDto },
       };
 
-      vi.mocked(apiClient.patch).mockResolvedValueOnce(updatedProfile as any);
+      vi.mocked(apiClient.patch).mockResolvedValueOnce(updatedProfile as never);
 
       const result = await profileService.updateMyProfile(updateDto);
       expect(apiClient.patch).toHaveBeenCalledWith("/profile/me", updateDto);
@@ -78,7 +78,7 @@ describe("profileService", () => {
         profile: { ...mockProfile.profile, avatarUrl: "https://storage.toeicpath.com/avatars/new.webp" },
       };
 
-      vi.mocked(apiClient.post).mockResolvedValueOnce(updatedProfileWithAvatar as any);
+      vi.mocked(apiClient.post).mockResolvedValueOnce(updatedProfileWithAvatar as never);
 
       const result = await profileService.uploadAvatar(file);
       expect(apiClient.post).toHaveBeenCalledWith(
@@ -101,7 +101,7 @@ describe("profileService", () => {
         profile: { ...mockProfile.profile, avatarUrl: null },
       };
 
-      vi.mocked(apiClient.delete).mockResolvedValueOnce(updatedProfileNoAvatar as any);
+      vi.mocked(apiClient.delete).mockResolvedValueOnce(updatedProfileNoAvatar as never);
 
       const result = await profileService.deleteAvatar();
       expect(apiClient.delete).toHaveBeenCalledWith("/profile/me/avatar");

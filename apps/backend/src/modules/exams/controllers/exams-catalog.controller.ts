@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Query, UseGuards } from '@nestjs/common';
 import { ExamsCatalogService } from '../services/exams-catalog.service';
 import { QueryExamsDto } from '../dto/request/query-exams.dto';
 import { QueryManageExamsDto } from '../dto/request/query-manage-exams.dto';

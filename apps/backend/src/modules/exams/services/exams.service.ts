@@ -86,7 +86,8 @@ export class ExamsService {
             const parts = await manager.find(ToeicPart, { order: { partNumber: 'ASC' } });
             if (parts.length < 7) {
               throw new UnprocessableEntityException({
-                message: 'Ngân hàng dữ liệu TOEIC Parts chưa đủ 7 phần chuẩn để khởi tạo Full Test.',
+                message:
+                  'Ngân hàng dữ liệu TOEIC Parts chưa đủ 7 phần chuẩn để khởi tạo Full Test.',
                 code: 'ERR_TOEIC_PARTS_INCOMPLETE',
               });
             }
@@ -123,7 +124,10 @@ export class ExamsService {
     });
   }
 
-  async findManageDetail(identifier: string, user: AuthenticatedUser): Promise<ExamDetailResponseDto> {
+  async findManageDetail(
+    identifier: string,
+    user: AuthenticatedUser,
+  ): Promise<ExamDetailResponseDto> {
     const whereClause = isUuidIdentifier(identifier)
       ? { id: identifier, isDeleted: false }
       : { slug: identifier.trim().toLowerCase(), isDeleted: false };

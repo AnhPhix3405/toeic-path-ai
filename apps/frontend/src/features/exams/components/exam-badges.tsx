@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Archive,
   CalendarClock,
@@ -41,13 +41,14 @@ export function ExamStatusBadge({
   openAt?: string | null;
   isScheduled?: boolean;
 }) {
+  const [nowMs] = useState(() => Date.now());
   const computedScheduled =
     isScheduled !== undefined
       ? isScheduled
       : Boolean(
           status === "published" &&
             openAt &&
-            new Date(openAt).getTime() > Date.now()
+            new Date(openAt).getTime() > nowMs
         );
 
   if (status === "published" && computedScheduled) {

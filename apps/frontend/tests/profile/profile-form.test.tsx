@@ -31,7 +31,7 @@ describe("ProfileForm Component", () => {
     vi.mocked(useUpdateProfile).mockReturnValue({
       mutateAsync: mockMutateAsync,
       isPending: false,
-    } as any);
+    } as never);
   });
 
   it("renders form fields initialized with profile data", () => {

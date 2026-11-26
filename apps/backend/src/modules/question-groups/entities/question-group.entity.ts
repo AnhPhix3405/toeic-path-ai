@@ -17,7 +17,14 @@ export class QuestionGroup {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'group_code', type: 'varchar', length: 20, unique: true, insert: false, update: false })
+  @Column({
+    name: 'group_code',
+    type: 'varchar',
+    length: 20,
+    unique: true,
+    insert: false,
+    update: false,
+  })
   groupCode!: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })

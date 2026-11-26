@@ -62,19 +62,22 @@ export function ExamQuestionPickerModal({
     [existingQuestionIds]
   );
 
+  const sectionPartId = section?.partId;
+  const sectionPartNumber = section?.partNumber;
+
   // Filter eligible single questions (published, not in group)
   const filteredSingleQuestions = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
     return availableSingleQuestions.filter((q) => {
       if (q.status !== "published") return false;
       if (q.questionGroupId) return false;
-      if (section?.partId && q.part?.id && q.part.id !== section.partId) {
+      if (sectionPartId && q.part?.id && q.part.id !== sectionPartId) {
         return false;
       }
       if (!keyword) return true;
       return (q.content || "").toLowerCase().includes(keyword);
     });
-  }, [availableSingleQuestions, searchQuery, section?.partId]);
+  }, [availableSingleQuestions, searchQuery, sectionPartId]);
 
   // Filter eligible question groups (100% child questions published and match part)
   const filteredQuestionGroups = useMemo(() => {
@@ -84,13 +87,13 @@ export function ExamQuestionPickerModal({
       if (qs.length === 0) return false;
       const allPublishedAndMatchPart = qs.every((q) => {
         if (q.status !== "published") return false;
-        if (section?.partId && q.part?.id && q.part.id !== section.partId) {
+        if (sectionPartId && q.part?.id && q.part.id !== sectionPartId) {
           return false;
         }
         if (
-          section?.partNumber &&
+          sectionPartNumber &&
           q.part?.partNumber &&
-          q.part.partNumber !== section.partNumber
+          q.part.partNumber !== sectionPartNumber
         ) {
           return false;
         }

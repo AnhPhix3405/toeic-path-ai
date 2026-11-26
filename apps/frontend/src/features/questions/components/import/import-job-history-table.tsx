@@ -116,9 +116,11 @@ export function ImportJobHistoryTable({
   const totalPages = data?.totalPages || 1;
 
   const [pageJumpInput, setPageJumpInput] = useState(String(filter.page));
-  useEffect(() => {
+  const [prevPage, setPrevPage] = useState(filter.page);
+  if (filter.page !== prevPage) {
+    setPrevPage(filter.page);
     setPageJumpInput(String(filter.page));
-  }, [filter.page]);
+  }
 
   const handlePageJumpCommit = (rawVal: string) => {
     const trimmed = rawVal.trim();

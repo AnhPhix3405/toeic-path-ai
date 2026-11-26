@@ -68,10 +68,12 @@ export function QuestionReportsQueueTable({
 }: QuestionReportsQueueTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const [pageJumpInput, setPageJumpInput] = useState(String(page));
+  const [prevPage, setPrevPage] = useState(page);
 
-  useEffect(() => {
+  if (page !== prevPage) {
+    setPrevPage(page);
     setPageJumpInput(String(page));
-  }, [page]);
+  }
 
   const handlePageJumpCommit = (rawVal: string) => {
     const trimmed = rawVal.trim();

@@ -101,21 +101,25 @@ export function AttemptHistoryTable({
 }: AttemptHistoryTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const [pageJumpInput, setPageJumpInput] = useState(String(page));
+  const [prevPage, setPrevPage] = useState(page);
   const [localFromDate, setLocalFromDate] = useState(fromDate);
+  const [prevFromDate, setPrevFromDate] = useState(fromDate);
   const [localToDate, setLocalToDate] = useState(toDate);
+  const [prevToDate, setPrevToDate] = useState(toDate);
   const [dateError, setDateError] = useState<string | null>(null);
 
-  useEffect(() => {
+  if (page !== prevPage) {
+    setPrevPage(page);
     setPageJumpInput(String(page));
-  }, [page]);
-
-  useEffect(() => {
+  }
+  if (fromDate !== prevFromDate) {
+    setPrevFromDate(fromDate);
     setLocalFromDate(fromDate);
-  }, [fromDate]);
-
-  useEffect(() => {
+  }
+  if (toDate !== prevToDate) {
+    setPrevToDate(toDate);
     setLocalToDate(toDate);
-  }, [toDate]);
+  }
 
   const handleDateChange = (nextFrom: string, nextTo: string) => {
     setLocalFromDate(nextFrom);

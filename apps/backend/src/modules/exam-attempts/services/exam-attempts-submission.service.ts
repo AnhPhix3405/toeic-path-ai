@@ -33,9 +33,7 @@ export class ExamAttemptsSubmissionService {
 
   async submitAttempt(userId: string, attemptId: string): Promise<SubmitExamAttemptResponseDto> {
     const attempt = await this.examAttemptRepository.findOne({
-      where: isUuidIdentifier(attemptId)
-        ? { id: attemptId }
-        : { attemptCode: attemptId.trim() },
+      where: isUuidIdentifier(attemptId) ? { id: attemptId } : { attemptCode: attemptId.trim() },
     });
 
     if (!attempt) {

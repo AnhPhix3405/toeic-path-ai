@@ -74,9 +74,11 @@ export function QuestionTable() {
   const totalPages = data?.totalPages || 1;
 
   const [pageJumpInput, setPageJumpInput] = useState(String(store.page));
-  useEffect(() => {
+  const [prevPage, setPrevPage] = useState(store.page);
+  if (store.page !== prevPage) {
+    setPrevPage(store.page);
     setPageJumpInput(String(store.page));
-  }, [store.page]);
+  }
 
   const handlePageJumpCommit = (rawVal: string) => {
     const trimmed = rawVal.trim();

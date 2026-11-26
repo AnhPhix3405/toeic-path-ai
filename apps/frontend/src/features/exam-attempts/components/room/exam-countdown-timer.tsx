@@ -57,7 +57,6 @@ export function ExamCountdownTimer({
 
   useEffect(() => {
     if (isForceExpired) {
-      setRemainingSeconds(0);
       if (!hasExpiredRef.current) {
         hasExpiredRef.current = true;
         onExpireRef.current();
@@ -74,9 +73,12 @@ export function ExamCountdownTimer({
       }
     };
 
-    tick();
+    const initialTimer = setTimeout(tick, 0);
     const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
   }, [expiresAt, serverTimeOffsetMs, isForceExpired]);
 
   const isCritical = remainingSeconds > 0 && remainingSeconds < 60;

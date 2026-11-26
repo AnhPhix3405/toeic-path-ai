@@ -46,7 +46,7 @@ export function useExamAutosave({
   );
 
   // PMR 025 #5: Zero re-render delta time tracking via refs + visibilitychange
-  const questionEnteredAtRef = useRef<number>(Date.now());
+  const questionEnteredAtRef = useRef<number>(0);
   const accumulatedHiddenSafeMsRef = useRef<number>(0);
   const prevQuestionIdRef = useRef<string | null>(activeQuestionId);
   const debounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -54,11 +54,20 @@ export function useExamAutosave({
   );
   const isFlushingRef = useRef(false);
 
+  useEffect(() => {
+    if (questionEnteredAtRef.current === 0) {
+      questionEnteredAtRef.current = Date.now();
+    }
+  }, []);
+
   const captureCurrentQuestionDelta = useCallback((): number => {
     if (isLocked) return 0;
     const now = Date.now();
     const isHidden = typeof document !== "undefined" && document.hidden;
-    const activeMs = isHidden ? 0 : Math.max(0, now - questionEnteredAtRef.current);
+    const activeMs =
+      isHidden || questionEnteredAtRef.current === 0
+        ? 0
+        : Math.max(0, now - questionEnteredAtRef.current);
     const totalSeconds = clampTimeSpentSeconds(
       (accumulatedHiddenSafeMsRef.current + activeMs) / 1000
     );

@@ -25,7 +25,7 @@ describe("questionsService", () => {
       limit: 20,
       totalPages: 1,
     };
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockData } as any);
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockData } as never);
 
     const result = await questionsService.getQuestions({
       search: "meeting",
@@ -41,7 +41,7 @@ describe("questionsService", () => {
 
   it("createQuestion calls POST /questions with body", async () => {
     const mockQuestion = { id: "q-1", content: "New Q", questionType: "single_choice" };
-    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: mockQuestion } as any);
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: mockQuestion } as never);
 
     const result = await questionsService.createQuestion({
       content: "New Q",
@@ -57,7 +57,7 @@ describe("questionsService", () => {
 
   it("updateClassification calls PUT /questions/:id/classification", async () => {
     const mockQuestion = { id: "q-1", difficulty: "medium" };
-    vi.mocked(apiClient.put).mockResolvedValueOnce({ data: mockQuestion } as any);
+    vi.mocked(apiClient.put).mockResolvedValueOnce({ data: mockQuestion } as never);
 
     const result = await questionsService.updateClassification("q-1", {
       partId: "part-5",
@@ -81,13 +81,13 @@ describe("questionsService", () => {
     const optB = { id: "opt-2", content: "B content", position: 2, isCorrect: true };
 
     vi.mocked(apiClient.post)
-      .mockResolvedValueOnce({ data: createdQ } as any) // question
-      .mockResolvedValueOnce({ data: optA } as any) // option 1
-      .mockResolvedValueOnce({ data: optB } as any); // option 2
+      .mockResolvedValueOnce({ data: createdQ } as never) // question
+      .mockResolvedValueOnce({ data: optA } as never) // option 1
+      .mockResolvedValueOnce({ data: optB } as never); // option 2
 
-    vi.mocked(apiClient.put).mockResolvedValueOnce({ data: { id: "q-new" } } as any); // classification
-    vi.mocked(apiClient.patch).mockResolvedValueOnce({ data: { ...optB, isCorrect: true } } as any); // correct answer
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { ...createdQ, options: [optA, optB] } } as any); // final question fetch
+    vi.mocked(apiClient.put).mockResolvedValueOnce({ data: { id: "q-new" } } as never); // classification
+    vi.mocked(apiClient.patch).mockResolvedValueOnce({ data: { ...optB, isCorrect: true } } as never); // correct answer
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { ...createdQ, options: [optA, optB] } } as never); // final question fetch
 
     const result = await questionsService.createCompositeQuestion({
       content: "Full question",

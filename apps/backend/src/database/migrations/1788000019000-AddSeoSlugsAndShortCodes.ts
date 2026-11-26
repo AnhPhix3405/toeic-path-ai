@@ -1,21 +1,14 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import {
-  generateAttemptCode,
-  slugifyVietnamese,
-} from '../../common/utils/slug.util';
+import { generateAttemptCode, slugifyVietnamese } from '../../common/utils/slug.util';
 
-export class AddSeoSlugsAndShortCodes1788000019000
-  implements MigrationInterface
-{
+export class AddSeoSlugsAndShortCodes1788000019000 implements MigrationInterface {
   name = 'AddSeoSlugsAndShortCodes1788000019000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // =========================================================================
     // STEP 1: Create PostgreSQL Sequences & Add Nullable Columns
     // =========================================================================
-    await queryRunner.query(
-      `CREATE SEQUENCE IF NOT EXISTS question_code_seq START 1 INCREMENT 1;`,
-    );
+    await queryRunner.query(`CREATE SEQUENCE IF NOT EXISTS question_code_seq START 1 INCREMENT 1;`);
     await queryRunner.query(
       `CREATE SEQUENCE IF NOT EXISTS question_group_code_seq START 1 INCREMENT 1;`,
     );
@@ -26,9 +19,7 @@ export class AddSeoSlugsAndShortCodes1788000019000
       `CREATE SEQUENCE IF NOT EXISTS import_job_code_seq START 1 INCREMENT 1;`,
     );
 
-    await queryRunner.query(
-      `ALTER TABLE "exams" ADD COLUMN IF NOT EXISTS "slug" varchar(255);`,
-    );
+    await queryRunner.query(`ALTER TABLE "exams" ADD COLUMN IF NOT EXISTS "slug" varchar(255);`);
     await queryRunner.query(
       `ALTER TABLE "questions" ADD COLUMN IF NOT EXISTS "question_code" varchar(20);`,
     );
@@ -122,14 +113,14 @@ export class AddSeoSlugsAndShortCodes1788000019000
     `);
 
     // 2e. Backfill exams.slug & deduplicate any pre-existing active duplicate titles safely
-    const exams: Array<{
+    const exams = (await queryRunner.query(
+      `SELECT id, title, slug, is_deleted FROM exams ORDER BY created_at ASC, id ASC;`,
+    )) as Array<{
       id: string;
       title: string;
       slug: string | null;
       is_deleted: boolean;
-    }> = await queryRunner.query(
-      `SELECT id, title, slug, is_deleted FROM exams ORDER BY created_at ASC, id ASC;`,
-    );
+    }>;
 
     const usedActiveTitles = new Set<string>();
     const usedSlugs = new Set<string>();
@@ -140,18 +131,14 @@ export class AddSeoSlugsAndShortCodes1788000019000
         const normalizedTitle = currentTitle.trim().toLowerCase();
         if (usedActiveTitles.has(normalizedTitle)) {
           let suffix = 2;
-          while (
-            usedActiveTitles.has(
-              `${normalizedTitle} (${suffix})`,
-            )
-          ) {
+          while (usedActiveTitles.has(`${normalizedTitle} (${suffix})`)) {
             suffix++;
           }
           currentTitle = `${currentTitle.trim()} (${suffix})`;
-          await queryRunner.query(
-            `UPDATE exams SET title = $1 WHERE id = $2;`,
-            [currentTitle, exam.id],
-          );
+          await queryRunner.query(`UPDATE exams SET title = $1 WHERE id = $2;`, [
+            currentTitle,
+            exam.id,
+          ]);
         }
         usedActiveTitles.add(currentTitle.trim().toLowerCase());
       }
@@ -169,21 +156,15 @@ export class AddSeoSlugsAndShortCodes1788000019000
         counter++;
       }
       usedSlugs.add(candidate);
-      await queryRunner.query(`UPDATE exams SET slug = $1 WHERE id = $2;`, [
-        candidate,
-        exam.id,
-      ]);
+      await queryRunner.query(`UPDATE exams SET slug = $1 WHERE id = $2;`, [candidate, exam.id]);
     }
 
     // 2f. Backfill exam_attempts.attempt_code with cryptographically random att_<10 base62 chars>
-    const attempts: Array<{ id: string; attempt_code: string | null }> =
-      await queryRunner.query(
-        `SELECT id, attempt_code FROM exam_attempts ORDER BY created_at ASC, id ASC;`,
-      );
+    const attempts = (await queryRunner.query(
+      `SELECT id, attempt_code FROM exam_attempts ORDER BY created_at ASC, id ASC;`,
+    )) as Array<{ id: string; attempt_code: string | null }>;
     const usedAttemptCodes = new Set<string>(
-      attempts
-        .map((a) => a.attempt_code)
-        .filter((c): c is string => Boolean(c)),
+      attempts.map((a) => a.attempt_code).filter((c): c is string => Boolean(c)),
     );
 
     for (const attempt of attempts) {
@@ -193,10 +174,10 @@ export class AddSeoSlugsAndShortCodes1788000019000
         code = generateAttemptCode();
       }
       usedAttemptCodes.add(code);
-      await queryRunner.query(
-        `UPDATE exam_attempts SET attempt_code = $1 WHERE id = $2;`,
-        [code, attempt.id],
-      );
+      await queryRunner.query(`UPDATE exam_attempts SET attempt_code = $1 WHERE id = $2;`, [
+        code,
+        attempt.id,
+      ]);
     }
 
     // =========================================================================
@@ -263,32 +244,16 @@ export class AddSeoSlugsAndShortCodes1788000019000
     await queryRunner.query(`DROP INDEX IF EXISTS "uq_exams_active_title";`);
     await queryRunner.query(`DROP INDEX IF EXISTS "uq_exams_slug";`);
 
-    await queryRunner.query(
-      `ALTER TABLE "exam_attempts" DROP COLUMN IF EXISTS "attempt_code";`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "import_jobs" DROP COLUMN IF EXISTS "job_code";`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "question_reports" DROP COLUMN IF EXISTS "report_code";`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "question_groups" DROP COLUMN IF EXISTS "group_code";`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "questions" DROP COLUMN IF EXISTS "question_code";`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "exams" DROP COLUMN IF EXISTS "slug";`,
-    );
+    await queryRunner.query(`ALTER TABLE "exam_attempts" DROP COLUMN IF EXISTS "attempt_code";`);
+    await queryRunner.query(`ALTER TABLE "import_jobs" DROP COLUMN IF EXISTS "job_code";`);
+    await queryRunner.query(`ALTER TABLE "question_reports" DROP COLUMN IF EXISTS "report_code";`);
+    await queryRunner.query(`ALTER TABLE "question_groups" DROP COLUMN IF EXISTS "group_code";`);
+    await queryRunner.query(`ALTER TABLE "questions" DROP COLUMN IF EXISTS "question_code";`);
+    await queryRunner.query(`ALTER TABLE "exams" DROP COLUMN IF EXISTS "slug";`);
 
     await queryRunner.query(`DROP SEQUENCE IF EXISTS import_job_code_seq;`);
-    await queryRunner.query(
-      `DROP SEQUENCE IF EXISTS question_report_code_seq;`,
-    );
-    await queryRunner.query(
-      `DROP SEQUENCE IF EXISTS question_group_code_seq;`,
-    );
+    await queryRunner.query(`DROP SEQUENCE IF EXISTS question_report_code_seq;`);
+    await queryRunner.query(`DROP SEQUENCE IF EXISTS question_group_code_seq;`);
     await queryRunner.query(`DROP SEQUENCE IF EXISTS question_code_seq;`);
   }
 }

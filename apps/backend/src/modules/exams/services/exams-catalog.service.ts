@@ -50,9 +50,12 @@ export class ExamsCatalogService {
     }
 
     if (query.search && query.search.trim()) {
-      qb.andWhere('(LOWER(exam.title) LIKE LOWER(:search) OR LOWER(exam.slug) LIKE LOWER(:search))', {
-        search: `%${query.search.trim()}%`,
-      });
+      qb.andWhere(
+        '(LOWER(exam.title) LIKE LOWER(:search) OR LOWER(exam.slug) LIKE LOWER(:search))',
+        {
+          search: `%${query.search.trim()}%`,
+        },
+      );
     }
 
     // Tối ưu hóa đếm tổng số câu hỏi bằng subquery trực tiếp ở tầng SQL
@@ -140,9 +143,12 @@ export class ExamsCatalogService {
     }
 
     if (query.search && query.search.trim()) {
-      qb.andWhere('(LOWER(exam.title) LIKE LOWER(:search) OR LOWER(exam.slug) LIKE LOWER(:search))', {
-        search: `%${query.search.trim()}%`,
-      });
+      qb.andWhere(
+        '(LOWER(exam.title) LIKE LOWER(:search) OR LOWER(exam.slug) LIKE LOWER(:search))',
+        {
+          search: `%${query.search.trim()}%`,
+        },
+      );
     }
 
     qb.orderBy('exam.createdAt', 'DESC');

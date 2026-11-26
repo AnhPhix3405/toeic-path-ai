@@ -47,7 +47,10 @@ export class ExamAttemptsAnswersService {
    * Helper kiểm tra và xác thực tính hợp lệ của lượt thi khi lưu câu trả lời (PMR 023).
    * Tuyệt đối không cho phép Admin/Teacher can thiệp thay thí sinh.
    */
-  private async getValidAttemptForSave(attemptIdentifier: string, userId: string): Promise<ExamAttempt> {
+  private async getValidAttemptForSave(
+    attemptIdentifier: string,
+    userId: string,
+  ): Promise<ExamAttempt> {
     const attempt = await this.examAttemptRepository.findOne({
       where: isUuidIdentifier(attemptIdentifier)
         ? { id: attemptIdentifier }

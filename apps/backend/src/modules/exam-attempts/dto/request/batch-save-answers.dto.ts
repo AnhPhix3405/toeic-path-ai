@@ -39,7 +39,9 @@ export class BatchAnswerItemDto {
     description: 'Cờ đánh dấu câu hỏi để xem lại sau',
     example: false,
   })
-  @Transform(({ obj, value }) => (obj && 'isMarkedForReview' in obj ? obj.isMarkedForReview : value))
+  @Transform(({ obj, value }: { obj?: Record<string, unknown>; value: unknown }): unknown =>
+    obj && 'isMarkedForReview' in obj ? obj.isMarkedForReview : value,
+  )
   @IsOptional()
   @IsBoolean({ message: 'isMarkedForReview phải là kiểu boolean' })
   isMarkedForReview?: boolean;

@@ -28,12 +28,12 @@ describe("AvatarUpload Component", () => {
     vi.mocked(useUploadAvatar).mockReturnValue({
       mutateAsync: mockUploadMutateAsync,
       isPending: false,
-    } as any);
+    } as never);
 
     vi.mocked(useDeleteAvatar).mockReturnValue({
       mutateAsync: mockDeleteMutateAsync,
       isPending: false,
-    } as any);
+    } as never);
 
     // Mock URL.createObjectURL and URL.revokeObjectURL
     global.URL.createObjectURL = vi.fn(() => "blob:http://localhost/temp-preview");
