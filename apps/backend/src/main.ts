@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,18 +8,17 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { DataSource } from 'typeorm';
 import cookieParser from 'cookie-parser';
-import { json, urlencoded } from 'express';
 
 interface DatabaseCheckResult {
   database: string;
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
   const configService = app.get(ConfigService);
   const bodyLimit = configService.get<string>('app.jsonBodyLimit', '16kb');
-  app.use(json({ limit: bodyLimit }));
-  app.use(urlencoded({ limit: bodyLimit, extended: true }));
+  app.useBodyParser('json', { limit: bodyLimit });
+  app.useBodyParser('urlencoded', { limit: bodyLimit, extended: true });
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
   const trustProxyHops = configService.get<number>('app.trustProxyHops', 0);
