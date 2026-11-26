@@ -68,4 +68,24 @@ describe('MailModule Dynamic Factory Provider', () => {
     const mailService = moduleRef.get<MailService>(MAIL_SERVICE);
     expect(mailService).toBeInstanceOf(ConsoleMailAdapter);
   });
+
+  it('should not require mail.brevoApiKey when mail.provider is "console"', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [MailModule],
+    })
+      .overrideProvider(ConfigService)
+      .useValue({
+        get: jest.fn((key: string, fallback?: unknown) => {
+          if (key === 'mail.provider') return 'console';
+          return fallback;
+        }),
+        getOrThrow: jest.fn((key: string) => {
+          throw new TypeError(`Configuration key "${key}" does not exist`);
+        }),
+      })
+      .compile();
+
+    const mailService = moduleRef.get<MailService>(MAIL_SERVICE);
+    expect(mailService).toBeInstanceOf(ConsoleMailAdapter);
+  });
 });

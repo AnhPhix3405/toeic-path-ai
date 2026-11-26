@@ -7,8 +7,6 @@ import { MAIL_SERVICE } from './mail.service';
 @Module({
   imports: [ConfigModule],
   providers: [
-    ConsoleMailAdapter,
-    BrevoMailAdapter,
     {
       provide: MAIL_SERVICE,
       useFactory: (configService: ConfigService) => {
