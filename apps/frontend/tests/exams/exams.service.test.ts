@@ -73,6 +73,19 @@ describe("examsService (15 endpoints contract #222) & Exam Validators (#1009)", 
 
     await examsService.deleteExam("ex-1");
     expect(apiClient.delete).toHaveBeenCalledWith("/exams/ex-1");
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      stats: {
+        publishedExamsCount: 4,
+        publishedQuestionsCount: 200,
+        completedAttemptsCount: 15,
+        supportedToeicPartsCount: 7,
+      },
+      featuredExams: [],
+    } as never);
+    const summary = await examsService.getLandingSummary();
+    expect(apiClient.get).toHaveBeenCalledWith("/exams/landing-summary");
+    expect(summary.stats.supportedToeicPartsCount).toBe(7);
   });
 
   it("calls Structure Builder & Publishing endpoints with version (getExamStructure, configureSections, addQuestions, reorderQuestions, removeQuestion, autoGenerate, publish/unpublish/close/archive)", async () => {

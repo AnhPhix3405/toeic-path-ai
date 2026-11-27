@@ -213,3 +213,15 @@ export interface PublishChecklistErrorInfo {
   errorCode?: string;
   invalidQuestionIds?: string[];
 }
+
+export interface PublicLandingStats {
+  publishedExamsCount: number;
+  publishedQuestionsCount: number;
+  completedAttemptsCount: number;
+  supportedToeicPartsCount: number;
+}
+
+export interface PublicLandingSummary {
+  stats: PublicLandingStats;
+  featuredExams: ExamCatalogItem[];
+}

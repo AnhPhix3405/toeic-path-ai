@@ -11,6 +11,7 @@ import {
   ExamStructure,
   PaginatedManageExams,
   PaginatedPublicExams,
+  PublicLandingSummary,
   QueryExamsParams,
   QueryManageExamsParams,
   ReorderExamQuestionsDto,
@@ -252,5 +253,15 @@ export const examsService = {
       `/exams/${id}/overview`
     );
     return unwrapResponse<ExamOverview>(response);
+  },
+
+  /**
+   * 16. GET /api/v1/exams/landing-summary (Public Homepage Stats & Featured Exams)
+   */
+  async getLandingSummary(): Promise<PublicLandingSummary> {
+    const response = await apiClient.get<PublicLandingSummary>(
+      "/exams/landing-summary"
+    );
+    return unwrapResponse<PublicLandingSummary>(response);
   },
 };

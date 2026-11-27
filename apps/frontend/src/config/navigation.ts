@@ -33,19 +33,23 @@ export const publicNavItems: NavItem[] = [
     icon: BookOpen,
   },
   {
+    title: "Tính năng",
+    href: "/#features",
+    icon: Layers,
+  },
+  {
     title: "Lộ trình TOEIC",
     href: "/learning-path",
     icon: Compass,
+    badge: "Upcoming",
+    badgeVariant: "warning",
   },
   {
     title: "Trợ giảng AI",
     href: "/ai-tutor",
     icon: Sparkles,
-  },
-  {
-    title: "Giới thiệu",
-    href: "/about",
-    icon: Info,
+    badge: "Upcoming",
+    badgeVariant: "warning",
   },
 ];
 
