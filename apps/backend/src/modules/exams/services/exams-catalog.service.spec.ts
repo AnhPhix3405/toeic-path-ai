@@ -250,4 +250,68 @@ describe('ExamsCatalogService', () => {
       expect((overview as any).options).toBeUndefined();
     });
   });
+
+  describe('getLandingSummary', () => {
+    it('should return live stats and featuredExams when examRepo.manager.query is available', async () => {
+      jest.spyOn(service, 'findPublicCatalog').mockResolvedValue({
+        items: [
+          {
+            id: 'exam-1',
+            title: 'ETS Full Test 1',
+            slug: 'ets-full-test-1',
+            description: 'Full test',
+            type: ExamType.FULL_TEST,
+            durationMinutes: 120,
+            totalQuestions: 200,
+            totalAttempts: 5,
+            allowPartPractice: true,
+            openAt: null,
+            closeAt: null,
+            isScheduled: false,
+          },
+        ],
+        total: 4,
+        page: 1,
+        limit: 6,
+        totalPages: 1,
+      });
+      mockExamRepo.manager = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce([{ cnt: 240 }])
+          .mockResolvedValueOnce([{ cnt: 18 }]),
+      };
+
+      const result = await service.getLandingSummary();
+
+      expect(service.findPublicCatalog).toHaveBeenCalledWith({ page: 1, limit: 6 });
+      expect(result.stats).toEqual({
+        publishedExamsCount: 4,
+        publishedQuestionsCount: 240,
+        completedAttemptsCount: 18,
+        supportedToeicPartsCount: 7,
+      });
+      expect(result.featuredExams).toHaveLength(1);
+    });
+
+    it('should default question and attempt counts to 0 when examRepo.manager is undefined', async () => {
+      jest.spyOn(service, 'findPublicCatalog').mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 6,
+        totalPages: 0,
+      });
+
+      const result = await service.getLandingSummary();
+
+      expect(result.stats).toEqual({
+        publishedExamsCount: 0,
+        publishedQuestionsCount: 0,
+        completedAttemptsCount: 0,
+        supportedToeicPartsCount: 7,
+      });
+      expect(result.featuredExams).toEqual([]);
+    });
+  });
 });

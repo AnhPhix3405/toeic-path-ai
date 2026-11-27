@@ -14,6 +14,7 @@ describe('ExamsCatalogController', () => {
       findPublicCatalog: jest.fn(),
       findManagementCatalog: jest.fn(),
       getExamOverview: jest.fn(),
+      getLandingSummary: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -82,6 +83,26 @@ describe('ExamsCatalogController', () => {
 
       expect(mockService.getExamOverview).toHaveBeenCalledWith('exam-1', user);
       expect(result).toBe(mockOverview);
+    });
+  });
+
+  describe('getLandingSummary', () => {
+    it('should delegate to service.getLandingSummary', async () => {
+      const mockSummary = {
+        stats: {
+          publishedExamsCount: 3,
+          publishedQuestionsCount: 120,
+          completedAttemptsCount: 15,
+          supportedToeicPartsCount: 7,
+        },
+        featuredExams: [],
+      };
+      mockService.getLandingSummary.mockResolvedValue(mockSummary);
+
+      const result = await controller.getLandingSummary();
+
+      expect(mockService.getLandingSummary).toHaveBeenCalled();
+      expect(result).toBe(mockSummary);
     });
   });
 });

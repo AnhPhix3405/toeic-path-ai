@@ -3,9 +3,25 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@ne
 import { PaginatedExamsCatalogResponseDto } from '../dto/response/paginated-exams-catalog-response.dto';
 import { PaginatedManageExamsResponseDto } from '../dto/response/paginated-manage-exams-response.dto';
 import { ExamOverviewResponseDto } from '../dto/response/exam-overview-response.dto';
+import { PublicLandingSummaryResponseDto } from '../dto/response/public-landing-summary-response.dto';
 
 export function ApiExamsCatalogTag() {
   return ApiTags('Exams Catalog');
+}
+
+export function ApiLandingSummaryDoc() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Lấy dữ liệu thống kê tổng quan & đề thi nổi bật cho Trang chủ (Public Landing)',
+      description:
+        'Endpoint công khai không yêu cầu đăng nhập. Trả về số lượng đề thi published, câu hỏi published, lượt làm bài hoàn thành và tối đa 6 đề thi nổi bật.',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Lấy dữ liệu tổng quan Trang chủ thành công',
+      type: PublicLandingSummaryResponseDto,
+    }),
+  );
 }
 
 export function ApiPublicCatalogDoc() {

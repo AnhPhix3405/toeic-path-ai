@@ -17,6 +17,7 @@ import {
 import { PaginatedExamsCatalogResponseDto } from '../dto/response/paginated-exams-catalog-response.dto';
 import { PaginatedManageExamsResponseDto } from '../dto/response/paginated-manage-exams-response.dto';
 import { ExamDetailResponseDto } from '../dto/response/exam-detail-response.dto';
+import { PublicLandingSummaryResponseDto } from '../dto/response/public-landing-summary-response.dto';
 import { isUuidIdentifier } from '../../../common/utils/identifier.util';
 
 @Injectable()
@@ -279,6 +280,38 @@ export class ExamsCatalogService {
       closeAt: exam.closeAt,
       isScheduled,
       remainingAttempts,
+    };
+  }
+
+  /**
+   * Lấy thống kê tổng quan hệ thống và danh sách đề thi nổi bật cho Trang chủ công khai.
+   */
+  async getLandingSummary(): Promise<PublicLandingSummaryResponseDto> {
+    const catalog = await this.findPublicCatalog({ page: 1, limit: 6 });
+    let publishedQuestionsCount = 0;
+    let completedAttemptsCount = 0;
+
+    if (typeof this.examRepo.manager?.query === 'function') {
+      const [qRows, aRows] = (await Promise.all([
+        this.examRepo.manager.query(
+          `SELECT COUNT(*)::int AS cnt FROM questions WHERE status = 'published'`,
+        ),
+        this.examRepo.manager.query(
+          `SELECT COUNT(*)::int AS cnt FROM exam_attempts WHERE status IN ('submitted', 'timed_out')`,
+        ),
+      ])) as [Array<{ cnt?: number | string }>, Array<{ cnt?: number | string }>];
+      publishedQuestionsCount = Number(qRows?.[0]?.cnt ?? 0);
+      completedAttemptsCount = Number(aRows?.[0]?.cnt ?? 0);
+    }
+
+    return {
+      stats: {
+        publishedExamsCount: catalog.total,
+        publishedQuestionsCount,
+        completedAttemptsCount,
+        supportedToeicPartsCount: 7,
+      },
+      featuredExams: catalog.items,
     };
   }
 }
